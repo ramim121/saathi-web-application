@@ -1,0 +1,23 @@
+export default interface Project {
+    idProjects: number;
+    projectName: string;
+    summary?: string;
+    returnRangeMin: number;
+    returnRangeMax: number;
+    returnType: 'fixed' | 'range';
+    duration: number;
+    location: string;
+    unitInvestmentValue: number;
+    totalReturnMin: number;
+    totalReturnMax: number;
+    collectionStarts: string; 
+    collectionEnds: string; 
+    insurance: number;
+    idProjectCategories: number;
+    createdBy: number;
+    projectBanner: string;
+    otherLocations?: string;
+    description?: string;
+    createdAt?: string; 
+    updatedAt?: string; 
+};
