@@ -1,0 +1,52 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import bcrypt from 'bcrypt';
+import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'POST') {
+        const { email, password } = req.body
+
+        // Check if username and password are provided
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' })
+        }
+
+        try {
+            // Find the user with the provided username
+            const user = await User.scope('withPassword').findOne({
+                where: { email },
+                include: [
+                    { model: ProjectInvestor, as: 'Investments', include: [Project] },
+                    { model: ProjectPartner, as: 'Partnerships', include: [Project] }
+                ],
+            })
+
+            // If the user is not found, return a 404 Not Found response
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' })
+            }
+
+            // Verify the password
+            const passwordMatch = await bcrypt.compare(password, user.password)
+
+            if (!passwordMatch) {
+                return res.status(401).json({ message: 'Invalid email or password' })
+            }
+
+
+            // Generate a JWT token
+            const token = jwt.sign({ idUsers: user.idUsers, userType: user.userType }, JWT_SECRET, {
+                expiresIn: '30d',
+            })
+
+            return res.status(200).json({ token })
+        } catch (err: any) {
+            console.error(err)
+            return res.status(500).json({ message: err.message })
+        }
+    } else {
+        res.status(405).json({ message: 'Method not allowed' })
+    }
+}

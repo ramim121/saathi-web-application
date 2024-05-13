@@ -1,14 +1,18 @@
+import { Optional } from 'sequelize';
+import ProjectInvestor from './ProjectInvestor';
+import ProjectPartner from './ProjectPartner';
+
 type UserType = 'admin' | 'investor' | 'partner';
 
 
 export default interface User {
     idUsers: number;
-    fullName: string | null;
-    email: string | null;
-    phoneNumber: string | null;
-    password: string | null;
-    createdAt: Date | null;
-    updatedAt: Date | null;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    createdAt: Date;
+    updatedAt: Date;
     userType: UserType;
     emailVerified: 'yes' | 'no';
     phoneVerified: 'yes' | 'no';
@@ -17,4 +21,9 @@ export default interface User {
     nidImageBack: string | null;
     profileImage: string | null;
     status: 'active' | 'inactive';
+    Investments?: ProjectInvestor[];
+    Partnerships?: ProjectPartner[];
 }
+
+
+export interface UserAttributes extends Optional<User, 'idUsers'> { }
