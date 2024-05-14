@@ -15,10 +15,10 @@ Project.hasMany(ProjectPartner, { foreignKey: 'idProjects', as: 'ProjectPartners
 Project.hasMany(ProjectInvestor, { foreignKey: 'idProjects', as: 'ProjectInvestors' });
 Project.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
 
-ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects', as: 'Project' });
-ProjectPartner.belongsTo(User, { foreignKey: 'idUsers', as: 'User' });
+ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
+ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
 
-ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects', as: 'Project' });
-ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers', as: 'User' });
+ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
+ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
 
 export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor };

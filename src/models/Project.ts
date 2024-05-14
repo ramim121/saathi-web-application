@@ -31,11 +31,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: false
     },
     returnRangeMin: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     returnRangeMax: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     returnType: {
@@ -47,15 +47,15 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: false
     },
     unitInvestmentValue: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     totalReturnMin: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     totalReturnMax: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     collectionStarts: {
@@ -67,7 +67,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: false
     },
     insurance: {
-        type: DataTypes.DECIMAL(12,2),
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     otherLocations: {
@@ -79,7 +79,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: false
     },
     projectStatus: {
-        type: DataTypes.ENUM('created','collection_started','collection_done','project_started','project_finished','fund_disbursed','closed'),
+        type: DataTypes.ENUM('created', 'collection_started', 'collection_done', 'project_started', 'project_finished', 'fund_disbursed', 'closed'),
         defaultValue: 'pending',
         allowNull: false
     },
@@ -91,6 +91,10 @@ const Project = sequelize.define<ProjectModel>('Project', {
         type: DataTypes.DATE,
         allowNull: false
     }
+}, {
+    tableName: 'projects',
+    underscored: true,
+    timestamps: true,
 });
 
 export default Project;

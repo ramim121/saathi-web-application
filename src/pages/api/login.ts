@@ -23,6 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ],
             })
 
+            console.log(bcrypt.hashSync(password, 10));
+
             // If the user is not found, return a 404 Not Found response
             if (!user) {
                 return res.status(404).json({ message: 'User not found' })
@@ -41,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 expiresIn: '30d',
             })
 
-            return res.status(200).json({ token })
+            return res.status(200).json({ token, user })
         } catch (err: any) {
             console.error(err)
             return res.status(500).json({ message: err.message })

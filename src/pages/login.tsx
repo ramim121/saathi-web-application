@@ -28,12 +28,19 @@ const LoginPage = () => {
 				body: JSON.stringify(formData)
 			});
 
-
 			const data = await res.json();
-
-			if (data.success == true) {
+			if (res.status === 200) {
 				console.log('Login successful');
+			} else {
+				console.log('Login failed');
 			}
+
+
+			// if (data.success == true) {
+			// 	console.log('Login successful');
+			// }
+
+			// console.log(data);
 
 		} catch (err) {
 			console.log(err);

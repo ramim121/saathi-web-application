@@ -18,6 +18,10 @@ const ProjectCategory = sequelize.define<ProjectCategoryModel>('ProjectCategory'
         type: DataTypes.STRING,
         allowNull: true
     }
+}, {
+    tableName: 'project_categories',
+    underscored: true,
+    timestamps: true,
 });
 
 export default ProjectCategory;

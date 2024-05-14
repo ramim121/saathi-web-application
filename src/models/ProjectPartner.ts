@@ -27,6 +27,10 @@ const ProjectPartner = sequelize.define<ProjectPartnerModel>('ProjectPartner', {
         type: DataTypes.DATE,
         allowNull: false
     }
+}, {
+    tableName: 'project_partners',
+    underscored: true,
+    timestamps: true,
 });
 
 export default ProjectPartner;

@@ -27,6 +27,10 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
         type: DataTypes.DATE,
         allowNull: false
     }
+}, {
+    tableName: 'project_investors',
+    underscored: true,
+    timestamps: true,
 });
 
 export default ProjectInvestor;
