@@ -4,7 +4,7 @@ import { Sequelize } from 'sequelize';
 const sequelize = new Sequelize({
     dialect:'mysql',
     dialectModule: require('mysql2'),
-    host: '192.168.91.92',
+    host: 'saathi-db.cla6si4uaanu.ap-southeast-1.rds.amazonaws.com',
     port: 3306,
     username: 'saathi_admin',
     password: 'w607kTcCngWiq8U',
