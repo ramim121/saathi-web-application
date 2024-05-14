@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { AppContext } from '../context/AppContext';
+
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
 	const [password, setPassword] = useState<string>('');
+	const { token, currentUser, updateToken, updateUserInfo } = useContext(AppContext);
 
 	const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setEmail(e.target.value);
@@ -30,17 +33,18 @@ const LoginPage = () => {
 
 			const data = await res.json();
 			if (res.status === 200) {
-				console.log('Login successful');
+				updateToken(data.token);
+				updateUserInfo({
+					idUsers: data.user.idUsers,
+					fullName: data.user.fullName,
+					profileImage: data.user.profileImage,
+					email: data.user.email,
+					phoneNumber: data.user.phoneNumber,
+					userType: data.user.userType
+				});
 			} else {
 				console.log('Login failed');
 			}
-
-
-			// if (data.success == true) {
-			// 	console.log('Login successful');
-			// }
-
-			// console.log(data);
 
 		} catch (err) {
 			console.log(err);

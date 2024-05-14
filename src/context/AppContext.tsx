@@ -1,61 +1,72 @@
-import { useState, createContext, ReactNode, useEffect } from 'react';
+import { createContext, useState, useEffect } from "react";
 
-interface UserData {
-    idUsers: number;
-    fullName: string;
-    profileImage: string;
-    email: string;
-    phoneNumber: string;
-    userType: string;
+export interface User {
+    idUsers: number,
+    fullName: string,
+    email: string,
+    phoneNumber: string,
+    profileImage: string,
+    userType: string
 }
 
-interface AppContextProps {
-    token: string | null;
-    userInfo: UserData | null;
-    updateUserInfo: (userInfoData: UserData | null) => void;
-    updateToken: (tokenData: string | null) => void;
+const defaultValue = {
+    token: '',
+    currentUser: undefined as User | undefined,
+    updateToken: (token: string) => { },
+    updateUserInfo: (user: User) => { }
 }
 
-export const AppContext = createContext<AppContextProps | null>(null);
+export const AppContext = createContext(defaultValue);
 
-interface AppContextProviderProps {
-    children: ReactNode;
-}
-
-function AppContextProvider({ children }: AppContextProviderProps) {
-
-    const [userInfo, setUserInfo] = useState<UserData | null>(null);
-    const [token, setToken] = useState<string | null>(null);
+function AppContextProvider(props: React.PropsWithChildren<object>) {
+    const [token, setToken] = useState<string>('');
+    const [currentUser, setCurrentUser] = useState<User | undefined>(undefined);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        setToken(storedToken);
-        const storedUserInfo = localStorage.getItem('userInfo');
-        setUserInfo(storedUserInfo ? JSON.parse(storedUserInfo) : null);
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        if (token) {
+            setToken(token);
+        }
+        if (user) {
+            setCurrentUser(JSON.parse(user));
+        }
     }, []);
 
-    const updateUserInfo = (userInfoData: UserData | null) => {
-        setUserInfo(userInfoData);
-        if (userInfoData) {
-            localStorage.setItem("userInfo", JSON.stringify(userInfoData));
-        } else {
-            localStorage.removeItem("userInfo");
+    const updateToken = (token: string | null) => {
+        if (token !== null) {
+            setToken(token);
+            localStorage.setItem('token', token);
         }
-    };
-
-
-    const updateToken = (tokenData: string | null) => {
-        setToken(tokenData);
-        if (tokenData) {
-            localStorage.setItem("token", tokenData);
-        } else {
-            localStorage.removeItem("token");
+        else {
+            setToken('');
+            localStorage.removeItem('token');
         }
-    };
+    }
+
+    const updateUserInfo = (user: User | null) => {
+        if (user !== null) {
+            setCurrentUser(user);
+            localStorage.setItem('user', JSON.stringify(user));
+        }
+        else {
+            setCurrentUser(undefined);
+            localStorage.removeItem('user');
+        }
+    }
+
+    const value = {
+        token,
+        currentUser,
+        updateToken,
+        updateUserInfo
+    }
 
     return (
-        <AppContext.Provider value={{ userInfo: userInfo, token: token, updateUserInfo: updateUserInfo, updateToken: updateToken }}>
-            {children}
+        <AppContext.Provider value={value}>
+            {props.children}
         </AppContext.Provider>
     );
 }
+
+export default AppContextProvider;
