@@ -8,12 +8,7 @@ const sequelize = new Sequelize({
     port: 3306,
     username: 'saathi_admin',
     password: 'w607kTcCngWiq8U',
-    database: 'saathi_db',
-    dialectOptions: {
-        ssl: {
-            rejectUnauthorized: true
-        }
-    }
+    database: 'saathi_db'
 });// Example for postgres
 
 export default sequelize;
