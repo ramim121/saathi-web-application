@@ -12,11 +12,11 @@ const User = sequelize.define<UserModel>('User', {
     },
     fullName: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     email: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     phoneNumber: {
         type: DataTypes.STRING,
@@ -24,7 +24,7 @@ const User = sequelize.define<UserModel>('User', {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     createdAt: {
         type: DataTypes.DATE,
