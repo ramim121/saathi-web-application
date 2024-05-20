@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
-import SendSms from '@/utils/SendSms';
+import SendSms from '@/utils/sendSms';
 
 
 interface OTP {
@@ -38,7 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             otp: generateOTP(),
             expiry: Date.now() + OTP_EXPIRY
         };
-
         const message = `Welcome to SAATHI. Your OTP is ${otps[phone].otp}`;
         console.log(await SendSms(message, phone));
 
