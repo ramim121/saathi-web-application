@@ -1,0 +1,22 @@
+.header-layout{
+    width: auto;
+    height: 160px;
+    background-color: #000A50;
+    color: #fff;
+}
+
+.header-layout a{
+    color: #fff;
+    text-decoration: none;
+}
+
+.header-layout a:hover{
+    color: #fff;
+    text-decoration: none;
+}
+
+.footer-layout{
+    width: auto;
+    background-color: #070D45;
+    color: #fff;
+}

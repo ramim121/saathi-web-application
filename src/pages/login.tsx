@@ -1,6 +1,8 @@
 import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-
+import { API_URL } from '@/config/constants';
+import Cookies from "js-cookie";
+import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
@@ -23,7 +25,7 @@ const LoginPage = () => {
 		};
 
 		try {
-			const res = await fetch(process.env.API_URL + 'api/login', {
+			const res = await fetch(API_URL + 'api/login', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -34,6 +36,7 @@ const LoginPage = () => {
 			const data = await res.json();
 			if (res.status === 200) {
 				updateToken(data.token);
+				Cookies.set("saathi-token", data.token, { expires: 30 });
 				updateUserInfo({
 					idUsers: data.user.idUsers,
 					fullName: data.user.fullName,
@@ -52,21 +55,58 @@ const LoginPage = () => {
 	};
 
 	return (
-		<div className='loginContainer'>
-			<form className='loginForm' onSubmit={handleSubmit}>
-				<h2>Login</h2>
-				<div className='loginFormGroup'>
-					<label htmlFor="email">Email:</label>
-					<input type="email" id="email" value={email} onChange={handleEmailChange} />
-				</div>
-				<div className='loginFormGroup'>
-					<label htmlFor="password">Password:</label>
-					<input type="password" id="password" value={password} onChange={handlePasswordChange} />
-				</div>
-				<button type="submit">Login</button>
-			</form>
+		<div className="App">
+			<div className="d-flex justify-content-center align-items-center vh-100">
+
+				<Container>
+					<Row className="justify-content-md-center">
+						<Col md="4">
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<div className='d-flex justify-content-center'>
+								<img src="/assets/images/logo-header.png" alt="logo" className="w-50 img-fluid" />
+							</div>
+							<hr />
+							<Form onSubmit={handleSubmit}>
+								<Form.Group className='my-2' controlId="formBasicEmail">
+									<Form.Label>Email address: </Form.Label>
+									<Form.Control
+										type="email"
+										placeholder="Enter email"
+										value={email}
+										onChange={handleEmailChange}
+										required
+									/>
+								</Form.Group>
+
+								<Form.Group className='my-2' controlId="formBasicPassword">
+									<Form.Label>Password:</Form.Label>
+									<Form.Control
+										type="password"
+										placeholder="Password"
+										value={password}
+										onChange={handlePasswordChange}
+										required
+									/>
+								</Form.Group>
+
+								<Button className='w-100 my-2' variant="primary" type="submit">
+									Login
+								</Button>
+							</Form>
+						</Col>
+					</Row>
+				</Container>
+			</div>
 		</div>
 	);
 };
 
 export default LoginPage;
+
+LoginPage.getLayout = function PageLayout(page: any) {
+	return (
+		<>
+			{page}
+		</>
+	)
+}
