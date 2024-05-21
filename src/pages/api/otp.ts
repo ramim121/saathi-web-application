@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
-import SendSms from '@/utils/sendSms';
+import SendSms from '@/utils/SendSms';
 
 
 interface OTP {
@@ -15,7 +15,7 @@ interface OTP {
 const otps: OTP = {};
 
 const generateOTP = () => {
-    return Math.floor(1000 + Math.random() * 900000).toString();
+    return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
