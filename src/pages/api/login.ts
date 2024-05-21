@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             // Find the user with the provided username
             const user = await User.scope('withPassword').findOne({
-                where: { email },
+                where: { email, userType: 'admin'},
                 include: [
                     { model: ProjectInvestor, as: 'Investments', include: [Project] },
                     { model: ProjectPartner, as: 'Partnerships', include: [Project] }

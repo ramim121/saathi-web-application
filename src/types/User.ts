@@ -14,6 +14,7 @@ export default interface User {
     createdAt: Date;
     updatedAt: Date;
     userType: UserType;
+    dateOfBirth: string;
     emailVerified: 'yes' | 'no';
     phoneVerified: 'yes' | 'no';
     nidNumber: string | null;
@@ -23,6 +24,7 @@ export default interface User {
     status: 'active' | 'inactive';
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
+
 }
 
 
