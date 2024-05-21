@@ -3,11 +3,13 @@ import { AppContext } from '../context/AppContext';
 import { API_URL } from '@/config/constants';
 import Cookies from "js-cookie";
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { useRouter } from 'next/router';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
 	const [password, setPassword] = useState<string>('');
 	const { token, currentUser, updateToken, updateUserInfo } = useContext(AppContext);
+	const router = useRouter();
 
 	const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setEmail(e.target.value);
@@ -45,6 +47,7 @@ const LoginPage = () => {
 					phoneNumber: data.user.phoneNumber,
 					userType: data.user.userType
 				});
+				router.push('/');
 			} else {
 				console.log('Login failed');
 			}
