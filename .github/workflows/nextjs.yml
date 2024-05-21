@@ -1,0 +1,33 @@
+name: Dev deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: rsync deployments
+        uses: burnett01/rsync-deployments@5.1
+        with:
+          switches: -avzr --exclude=".git" --exclude=".github" --exclude=".env.example" --exclude=".editorconfig" --exclude=".gitignore" --exclude="node_modules"
+          path: ./
+          remote_path: /var/www/html/saathi-web-application
+          remote_host: ${{ secrets.DEV_SSH_HOST}}
+          remote_user: ${{ secrets.DEV_SSH_USERNAME }}
+          remote_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          remote_port: ${{ secrets.DEV_SSH_PORT }}
+
+      - name: run_docker
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_SSH_HOST}}
+          username: ${{ secrets.DEV_SSH_USERNAME }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SSH_PORT }}
+          script: |
+            cd /var/www/html/saathi-web-application
+            npm install
+            npm run build
+            pm2 restart all
