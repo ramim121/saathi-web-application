@@ -30,4 +30,5 @@ jobs:
             cd /var/www/html/saathi-web-application
             npm install
             npm run build
-            pm2 restart all
+            pm2 stop all
+            pm2 start ecosystem.config.js
