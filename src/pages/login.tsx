@@ -4,6 +4,7 @@ import { API_URL } from '@/config/constants';
 import Cookies from "js-cookie";
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { useRouter } from 'next/router';
+import MainLayout from '@/layouts/MainLayout';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
@@ -59,7 +60,7 @@ const LoginPage = () => {
 
 	return (
 		<div className="App">
-			<div className="d-flex justify-content-center align-items-center vh-100">
+			<div className="d-flex justify-content-center align-items-center">
 
 				<Container>
 					<Row className="justify-content-md-center">
@@ -108,8 +109,8 @@ export default LoginPage;
 
 LoginPage.getLayout = function PageLayout(page: any) {
 	return (
-		<>
+		<MainLayout>
 			{page}
-		</>
+		</MainLayout>
 	)
 }

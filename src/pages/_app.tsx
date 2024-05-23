@@ -1,7 +1,7 @@
 //import '@/styles/globals.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+// import Header from "@/components/Header"
+// import Footer from "@/components/Footer"
 // import '../styles/bootstrap.min.css'
 // import '../styles/font-awesome.min.css'
 import '../styles/style.css';
@@ -30,11 +30,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
 	return (
 		<>
-			<Header />
-			<Container style={{ maxWidth: "1140px", minHeight:"80vh" }}>
-				<Component {...pageProps} />
-			</Container>
-			<Footer />
+			{/* <Header /> */}
+			<Component {...pageProps} />
+			{/* <Footer /> */}
 		</>
 
 	)

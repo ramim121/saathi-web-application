@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
-import SendSms from '@/utils/SendSms';
+import SendSms from '@/utils/sendSms';
 
 
 interface OTP {

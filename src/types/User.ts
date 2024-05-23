@@ -22,6 +22,14 @@ export default interface User {
     nidImageBack: string | null;
     profileImage: string | null;
     status: 'active' | 'inactive';
+    age: number | null;
+    location: string | null;
+    role: string | null;
+    plainPoints: string | null;
+    motivation: string | null;
+    interestedIn: string | null;
+    skills: string | null;
+    joiningDate: Date | null;
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
 
