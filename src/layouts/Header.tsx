@@ -65,6 +65,7 @@ function Header() {
                             <Nav className="ms-auto">
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/partners/registration">Registration</NavDropdown.Item>
+                                    <NavDropdown.Item href="/partners/list">List</NavDropdown.Item>
                                 </NavDropdown>
                                 <Nav.Link className='mx-3' href="/projects">Projects</Nav.Link>
                                 <NavDropdown title="Investments" id="basic-nav-dropdown">

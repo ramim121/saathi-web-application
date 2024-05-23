@@ -82,7 +82,7 @@ const User = sequelize.define<UserModel>('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    plainPoints: {
+    painPoints: {
         type: DataTypes.STRING,
         allowNull: true
     },

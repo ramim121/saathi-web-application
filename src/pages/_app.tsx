@@ -14,13 +14,8 @@ import '../styles/layout.css';
 // config.autoAddCss = false;
 
 import { AppProps } from "next/app"
-import { Container } from 'react-bootstrap';
 
 export default function App({ Component, pageProps }: AppProps) {
-	const siteId = 3815390;
-	const hotjarVersion = 6;
-
-
 	//ignore error next line
 	// @ts-ignore
 	if (Component.getLayout) {
@@ -29,11 +24,6 @@ export default function App({ Component, pageProps }: AppProps) {
 	}
 
 	return (
-		<>
-			{/* <Header /> */}
-			<Component {...pageProps} />
-			{/* <Footer /> */}
-		</>
-
+		<Component {...pageProps} />
 	)
 }
