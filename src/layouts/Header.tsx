@@ -63,11 +63,15 @@ function Header() {
                         <Navbar.Toggle aria-controls="basic-navbar-nav" />
                         <Navbar.Collapse id="basic-navbar-nav">
                             <Nav className="ms-auto">
-                                <Nav.Link className='mx-3' href="/partners">Partners</Nav.Link>
+                                <NavDropdown title="Partners" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/partners/registration">Registration</NavDropdown.Item>
+                                </NavDropdown>
                                 <Nav.Link className='mx-3' href="/projects">Projects</Nav.Link>
-                                <Nav.Link className='mx-3' href="/investments">Investments</Nav.Link>
+                                <NavDropdown title="Investments" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/setup/investment">Setup</NavDropdown.Item>
+                                </NavDropdown>
                                 <NavDropdown title="Profile" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
+                                    <NavDropdown.Item href="/admin/registration">Registration</NavDropdown.Item>
                                     <NavDropdown.Item href="#action/3.2">
                                         Another action
                                     </NavDropdown.Item>

@@ -70,6 +70,38 @@ const User = sequelize.define<UserModel>('User', {
         defaultValue: 'active',
         allowNull: false
     },
+    age: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    location: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    role: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    plainPoints: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    motivation: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    interestedIn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    skills: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    joiningDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    }
 }, {
     tableName: 'users',
     underscored: true,
