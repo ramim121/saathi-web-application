@@ -25,7 +25,7 @@ export default interface User {
     age: number | null;
     location: string | null;
     role: string | null;
-    plainPoints: string | null;
+    painPoints: string | null;
     motivation: string | null;
     interestedIn: string | null;
     skills: string | null;

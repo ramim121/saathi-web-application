@@ -8,9 +8,9 @@ interface FormDataType {
     name: string,
     phoneNumber: string,
     age: number,
-    address: string,
+    location: string,
     role: string,
-    plainPoints: string,
+    painPoints: string,
     motivation: string,
     interestedIn: string,
     joiningDate: string,
@@ -22,15 +22,15 @@ function Registration() {
         name: '',
         phoneNumber: '',
         age: 0,
-        address: '',
+        location: '',
         role: '',
-        plainPoints: '',
+        painPoints: '',
         motivation: '',
         interestedIn: '',
         joiningDate: '',
         skills: ''
     });
-    const plainPointsRef = useRef<any>(null);
+    const painPointsRef = useRef<any>(null);
     const motivationRef = useRef<any>(null);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +39,7 @@ function Registration() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        formData.plainPoints = plainPointsRef.current.getContent();
+        formData.painPoints = painPointsRef.current.getContent();
         formData.motivation = motivationRef.current.getContent();
         try {
             const res = await fetch(API_URL + 'api/partners/registration', {
@@ -56,9 +56,9 @@ function Registration() {
                     name: '',
                     phoneNumber: '',
                     age: 0,
-                    address: '',
+                    location: '',
                     role: '',
-                    plainPoints: '',
+                    painPoints: '',
                     motivation: '',
                     interestedIn: '',
                     joiningDate: '',
@@ -109,12 +109,12 @@ function Registration() {
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Plain Points </Form.Label>
+                                <Form.Label column sm='4' >Pain Points </Form.Label>
                                 <Col sm='8'>
                                     <Editor
                                         apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
-                                        onInit={(evt, editor) => plainPointsRef.current = editor}
-                                        id='plainPoints'
+                                        onInit={(evt, editor) => painPointsRef.current = editor}
+                                        id='painPoints'
                                         init={{
                                             height: 400,
                                             plugins: [
@@ -155,7 +155,7 @@ function Registration() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4' >Location / Address <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control as="textarea" placeholder="Enter your current location/address" name="address" onChange={handleOnChange} required rows={2} value={formData.address} />
+                                    <Form.Control as="textarea" placeholder="Enter your current location/address" name="location" onChange={handleOnChange} required rows={2} value={formData.location} />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
