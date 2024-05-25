@@ -14,8 +14,7 @@ interface DetailsProps {
     joiningDate: string,
     skills: string,
     interestedIn: string,
-    painPoints: string,
-    motivation: string,
+    bio: string,
 }
 
 function Details() {
@@ -67,8 +66,8 @@ function Details() {
                                 <td>{details.location}</td>
                             </tr>
                             <tr>
-                                <td>Motivation</td>
-                                <td dangerouslySetInnerHTML={{ __html: details.motivation }}></td>
+                                <td>Bio</td>
+                                <td dangerouslySetInnerHTML={{ __html: details.bio }}></td>
                             </tr>
                         </tbody>
                     </Table>
@@ -91,10 +90,6 @@ function Details() {
                             <tr>
                                 <td>Interested In</td>
                                 <td>{details.interestedIn}</td>
-                            </tr>
-                            <tr>
-                                <td>Pain Points</td>
-                                <td dangerouslySetInnerHTML={{ __html: details.painPoints }}></td>
                             </tr>
                         </tbody>
                     </Table>

@@ -82,11 +82,7 @@ const User = sequelize.define<UserModel>('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    painPoints: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    motivation: {
+    bio: {
         type: DataTypes.STRING,
         allowNull: true
     },
