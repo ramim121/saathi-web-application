@@ -3,7 +3,7 @@ import { User } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { name, phoneNumber, age, location, role, painPoints, motivation, interestedIn, joiningDate, skills } = req.body
+        const { name, phoneNumber, age, location, role, bio, interestedIn, joiningDate, skills } = req.body
 
         try {
             const partner = await User.create({
@@ -12,8 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 age,
                 location,
                 role,
-                painPoints,
-                motivation,
+                bio,
                 interestedIn,
                 joiningDate,
                 skills,

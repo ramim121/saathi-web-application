@@ -10,8 +10,7 @@ interface FormDataType {
     age: number,
     location: string,
     role: string,
-    painPoints: string,
-    motivation: string,
+    bio: string,
     interestedIn: string,
     joiningDate: string,
     skills: string
@@ -24,14 +23,12 @@ function Registration() {
         age: 0,
         location: '',
         role: '',
-        painPoints: '',
-        motivation: '',
+        bio: '',
         interestedIn: '',
         joiningDate: '',
         skills: ''
     });
-    const painPointsRef = useRef<any>(null);
-    const motivationRef = useRef<any>(null);
+    const bioRef = useRef<any>(null);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,8 +36,7 @@ function Registration() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        formData.painPoints = painPointsRef.current.getContent();
-        formData.motivation = motivationRef.current.getContent();
+        formData.bio = bioRef.current.getContent();
         try {
             const res = await fetch(API_URL + 'api/partners/registration', {
                 method: 'POST',
@@ -58,12 +54,12 @@ function Registration() {
                     age: 0,
                     location: '',
                     role: '',
-                    painPoints: '',
-                    motivation: '',
+                    bio: '',
                     interestedIn: '',
                     joiningDate: '',
                     skills: ''
                 });
+                bioRef.current.setContent('');
             } else {
                 console.log('Registration failed');
             }
@@ -108,29 +104,6 @@ function Registration() {
                                     <Form.Control as="textarea" placeholder="Enter your skills" name="skills" onChange={handleOnChange} required rows={2} value={formData.skills} />
                                 </Col>
                             </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Pain Points </Form.Label>
-                                <Col sm='8'>
-                                    <Editor
-                                        apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
-                                        onInit={(evt, editor) => painPointsRef.current = editor}
-                                        id='painPoints'
-                                        init={{
-                                            height: 400,
-                                            plugins: [
-                                                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                                                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                                'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                                            ],
-                                            toolbar: 'undo redo | blocks | ' +
-                                                'bold italic backcolor | alignleft aligncenter ' +
-                                                'alignright alignjustify | bullist numlist outdent indent | ' +
-                                                'removeformat | help',
-                                            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                                        }}
-                                    />
-                                </Col>
-                            </Form.Group>
                         </Col>
                         <Col sm={6}>
                             <Form.Group as={Row}>
@@ -158,13 +131,17 @@ function Registration() {
                                     <Form.Control as="textarea" placeholder="Enter your current location/address" name="location" onChange={handleOnChange} required rows={2} value={formData.location} />
                                 </Col>
                             </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col md={8}>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Motivation </Form.Label>
-                                <Col sm='8'>
+                                <Form.Label column sm='3' >Bio </Form.Label>
+                                <Col sm='9'>
                                     <Editor
                                         apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
-                                        onInit={(evt, editor) => motivationRef.current = editor}
-                                        id='motivation'
+                                        onInit={(evt, editor) => bioRef.current = editor}
+                                        id='painPoints'
                                         init={{
                                             height: 400,
                                             plugins: [

@@ -6,6 +6,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
 
             const result = await User.findAll({
+                attributes: [
+                    'idUsers',
+                    'fullName',
+                    'phoneNumber',
+                    'age',
+                    'location',
+                    'role',
+                    'bio',
+                    'interestedIn',
+                    'skills',
+                    'joiningDate',
+                    'profileImage',
+                ],
                 limit: 5,
                 where: {
                     user_type: 'partner',
