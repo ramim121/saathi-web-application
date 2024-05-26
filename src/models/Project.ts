@@ -46,6 +46,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    tenure: {
+        type: DataTypes.ENUM('months', 'years'),
+        allowNull: false,
+        defaultValue: 'months'
+    },
     unitInvestmentValue: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false

@@ -11,6 +11,7 @@ export default interface Project {
     returnRangeMax: number;
     returnType: 'fixed' | 'range';
     duration: number;
+    tenure: string;
     location: string;
     unitInvestmentValue: number;
     totalReturnMin: number;

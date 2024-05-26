@@ -139,7 +139,6 @@ function Registration() {
                                 <Form.Label column sm='3' >Bio </Form.Label>
                                 <Col sm='9'>
                                     <Editor
-                                        apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
                                         onInit={(evt, editor) => bioRef.current = editor}
                                         id='painPoints'
                                         init={{
