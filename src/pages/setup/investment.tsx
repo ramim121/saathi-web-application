@@ -47,13 +47,16 @@ function Investment() {
 
             const data = await res.json();
             if (res.status === 200) {
-                // setFormData({
-                //     name: '',
-                //     email: '',
-                //     phoneNumber: 0
-                // });
+                setFormData({
+                    nameOfThePlan: '',
+                    type: '',
+                    minimumReturn: 0,
+                    maximumReturn: 0,
+                    duration: 0,
+                    tenure: 'months',
+                });
             } else {
-                console.log('Registration failed');
+                console.log('Investment setup failed');
             }
 
         } catch (err) {
