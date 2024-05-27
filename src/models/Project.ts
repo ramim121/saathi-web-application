@@ -65,11 +65,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
     },
     collectionStarts: {
         type: DataTypes.DATEONLY,
-        allowNull: true
+        allowNull: false
     },
     collectionEnds: {
         type: DataTypes.DATEONLY,
-        allowNull: true
+        allowNull: false
     },
     insurance: {
         type: DataTypes.DECIMAL(12, 2),
