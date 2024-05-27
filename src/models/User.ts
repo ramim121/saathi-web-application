@@ -97,6 +97,10 @@ const User = sequelize.define<UserModel>('User', {
     joiningDate: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    education: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'users',
