@@ -23,6 +23,8 @@ interface FormDataType {
     createdBy: number | null,
     totalReturnMin: number,
     totalReturnMax: number,
+    collectionStarts: string,
+    collectionEnds: string
 }
 
 interface InvestmentPlan {
@@ -43,7 +45,9 @@ function Projects() {
         location: '',
         createdBy: null,
         totalReturnMin: 0,
-        totalReturnMax: 0
+        totalReturnMax: 0,
+        collectionStarts: '',
+        collectionEnds: ''
     });
     const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
     const editorRef = useRef<any>(null);
@@ -120,7 +124,9 @@ function Projects() {
                     location: '',
                     createdBy: currentUser?.idUsers || null,
                     totalReturnMin: 0,
-                    totalReturnMax: 0
+                    totalReturnMax: 0,
+                    collectionStarts: '',
+                    collectionEnds: ''
                 });
                 editorRef.current.setContent('');
             } else {
@@ -135,12 +141,11 @@ function Projects() {
     return (
         <>
             <Container>
-                <Row className='justify-content-center'>
-                    <Col md={8}>
-                        <h2 className="text-center">Project Creation</h2>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-
+                <h2 className="text-center">Project Creation</h2>
+                <hr />
+                <Form onSubmit={handleSubmit}>
+                    <Row>
+                        <Col md={6}>
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4' >Name of the project <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
@@ -158,7 +163,7 @@ function Projects() {
                                 <Card.Header className='text-center'>Investment Plan</Card.Header>
                                 <Card.Body>
                                     <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Tag Investment Plan <span className='text-danger'>*</span></Form.Label>
+                                        <Form.Label column sm='4'>Tag Investment <span className='text-danger'>*</span></Form.Label>
                                         <Col sm='8'>
                                             <Select
                                                 id="long-value-select"
@@ -196,22 +201,30 @@ function Projects() {
                                             <Form.Control type="text" placeholder="Tenure" value={`${formData.investment.duration !== undefined ? formData.investment.duration : ''} ${formData.investment.tenure !== undefined ? formData.investment.tenure : ''}`} disabled />
                                         </Col>
                                     </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Total Return</Form.Label>
+                                        <Col sm='8'>
+                                            <Row>
+                                                <Col sm='5'>
+                                                    <Form.Control type="text" placeholder="Minimum Return" value={formData.totalReturnMin} disabled />
+                                                </Col>
+                                                <Col sm='2' className='text-center'>-</Col>
+                                                <Col sm='5'>
+                                                    <Form.Control type="text" placeholder="Maximum Return" value={formData.totalReturnMax} disabled />
+                                                </Col>
+                                            </Row>
+                                        </Col>
+                                    </Form.Group>
                                 </Card.Body>
                             </Card>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Total Return</Form.Label>
+                                <Form.Label column sm='4'>Collection Starts <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Row>
-                                        <Col sm='5'>
-                                            <Form.Control type="text" placeholder="Minimum Return" value={formData.totalReturnMin} disabled />
-                                        </Col>
-                                        <Col sm='2' className='text-center'>-</Col>
-                                        <Col sm='5'>
-                                            <Form.Control type="text" placeholder="Maximum Return" value={formData.totalReturnMax} disabled />
-                                        </Col>
-                                    </Row>
+                                    <Form.Control type="date" placeholder="Enter collection start date" name="collectionStarts" onChange={handleOnChange} value={formData.collectionStarts} required />
                                 </Col>
                             </Form.Group>
+                        </Col>
+                        <Col md={6}>
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Location <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
@@ -241,12 +254,20 @@ function Projects() {
                                     />
                                 </Col>
                             </Form.Group>
-                            <Button className='w-100 my-2' variant="primary" type="submit">
-                                Submit
-                            </Button>
-                        </Form>
-                    </Col>
-                </Row>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Collection Ends <span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="date" placeholder="Enter collection end date" name="collectionEnds" onChange={handleOnChange} value={formData.collectionEnds} required />
+                                </Col>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row className='justify-content-center'>
+                        <Button className='w-50' variant="primary" type="submit">
+                            Submit
+                        </Button>
+                    </Row>
+                </Form>
                 <pre>{JSON.stringify(formData, null, 2)}</pre>
             </Container>
         </>

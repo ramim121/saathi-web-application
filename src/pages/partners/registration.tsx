@@ -75,7 +75,6 @@ function Registration() {
                 <h2 className="text-center">Partner Registration</h2>
                 <hr />
                 <Form onSubmit={handleSubmit}>
-
                     <Row>
                         <Col md={6}>
                             <Form.Group as={Row} className='mb-3'>
