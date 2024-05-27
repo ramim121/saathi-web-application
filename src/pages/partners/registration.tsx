@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
+import Select from 'react-select';
 
 interface FormDataType {
     name: string,
@@ -13,7 +14,16 @@ interface FormDataType {
     bio: string,
     interestedIn: string,
     joiningDate: string,
+    multiSkills: [],
+    education: string,
     skills: string
+}
+
+interface Skills {
+    idSkills: number;
+    skillName: string;
+    label: string;
+    value: number;
 }
 
 function Registration() {
@@ -26,12 +36,42 @@ function Registration() {
         bio: '',
         interestedIn: '',
         joiningDate: '',
+        multiSkills: [],
+        education: '',
         skills: ''
     });
     const bioRef = useRef<any>(null);
+    const [skills, setSkills] = useState<Skills[]>([]);
+
+    useEffect(() => {
+        const fetchSkills = async () => {
+            try {
+                const res = await fetch(API_URL + 'api/all_skills');
+                const data = await res.json();
+                if (res.status === 200) {
+                    const skill = data.map((item: Skills) => {
+                        return {
+                            value: item.idSkills,
+                            label: item.skillName,
+                        }
+                    });
+                    setSkills(skill);
+                } else {
+                    console.log('Failed to fetch skills');
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        }
+        fetchSkills();
+    }, []);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+
+    const handleSkillsChange = (selectedOption: any) => {
+        setFormData({ ...formData, multiSkills: selectedOption, skills: selectedOption.map((item: any) => item.label).join(',') });
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,7 +97,9 @@ function Registration() {
                     bio: '',
                     interestedIn: '',
                     joiningDate: '',
-                    skills: ''
+                    multiSkills: [],
+                    skills: '',
+                    education: ''
                 });
                 bioRef.current.setContent('');
             } else {
@@ -100,7 +142,21 @@ function Registration() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4' >Skills <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control as="textarea" placeholder="Enter your skills" name="skills" onChange={handleOnChange} required rows={2} value={formData.skills} />
+                                    <Select
+                                        id="long-value-select"
+                                        instanceId="long-value-select"
+                                        options={skills}
+                                        value={formData.multiSkills}
+                                        onChange={handleSkillsChange}
+                                        menuPosition='fixed'
+                                        isMulti
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4' >Education </Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type='text' placeholder="Enter your last degree" name="education" onChange={handleOnChange} value={formData.education} />
                                 </Col>
                             </Form.Group>
                         </Col>
@@ -138,6 +194,7 @@ function Registration() {
                                 <Form.Label column sm='3' >Bio </Form.Label>
                                 <Col sm='9'>
                                     <Editor
+                                        apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
                                         onInit={(evt, editor) => bioRef.current = editor}
                                         id='painPoints'
                                         init={{
@@ -164,6 +221,7 @@ function Registration() {
                         </Button>
                     </Row>
                 </Form>
+                {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
             </Container>
         </>
     );

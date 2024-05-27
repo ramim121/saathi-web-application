@@ -29,6 +29,7 @@ export default interface User {
     interestedIn: string | null;
     skills: string | null;
     joiningDate: Date | null;
+    education: string | null;
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
 
