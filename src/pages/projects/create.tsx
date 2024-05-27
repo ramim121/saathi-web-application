@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import { Button, Col, Container, Form, Row, Card } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import { Editor } from '@tinymce/tinymce-react';
+import { AppContext } from '@/context/AppContext';
 
 interface FormDataType {
     projectName: string,
@@ -18,7 +19,10 @@ interface FormDataType {
         type?: string
     },
     summary: string,
-    location: string
+    location: string,
+    createdBy: number | null,
+    totalReturnMin: number,
+    totalReturnMax: number,
 }
 
 interface InvestmentPlan {
@@ -27,6 +31,7 @@ interface InvestmentPlan {
 }
 
 function Projects() {
+    const { token, currentUser } = useContext(AppContext);
     const [formData, setFormData] = useState<FormDataType>({
         projectName: '',
         unitInvestmentValue: 0,
@@ -35,7 +40,10 @@ function Projects() {
             value: 0
         },
         summary: '',
-        location: ''
+        location: '',
+        createdBy: null,
+        totalReturnMin: 0,
+        totalReturnMax: 0
     });
     const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
     const editorRef = useRef<any>(null);
@@ -73,9 +81,23 @@ function Projects() {
         fetchInvestmentPlans();
     }, []);
 
+    useEffect(() => {
+        if (formData.investment.value !== 0 && formData.unitInvestmentValue !== 0) {
+            const minimumAmountReturn = Number(formData.unitInvestmentValue) + (formData.unitInvestmentValue * (formData.investment.minimumReturn ?? 0) / 100);
+            const maximumAmountReturn = Number(formData.unitInvestmentValue) + (formData.unitInvestmentValue * (formData.investment.maximumReturn ?? 0) / 100);
+            setFormData({
+                ...formData,
+                totalReturnMin: minimumAmountReturn,
+                totalReturnMax: maximumAmountReturn
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.investment, formData.unitInvestmentValue]);
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         formData.summary = editorRef.current.getContent();
+        formData.createdBy = currentUser?.idUsers || null;
         try {
             const res = await fetch(API_URL + 'api/projects/create', {
                 method: 'POST',
@@ -95,7 +117,10 @@ function Projects() {
                         value: 0
                     },
                     summary: '',
-                    location: ''
+                    location: '',
+                    createdBy: currentUser?.idUsers || null,
+                    totalReturnMin: 0,
+                    totalReturnMax: 0
                 });
                 editorRef.current.setContent('');
             } else {
@@ -173,6 +198,20 @@ function Projects() {
                                     </Form.Group>
                                 </Card.Body>
                             </Card>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Total Return</Form.Label>
+                                <Col sm='8'>
+                                    <Row>
+                                        <Col sm='5'>
+                                            <Form.Control type="text" placeholder="Minimum Return" value={formData.totalReturnMin} disabled />
+                                        </Col>
+                                        <Col sm='2' className='text-center'>-</Col>
+                                        <Col sm='5'>
+                                            <Form.Control type="text" placeholder="Maximum Return" value={formData.totalReturnMax} disabled />
+                                        </Col>
+                                    </Row>
+                                </Col>
+                            </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Location <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>

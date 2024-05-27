@@ -12,7 +12,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
     },
     idProjectCategories: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true
     },
     projectName: {
         type: DataTypes.STRING,
@@ -65,15 +65,15 @@ const Project = sequelize.define<ProjectModel>('Project', {
     },
     collectionStarts: {
         type: DataTypes.DATEONLY,
-        allowNull: false
+        allowNull: true
     },
     collectionEnds: {
         type: DataTypes.DATEONLY,
-        allowNull: false
+        allowNull: true
     },
     insurance: {
         type: DataTypes.DECIMAL(12, 2),
-        allowNull: false
+        allowNull: true
     },
     otherLocations: {
         type: DataTypes.STRING,

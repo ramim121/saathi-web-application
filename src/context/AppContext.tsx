@@ -61,7 +61,6 @@ function AppContextProvider(props: React.PropsWithChildren<object>) {
         updateToken,
         updateUserInfo
     }
-
     return (
         <AppContext.Provider value={value}>
             {props.children}

@@ -3,7 +3,7 @@ import { Project } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { projectName, unitInvestmentValue, investment, summary, location } = req.body
+        const { projectName, unitInvestmentValue, investment, summary, location, createdBy, totalReturnMax, totalReturnMin } = req.body
 
         try {
             const data = await Project.create({
@@ -15,7 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 duration: investment.duration,
                 tenure: investment.tenure,
                 location,
-                unitInvestmentValue
+                unitInvestmentValue,
+                createdBy,
+                totalReturnMin,
+                totalReturnMax
             })
 
             return res.status(200).json({ data })
