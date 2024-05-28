@@ -5,7 +5,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         try {
 
-            const result = await Skill.findAll();
+            const result = await Skill.findAll({
+                attributes: [
+                    ['id_skills', 'value'],
+                    ['skill_name', 'label']
+                ]
+            });
 
             return res.status(200).json(result);
         } catch (error) {
