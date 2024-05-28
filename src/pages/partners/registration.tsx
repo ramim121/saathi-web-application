@@ -14,16 +14,14 @@ interface FormDataType {
     bio: string,
     interestedIn: string,
     joiningDate: string,
-    multiSkills: [],
+    multiSkills: any[],
     education: string,
     skills: string
 }
 
 interface Skills {
-    idSkills: number;
-    skillName: string;
-    label: string;
     value: number;
+    label: string;
 }
 
 function Registration() {
@@ -49,30 +47,28 @@ function Registration() {
                 const res = await fetch(API_URL + 'api/all_skills');
                 const data = await res.json();
                 if (res.status === 200) {
-                    const skill = data.map((item: Skills) => {
-                        return {
-                            value: item.idSkills,
-                            label: item.skillName,
-                        }
-                    });
-                    setSkills(skill);
+                    setSkills(data);
                 } else {
                     console.log('Failed to fetch skills');
                 }
             } catch (err) {
                 console.log(err);
             }
-        }
+        };
         fetchSkills();
     }, []);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
+    };
 
     const handleSkillsChange = (selectedOption: any) => {
-        setFormData({ ...formData, multiSkills: selectedOption, skills: selectedOption.map((item: any) => item.label).join(',') });
-    }
+        setFormData({
+            ...formData,
+            multiSkills: selectedOption,
+            skills: selectedOption.map((item: any) => item.label).join(','),
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -81,9 +77,9 @@ function Registration() {
             const res = await fetch(API_URL + 'api/partners/registration', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
             });
 
             const data = await res.json();
@@ -109,7 +105,7 @@ function Registration() {
         } catch (err) {
             console.log(err);
         }
-    }
+    };
 
     return (
         <>
@@ -120,27 +116,48 @@ function Registration() {
                     <Row>
                         <Col md={6}>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Name <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Name <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter your full name" name="name" onChange={handleOnChange} required value={formData.name} />
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Enter your full name"
+                                        name="name"
+                                        onChange={handleOnChange}
+                                        required
+                                        value={formData.name}
+                                    />
                                 </Col>
                             </Form.Group>
 
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Age <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Age <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="number" placeholder="Enter your age" name="age" onChange={handleOnChange} required value={formData.age} />
+                                    <Form.Control
+                                        type="number"
+                                        placeholder="Enter your age"
+                                        name="age"
+                                        onChange={handleOnChange}
+                                        required
+                                        value={formData.age}
+                                    />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Role <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Role <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter your role" name="role" onChange={handleOnChange} required value={formData.role} />
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Enter your role"
+                                        name="role"
+                                        onChange={handleOnChange}
+                                        required
+                                        value={formData.role}
+                                    />
                                 </Col>
                             </Form.Group>
 
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Skills <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Skills <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <Select
                                         id="long-value-select"
@@ -154,9 +171,15 @@ function Registration() {
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Education </Form.Label>
+                                <Form.Label column sm='4'>Education</Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type='text' placeholder="Enter your last degree" name="education" onChange={handleOnChange} value={formData.education} />
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter your last degree"
+                                        name="education"
+                                        onChange={handleOnChange}
+                                        value={formData.education}
+                                    />
                                 </Col>
                             </Form.Group>
                         </Col>
@@ -164,26 +187,53 @@ function Registration() {
                             <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Phone Number <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="number" placeholder="Enter your phone number" name="phoneNumber" onChange={handleOnChange} required value={formData.phoneNumber} />
+                                    <Form.Control
+                                        type="number"
+                                        placeholder="Enter your phone number"
+                                        name="phoneNumber"
+                                        onChange={handleOnChange}
+                                        required
+                                        value={formData.phoneNumber}
+                                    />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Interested In </Form.Label>
+                                <Form.Label column sm='4'>Interested In</Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type='text' placeholder="Enter your interested projects " name="interestedIn" onChange={handleOnChange} value={formData.interestedIn} />
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter your interested projects"
+                                        name="interestedIn"
+                                        onChange={handleOnChange}
+                                        value={formData.interestedIn}
+                                    />
                                 </Col>
                             </Form.Group>
 
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Joining Date <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Joining Date <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type='date' name="joiningDate" onChange={handleOnChange} required value={formData.joiningDate} />
+                                    <Form.Control
+                                        type='date'
+                                        name="joiningDate"
+                                        onChange={handleOnChange}
+                                        required
+                                        value={formData.joiningDate}
+                                    />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' >Location / Address <span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4'>Location / Address <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control as="textarea" placeholder="Enter your current location/address" name="location" onChange={handleOnChange} required rows={2} value={formData.location} />
+                                    <Form.Control
+                                        as="textarea"
+                                        placeholder="Enter your current location/address"
+                                        name="location"
+                                        onChange={handleOnChange}
+                                        required
+                                        rows={2}
+                                        value={formData.location}
+                                    />
                                 </Col>
                             </Form.Group>
                         </Col>
@@ -191,8 +241,8 @@ function Registration() {
                     <Row>
                         <Col md={8}>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='3' >Bio </Form.Label>
-                                <Col sm='9'>
+                                <Form.Label column sm='3'>Bio</Form.Label>
+                                <Col sm='9' style={{ zIndex: '0' }}>
                                     <Editor
                                         apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
                                         onInit={(evt, editor) => bioRef.current = editor}
@@ -221,7 +271,6 @@ function Registration() {
                         </Button>
                     </Row>
                 </Form>
-                {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
             </Container>
         </>
     );

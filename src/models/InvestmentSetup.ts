@@ -14,9 +14,14 @@ const InvestmentSetup = sequelize.define<InvestmentSetupModel>('InvestmentSetup'
         type: DataTypes.STRING(100),
         allowNull: false
     },
-    type: {
-        type: DataTypes.ENUM('high', 'low', 'short_duration', 'long_duration'),
+    investmentType: {
+        type: DataTypes.ENUM('high_return', 'low_return', 'short_duration', 'long_duration', 'shariah'),
         allowNull: false
+    },
+    returnType: {
+        type: DataTypes.ENUM('variable', 'fixed'),
+        allowNull: false,
+        defaultValue: 'variable'
     },
     minimumReturn: {
         type: DataTypes.DECIMAL(7, 2),
