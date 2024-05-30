@@ -5,6 +5,7 @@ import ProjectPartner from "./ProjectPartner";
 import ProjectInvestor from "./ProjectInvestor";
 import InvestmentSetup from "./InvestmentSetup";
 import Skill from "./Skill";
+import File from "./File";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -23,4 +24,4 @@ ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
 ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill };
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File };

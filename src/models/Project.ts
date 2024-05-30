@@ -38,8 +38,12 @@ const Project = sequelize.define<ProjectModel>('Project', {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
+    investmentType: {
+        type: DataTypes.ENUM('high_return', 'low_return', 'short_duration', 'long_duration', 'shariah'),
+        allowNull: false
+    },
     returnType: {
-        type: DataTypes.ENUM('fixed', 'range'),
+        type: DataTypes.ENUM('variable', 'fixed'),
         allowNull: false
     },
     duration: {

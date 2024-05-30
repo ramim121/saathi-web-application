@@ -5,6 +5,8 @@ import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import { Editor } from '@tinymce/tinymce-react';
 import { AppContext } from '@/context/AppContext';
+import Swal from 'sweetalert2';
+import { postRequestOptions } from '@/utils/Fetch';
 
 interface FormDataType {
     projectName: string,
@@ -16,7 +18,8 @@ interface FormDataType {
         maximumReturn?: number,
         minimumReturn?: number,
         tenure?: string,
-        type?: string
+        investmentType?: string,
+        returnType?: string
     },
     summary: string,
     location: string,
@@ -24,7 +27,8 @@ interface FormDataType {
     totalReturnMin: number,
     totalReturnMax: number,
     collectionStarts: string,
-    collectionEnds: string
+    collectionEnds: string,
+    otherLocations?: string
 }
 
 interface InvestmentPlan {
@@ -47,7 +51,8 @@ function Projects() {
         totalReturnMin: 0,
         totalReturnMax: 0,
         collectionStarts: '',
-        collectionEnds: ''
+        collectionEnds: '',
+        otherLocations: ''
     });
     const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
     const editorRef = useRef<any>(null);
@@ -70,7 +75,8 @@ function Projects() {
                             maximumReturn: plan.maximumReturn,
                             minimumReturn: plan.minimumReturn,
                             tenure: plan.tenure,
-                            type: plan.type
+                            investmentType: plan.investmentType,
+                            returnType: plan.returnType
 
                         }
                     });
@@ -100,42 +106,63 @@ function Projects() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        formData.summary = editorRef.current.getContent();
-        formData.createdBy = currentUser?.idUsers || null;
-        try {
-            const res = await fetch(API_URL + 'api/projects/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to create this project!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then((result) => {
+            if (result.value) {
+                try {
+                    formData.summary = editorRef.current.getContent();
+                    formData.createdBy = currentUser?.idUsers || null;
+                    const fetchData = async () => {
+                        const res = await fetch(API_URL + 'api/projects/create', postRequestOptions(formData));
+                        if (res.status === 200) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Projects creation successfull!',
+                            });
+                            setFormData({
+                                projectName: '',
+                                unitInvestmentValue: 0,
+                                investment: {
+                                    label: 'Select Investment Plan',
+                                    value: 0
+                                },
+                                summary: '',
+                                location: '',
+                                createdBy: currentUser?.idUsers || null,
+                                totalReturnMin: 0,
+                                totalReturnMax: 0,
+                                collectionStarts: '',
+                                collectionEnds: '',
+                                otherLocations: ''
+                            });
+                            editorRef.current.setContent('');
 
-            const data = await res.json();
-            if (res.status === 200) {
-                setFormData({
-                    projectName: '',
-                    unitInvestmentValue: 0,
-                    investment: {
-                        label: 'Select Investment Plan',
-                        value: 0
-                    },
-                    summary: '',
-                    location: '',
-                    createdBy: currentUser?.idUsers || null,
-                    totalReturnMin: 0,
-                    totalReturnMax: 0,
-                    collectionStarts: '',
-                    collectionEnds: ''
-                });
-                editorRef.current.setContent('');
-            } else {
-                console.log('Registration failed');
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: (await res.json()).message,
+                            });
+                        }
+                    };
+                    fetchData();
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                }
             }
-
-        } catch (err) {
-            console.log(err);
-        }
+        });
     }
 
     return (
@@ -149,14 +176,14 @@ function Projects() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4' >Name of the project <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter name of the project" name="projectName" onChange={handleOnChange} required value={formData.projectName} />
+                                    <Form.Control type="text" placeholder="Enter name of the project" name="projectName" onChange={handleOnChange} value={formData.projectName} />
                                 </Col>
                             </Form.Group>
 
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Share / Unit <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="number" placeholder="Enter share per unit" name="unitInvestmentValue" onChange={handleOnChange} required value={formData.unitInvestmentValue} />
+                                    <Form.Control type="number" placeholder="Enter share per unit" name="unitInvestmentValue" onChange={handleOnChange} value={formData.unitInvestmentValue} />
                                 </Col>
                             </Form.Group>
                             <Card className='mb-3'>
@@ -176,9 +203,15 @@ function Projects() {
                                         </Col>
                                     </Form.Group>
                                     <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Type</Form.Label>
+                                        <Form.Label column sm='4'>Investment Type</Form.Label>
                                         <Col sm='8'>
-                                            <Form.Control type="text" placeholder="Investment Type" value={formData.investment.type !== undefined ? formData.investment.type : ''} disabled />
+                                            <Form.Control type="text" placeholder="Investment Type" value={formData.investment.investmentType !== undefined ? formData.investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : ''} disabled />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Return Type</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" placeholder="Return Type" value={formData.investment.returnType !== undefined ? formData.investment.returnType : ''} disabled />
                                         </Col>
                                     </Form.Group>
                                     <Form.Group as={Row} className='mb-3'>
@@ -220,7 +253,7 @@ function Projects() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Collection Starts <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="date" placeholder="Enter collection start date" name="collectionStarts" onChange={handleOnChange} value={formData.collectionStarts} required />
+                                    <Form.Control type="date" placeholder="Enter collection start date" name="collectionStarts" onChange={handleOnChange} value={formData.collectionStarts} />
                                 </Col>
                             </Form.Group>
                         </Col>
@@ -228,7 +261,13 @@ function Projects() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Location <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter project location" name="location" onChange={handleOnChange} value={formData.location} required />
+                                    <Form.Control type="text" placeholder="Enter project location" name="location" onChange={handleOnChange} value={formData.location} />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Other Locations </Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="text" placeholder="Enter your projects other location" name="otherLocations" onChange={handleOnChange} value={formData.otherLocations} />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
@@ -257,7 +296,7 @@ function Projects() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Collection Ends <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="date" placeholder="Enter collection end date" name="collectionEnds" onChange={handleOnChange} value={formData.collectionEnds} required />
+                                    <Form.Control type="date" placeholder="Enter collection end date" name="collectionEnds" onChange={handleOnChange} value={formData.collectionEnds} />
                                 </Col>
                             </Form.Group>
                         </Col>
