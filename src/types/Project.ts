@@ -9,7 +9,8 @@ export default interface Project {
     summary?: string;
     returnRangeMin: number;
     returnRangeMax: number;
-    returnType: 'fixed' | 'range';
+    investmentType: 'high_return' | 'low_return' | 'short_duration' | 'long_duration' | 'shariah';
+    returnType: 'variable' | 'fixed';
     duration: number;
     tenure: string;
     location: string;
