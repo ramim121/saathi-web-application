@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ACL: 'public-read'
         };
 
-        let [err1, result1] = await _(s3.upload({ ...params, Body: fs.createReadStream(profilePicture.filepath), Key: 'nid/' + profilePicture }).promise());
+        let [err1, result1] = await _(s3.upload({ ...params, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile/' + profilePicture }).promise());
         if (err1) { return res.status(500).json({ message: err1.message }); }
 
         user.profileImage = profilePicturefileName;

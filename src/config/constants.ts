@@ -11,3 +11,4 @@ export const S3_BUCKET_NAME = 'saathi-files';
 export const S3_BUCKET_REGION = 'ap-southeast-1';
 export const S3_BUCKET_ACCESS_KEY = 'AKIA4MTWJKAASBQ5ENWP';
 export const S3_BUCKET_SECRET_KEY = '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';
+export const S3_URL = 'https://saathi-files.s3.ap-southeast-1.amazonaws.com/';
