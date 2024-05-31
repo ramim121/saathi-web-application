@@ -6,7 +6,6 @@ import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
-import { postRequestOptions } from '@/utils/Fetch';
 
 interface FormDataType {
     name: string,

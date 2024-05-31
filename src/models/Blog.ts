@@ -1,0 +1,39 @@
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../config/db';
+import { BlogAttributes } from '@/types/Blog';
+
+interface BlogModel extends BlogAttributes, Model { }
+
+const Blog = sequelize.define<BlogModel>('Blog', {
+    idBlogs: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+    },
+    heading: {
+        type: DataTypes.STRING(100),
+        allowNull: false
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    writtenBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    }
+}, {
+    tableName: 'blogs',
+    underscored: true,
+    timestamps: true,
+});
+
+export default Blog;

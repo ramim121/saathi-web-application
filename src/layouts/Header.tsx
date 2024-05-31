@@ -68,10 +68,13 @@ function Header() {
                                     <NavDropdown.Item href="/partners/list">List</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Projects" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/projects/create">Project Create</NavDropdown.Item>
+                                    <NavDropdown.Item href="/projects/create">Create</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Investments" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Setup</NavDropdown.Item>
+                                </NavDropdown>
+                                <NavDropdown title="Blogs" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/blogs/create">Create</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Profile" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/admin/registration">Registration</NavDropdown.Item>
