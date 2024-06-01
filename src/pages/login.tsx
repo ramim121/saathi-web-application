@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { API_URL } from '@/config/constants';
@@ -39,7 +40,6 @@ const LoginPage = () => {
 			const data = await res.json();
 			if (res.status === 200) {
 				updateToken(data.token);
-				Cookies.set("saathi-token", data.token, { expires: 30 });
 				updateUserInfo({
 					idUsers: data.user.idUsers,
 					fullName: data.user.fullName,
