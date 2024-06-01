@@ -5,6 +5,7 @@ export default interface Blog {
     heading: string;
     description: string;
     writtenBy: string;
+    writtenDate: Date;
     createdAt: Date;
     updatedAt: Date;
 };

@@ -11,7 +11,12 @@ import Blog from "./Blog";
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
 User.hasMany(ProjectInvestor, { foreignKey: 'idUsers', as: 'Investments' });
-
+User.hasOne(File, { foreignKey: 'refId', as: 'ProfilePicture',scope:{
+    ref_type: 'profile-picture'
+} });
+User.hasMany(File, { foreignKey: 'refId', as: 'FeaturedImages', scope:{
+    ref_type:'featured-image'
+}})
 ProjectCategory.hasMany(Project, { foreignKey: 'idProjectCategories', as: 'Projects' });
 
 Project.belongsTo(ProjectCategory, { foreignKey: 'idProjectCategories', as: 'ProjectCategory' });
@@ -24,5 +29,6 @@ ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
 
 ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
+File.belongsTo(User, { foreignKey: 'refId'});
 
 export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog };
