@@ -22,6 +22,10 @@ const Blog = sequelize.define<BlogModel>('Blog', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    writtenDate: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false

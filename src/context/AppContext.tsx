@@ -1,4 +1,6 @@
 import { createContext, useState, useEffect } from "react";
+import { getCookie } from "@/utils/GetCookie";
+import Cookies from "js-cookie";
 
 export interface User {
     idUsers: number,
@@ -10,20 +12,20 @@ export interface User {
 }
 
 const defaultValue = {
-    token: '',
-    currentUser: undefined as User | undefined,
-    updateToken: (token: string) => { },
-    updateUserInfo: (user: User) => { }
+    token: null as string | null,
+    currentUser: {} as User | {}, // Update the type of currentUser to allow for undefined
+    updateToken: (token: string | null) => { },
+    updateUserInfo: (user: User | {}) => { }
 }
 
 export const AppContext = createContext(defaultValue);
 
 function AppContextProvider(props: React.PropsWithChildren<object>) {
-    const [token, setToken] = useState<string>('');
-    const [currentUser, setCurrentUser] = useState<User | undefined>(undefined);
+    const [token, setToken] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | {}>({});
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getCookie('saathi-token');;
         const user = localStorage.getItem('user');
         if (token) {
             setToken(token);
@@ -36,27 +38,27 @@ function AppContextProvider(props: React.PropsWithChildren<object>) {
     const updateToken = (token: string | null) => {
         if (token !== null) {
             setToken(token);
-            localStorage.setItem('token', token);
+            Cookies.set("saathi-token", token, { expires: 30 });
         }
         else {
             setToken('');
-            localStorage.removeItem('token');
+            Cookies.remove("saathi-token");
         }
     }
 
-    const updateUserInfo = (user: User | null) => {
-        if (user !== null) {
-            setCurrentUser(user);
+    const updateUserInfo = (user: User | {}) => {
+        if (Object.keys(user).length !== 0) {
+            setCurrentUser(user as User); // Update the type of user to User
             localStorage.setItem('user', JSON.stringify(user));
         }
         else {
-            setCurrentUser(undefined);
+            setCurrentUser({});
             localStorage.removeItem('user');
         }
     }
 
     const value = {
-        token,
+        token: token,
         currentUser,
         updateToken,
         updateUserInfo

@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
-import { Button, Col, Container, Form, InputGroup, Row } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Button, Col, Container, Form, InputGroup, Row , Table} from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
-import { postRequestOptions } from '@/utils/Fetch';
+import { getRequestOptions,postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 
 interface FormDataType {
-    nameOfThePlan: string,
+    idInvestmentSetup?: number,
+    nameOfThePlan?: string,
     investmentType: string,
     returnType: string,
     minimumReturn: number,
     maximumReturn: number,
     duration: number,
     tenure: string,
+    planName?: string,
 }
+
 
 function Investment() {
     const [formData, setFormData] = useState<FormDataType>({
@@ -25,6 +28,9 @@ function Investment() {
         duration: 0,
         tenure: 'months',
     });
+
+    const [investmentList, setInvestmentList] = useState<FormDataType[]>([]);
+    const [reload, setReload] = useState<boolean>(true);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -71,6 +77,7 @@ function Investment() {
                                 duration: 0,
                                 tenure: 'months',
                             });
+                            setReload(true);
                         } else {
                             Swal.fire({
                                 icon: 'error',
@@ -92,7 +99,29 @@ function Investment() {
         });
     }
 
+    useEffect(() => {
+        const fetchInvestmentSetupList = async () => {
+            try {
+                const res = await fetch('/api/setup/investment_list', getRequestOptions());
+                const data = await res.json();
+                if (res.status === 200) {
+                    setInvestmentList(data);
+                    setReload(false);
+                } else {
+                    console.log('Failed to fetch partners list');
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        }
+        if (reload){
+        fetchInvestmentSetupList();
+        }
+    }, [reload]);
+
+
     return (
+        <>
         <Container>
             <Row className="justify-content-center">
                 <Col md={6}>
@@ -165,6 +194,43 @@ function Investment() {
                 </Col>
             </Row>
         </Container>
+
+        <Container>
+            <h2 className="text-center">Investment Setup List</h2>
+            <hr />
+            <Table responsive striped bordered hover>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Plan Name</th>
+                        <th>Investment Type</th>
+                        <th>Return Type</th>
+                        <th>Return</th>
+                        <th>Tenure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {investmentList.length > 0 ? investmentList.map((investment, index) => (
+                        <tr key={index}>
+                            <td>{index + 1}</td>
+                            <td>{investment.planName}</td>
+                            <td>{investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
+                            <td>{investment.returnType}</td>
+                            <td>{investment.minimumReturn}% - {investment.maximumReturn}%</td>
+                            <td>{investment.duration} {investment.tenure}</td>
+                        </tr>
+                    )) : (
+                        <tr>
+                            <td colSpan={6} className="text-center">No investment setup found</td>
+                        </tr>
+                    )}
+
+                </tbody>
+            </Table>
+        </Container>
+
+        </>
+
     );
 }
 

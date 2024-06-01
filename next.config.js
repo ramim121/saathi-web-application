@@ -1,3 +1,5 @@
+const { S3 } = require('aws-sdk')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	async headers() {
@@ -14,9 +16,12 @@ const nextConfig = {
 			}
 		]
 	},
+	images: {
+		domains: ['saathi-files.s3.ap-southeast-1.amazonaws.com'],
+	},
 	reactStrictMode: true,
 	env: {
-		API_URL: process.env.API_URL,
+		API_URL: process.env.API_URL
 	},
 
 }
