@@ -124,9 +124,16 @@ function Blogs() {
                                 <Form.Control type="date" placeholder="Enter written date" name="writtenDate" onChange={handleOnChange} value={formData.writtenDate} />
                             </Col>
                         </Form.Group>
-                        <Button className='w-100 my-2' variant="primary" type="submit">
-                            Submit
-                        </Button>
+                        <Row>
+                            <Col sm='4'></Col>
+                            <Col sm='8'>
+                                <Row className='justify-content-center'>
+                                    <Button className='w-50' variant="primary" type="submit">
+                                        Submit
+                                    </Button>
+                                </Row>
+                            </Col>
+                        </Row>
                     </Form>
                 </Col>
             </Row>

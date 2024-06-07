@@ -5,7 +5,7 @@ import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col } from "react-bootstrap";
 import Image from "next/image";
 import Carousel from 'react-bootstrap/Carousel';
-import {S3_URL} from '@/config/constants';
+import { S3_URL } from '@/config/constants';
 
 interface DetailsProps {
     idUsers: number,
@@ -19,10 +19,16 @@ interface DetailsProps {
     interestedIn: string,
     bio: string,
     education: string,
-    ProfilePicture?:{
+    Partnerships?: {
+        Project: {
+            projectName: string,
+            location: string
+        }
+    }[],
+    ProfilePicture?: {
         idFiles: number,
-        originalFileName:string,
-        fileName:string,
+        originalFileName: string,
+        fileName: string,
     },
     FeaturedImages: {
         idFiles: number,
@@ -84,6 +90,16 @@ function Details() {
                                 <td>{details.education}</td>
                             </tr>
                             <tr>
+                                <td> Projects </td>
+                                <td>
+                                    <ul>
+                                        {details.Partnerships && details.Partnerships.map((project, index) => (
+                                            <li key={index}>{project.Project?.projectName} - {project.Project?.location}</li>
+                                        ))}
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td>Profile Picture</td>
                                 <td className="text-center">
                                     {details.ProfilePicture && <Image src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
@@ -120,7 +136,7 @@ function Details() {
                 </Col>
             </Row>
             <Row className="mt-2">
-            <h3>Featured Images</h3>
+                <h3>Featured Images</h3>
                 <Col>
                     <Carousel>
                         {details.FeaturedImages && details.FeaturedImages.map((image, index) => (

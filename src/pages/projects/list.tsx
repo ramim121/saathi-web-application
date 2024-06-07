@@ -16,7 +16,12 @@ interface ListProps {
     location: string,
     unitInvestmentValue: number,
     projectStatus: string,
-    CreatedBy:{
+    ProjectPartners: {
+        User: {
+            fullName: string
+        }
+    },
+    CreatedBy: {
         fullName: string
     }
 
@@ -57,6 +62,7 @@ function List() {
                         <th>Return</th>
                         <th>Tenure</th>
                         <th>Location</th>
+                        <th>Partner</th>
                         <th>Created By</th>
                         <th>Actions</th>
                     </tr>
@@ -74,6 +80,7 @@ function List() {
                             </td>
                             <td>{project.duration} {project.tenure}</td>
                             <td>{project.location}</td>
+                            <td>{project.ProjectPartners?.User.fullName}</td>
                             <td>{project.CreatedBy?.fullName}</td>
                             <td>
                                 <Link href={`/projects/details/${project.idProjects}`}>
@@ -83,7 +90,7 @@ function List() {
                         </tr>
                     )) : (
                         <tr>
-                            <td colSpan={10} className="text-center">No projects found</td>
+                            <td colSpan={11} className="text-center">No projects found</td>
                         </tr>
                     )}
 

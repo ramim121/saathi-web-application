@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project } from '@/models/__associations'
-import { User, ProjectPartner } from '@/models/__associations'
+import { Project, ProjectPartner } from '@/models/__associations'
+import { Op } from 'sequelize';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -12,23 +12,13 @@ export default async function handler(
 				attributes: [
 					'idProjects',
 					'projectName',
-					'returnRangeMin',
-					'returnRangeMax',
-					'investmentType',
-					'returnType',
 					'duration',
 					'tenure',
-					'location',
-					'unitInvestmentValue',
-					'projectStatus'
+					'location'
 				],
 				include: [
-					{ model: User, as: 'CreatedBy', attributes: ['fullName'] },
 					{
-						model: ProjectPartner, as: 'ProjectPartners',
-						include: [
-							{ model: User, attributes: ['fullName'] }
-						]
+						model: ProjectPartner, as: 'ProjectPartners', required: false
 					}
 				]
 			})

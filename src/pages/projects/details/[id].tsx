@@ -7,10 +7,10 @@ import { Container, Row, Table, Col } from "react-bootstrap";
 interface DetailsProps {
     idProjects: number,
     projectName: string,
-   location: string,
-   unitInvestmentValue: number,
-   otherLocations: string,
-   investmentType: string,
+    location: string,
+    unitInvestmentValue: number,
+    otherLocations: string,
+    investmentType: string,
     returnType: string,
     duration: number,
     tenure: string,
@@ -22,6 +22,11 @@ interface DetailsProps {
     collectionStarts: string,
     collectionEnds: string,
     summary: string,
+    ProjectPartners: {
+        User: {
+            fullName: string
+        }
+    },
     CreatedBy: {
         fullName: string
     },
@@ -107,7 +112,11 @@ function Details() {
                             </tr>
                             <tr>
                                 <td>Status</td>
-                                <td>{details.projectStatus}</td>
+                                <td>{details.projectStatus?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
+                            </tr>
+                            <tr>
+                                <td>Partner</td>
+                                <td>{details.ProjectPartners?.User.fullName}</td>
                             </tr>
                             <tr>
                                 <td>Created By</td>

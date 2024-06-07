@@ -218,7 +218,18 @@ function Registration() {
                                     />
                                 </Col>
                             </Form.Group>
-
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Phone Number <span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type="number"
+                                        placeholder="Enter your phone number"
+                                        name="phoneNumber"
+                                        onChange={handleOnChange}
+                                        value={formData.phoneNumber}
+                                    />
+                                </Col>
+                            </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Age <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
@@ -259,57 +270,6 @@ function Registration() {
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Education</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter your last degree"
-                                        name="education"
-                                        onChange={handleOnChange}
-                                        value={formData.education}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Profile Picture </Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" onChange={handleFileUpload} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Featured Images</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
-                                </Col>
-                            </Form.Group>
-                        </Col>
-                        <Col sm={6}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Phone Number <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter your phone number"
-                                        name="phoneNumber"
-                                        onChange={handleOnChange}
-                                        value={formData.phoneNumber}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Interested In</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter your interested projects"
-                                        name="interestedIn"
-                                        onChange={handleOnChange}
-                                        value={formData.interestedIn}
-                                    />
-                                </Col>
-                            </Form.Group>
-
-                            <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Joining Date <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <Form.Control
@@ -330,6 +290,44 @@ function Registration() {
                                         onChange={handleOnChange}
                                         rows={2}
                                         value={formData.location}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Profile Picture </Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="file" onChange={handleFileUpload} />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Featured Images</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
+                                </Col>
+                            </Form.Group>
+                        </Col>
+                        <Col sm={6}>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Education</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter your last degree"
+                                        name="education"
+                                        onChange={handleOnChange}
+                                        value={formData.education}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Interested In</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter your interested projects"
+                                        name="interestedIn"
+                                        onChange={handleOnChange}
+                                        value={formData.interestedIn}
                                     />
                                 </Col>
                             </Form.Group>
