@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import User from '../../models/User';
+import { User, File } from '@/models/__associations'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -17,7 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     'interestedIn',
                     'skills',
                     'joiningDate',
-                    'profileImage',
+                    'education',
+                ],
+                include: [
+                    { model: File, as: 'ProfilePicture' },
                 ],
                 limit: 5,
                 where: {

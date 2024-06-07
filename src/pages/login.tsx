@@ -10,7 +10,7 @@ import MainLayout from '@/layouts/MainLayout';
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
 	const [password, setPassword] = useState<string>('');
-	const { token, currentUser, updateToken, updateUserInfo } = useContext(AppContext);
+	const { token, currentUser, updateUserInfo } = useContext(AppContext);
 	const router = useRouter();
 
 	const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +39,7 @@ const LoginPage = () => {
 
 			const data = await res.json();
 			if (res.status === 200) {
-				updateToken(data.token);
+				Cookies.set('saathi-token', data.token);
 				updateUserInfo({
 					idUsers: data.user.idUsers,
 					fullName: data.user.fullName,

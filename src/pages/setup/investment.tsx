@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Col, Container, Form, InputGroup, Row , Table} from 'react-bootstrap';
+import { Button, Col, Container, Form, InputGroup, Row, Table } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
-import { getRequestOptions,postRequestOptions } from '@/utils/Fetch';
+import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 
 interface FormDataType {
@@ -114,120 +114,127 @@ function Investment() {
                 console.log(err);
             }
         }
-        if (reload){
-        fetchInvestmentSetupList();
+        if (reload) {
+            fetchInvestmentSetupList();
         }
     }, [reload]);
 
 
     return (
         <>
-        <Container>
-            <Row className="justify-content-center">
-                <Col md={6}>
-                    <h2 className="text-center">Investment Setup</h2>
-                    <hr />
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Name of the plan<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type="text" placeholder="Enter name of the plan" name="nameOfThePlan" onChange={handleOnChange} value={formData.nameOfThePlan} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Investment Type<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Select name='investmentType' onChange={handleInvestmentTypeChange} value={formData.investmentType}>
-                                    <option>Select investment type</option>
-                                    <option value="high_return">High Return</option>
-                                    <option value="low_return">Low Return</option>
-                                    <option value="short_duration">Short Duration</option>
-                                    <option value="long_duration">Long Duration</option>
-                                    <option value="shariah">Shariah</option>
-                                </Form.Select>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Return Type<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Select name='returnType' onChange={handleReturnTypeChange} value={formData.returnType}>
-                                    <option value="variable">Variable</option>
-                                    <option value="fixed">Fixed</option>
-                                </Form.Select>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Minimum Return<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <InputGroup>
-                                    <Form.Control type="number" placeholder="Enter minimum return" name="minimumReturn" onChange={handleOnChange} value={formData.minimumReturn} />
-                                    <InputGroup.Text>%</InputGroup.Text>
-                                </InputGroup>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Maximum Return<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <InputGroup>
-                                    <Form.Control type="number" placeholder="Enter maximum return" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn} disabled={formData.returnType === 'fixed'} />
-                                    <InputGroup.Text>%</InputGroup.Text>
-                                </InputGroup>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Tenure<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <InputGroup>
-                                    <Form.Control type="number" placeholder="Enter duration" name="duration" onChange={handleOnChange} value={formData.duration} />
-                                    <Form.Select name='tenure' onChange={handleTenureChange} value={formData.tenure}>
-                                        <option value="months">Months</option>
-                                        <option value="years">Years</option>
+            <Container>
+                <Row className="justify-content-center">
+                    <Col md={6}>
+                        <h2 className="text-center">Investment Setup</h2>
+                        <hr />
+                        <Form onSubmit={handleSubmit}>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Name of the plan<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="text" placeholder="Enter name of the plan" name="nameOfThePlan" onChange={handleOnChange} value={formData.nameOfThePlan} />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Investment Type<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Select name='investmentType' onChange={handleInvestmentTypeChange} value={formData.investmentType}>
+                                        <option>Select investment type</option>
+                                        <option value="high_return">High Return</option>
+                                        <option value="low_return">Low Return</option>
+                                        <option value="short_duration">Short Duration</option>
+                                        <option value="long_duration">Long Duration</option>
+                                        <option value="shariah">Shariah</option>
                                     </Form.Select>
-                                </InputGroup>
-                            </Col>
-                        </Form.Group>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Return Type<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Select name='returnType' onChange={handleReturnTypeChange} value={formData.returnType}>
+                                        <option value="variable">Variable</option>
+                                        <option value="fixed">Fixed</option>
+                                    </Form.Select>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Minimum Return<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <InputGroup>
+                                        <Form.Control type="number" placeholder="Enter minimum return" name="minimumReturn" onChange={handleOnChange} value={formData.minimumReturn} />
+                                        <InputGroup.Text>%</InputGroup.Text>
+                                    </InputGroup>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Maximum Return<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <InputGroup>
+                                        <Form.Control type="number" placeholder="Enter maximum return" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn} disabled={formData.returnType === 'fixed'} />
+                                        <InputGroup.Text>%</InputGroup.Text>
+                                    </InputGroup>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Tenure<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <InputGroup>
+                                        <Form.Control type="number" placeholder="Enter duration" name="duration" onChange={handleOnChange} value={formData.duration} />
+                                        <Form.Select name='tenure' onChange={handleTenureChange} value={formData.tenure}>
+                                            <option value="months">Months</option>
+                                            <option value="years">Years</option>
+                                        </Form.Select>
+                                    </InputGroup>
+                                </Col>
+                            </Form.Group>
 
-                        <Button className='w-100 my-2' variant="primary" type="submit">
-                            Submit
-                        </Button>
-                    </Form>
-                </Col>
-            </Row>
-        </Container>
+                            <Row>
+                                <Col sm='4'></Col>
+                                <Col sm='8'>
+                                    <Row className='justify-content-center'>
+                                        <Button className='w-50' variant="primary" type="submit">
+                                            Submit
+                                        </Button>
+                                    </Row>
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Col>
+                </Row>
+            </Container>
 
-        <Container>
-            <h2 className="text-center">Investment Setup List</h2>
-            <hr />
-            <Table responsive striped bordered hover>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Plan Name</th>
-                        <th>Investment Type</th>
-                        <th>Return Type</th>
-                        <th>Return</th>
-                        <th>Tenure</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {investmentList.length > 0 ? investmentList.map((investment, index) => (
-                        <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{investment.planName}</td>
-                            <td>{investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
-                            <td>{investment.returnType}</td>
-                            <td>{investment.minimumReturn}% - {investment.maximumReturn}%</td>
-                            <td>{investment.duration} {investment.tenure}</td>
-                        </tr>
-                    )) : (
+            <Container className='mt-5'>
+                <h2 className="text-center">Investment Setup List</h2>
+                <hr />
+                <Table responsive striped bordered hover>
+                    <thead>
                         <tr>
-                            <td colSpan={6} className="text-center">No investment setup found</td>
+                            <th>#</th>
+                            <th>Plan Name</th>
+                            <th>Investment Type</th>
+                            <th>Return Type</th>
+                            <th>Return</th>
+                            <th>Tenure</th>
                         </tr>
-                    )}
+                    </thead>
+                    <tbody>
+                        {investmentList.length > 0 ? investmentList.map((investment, index) => (
+                            <tr key={index}>
+                                <td>{index + 1}</td>
+                                <td>{investment.planName}</td>
+                                <td>{investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
+                                <td>{investment.returnType}</td>
+                                <td>{investment.minimumReturn}% - {investment.maximumReturn}%</td>
+                                <td>{investment.duration} {investment.tenure}</td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={6} className="text-center">No investment setup found</td>
+                            </tr>
+                        )}
 
-                </tbody>
-            </Table>
-        </Container>
+                    </tbody>
+                </Table>
+            </Container>
 
         </>
 

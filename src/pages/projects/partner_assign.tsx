@@ -1,0 +1,230 @@
+import React, { useState, useEffect } from "react";
+import { Container, Form, Row, Col, Button, Card } from "react-bootstrap";
+import MainLayout from "@/layouts/MainLayout";
+import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
+import { API_URL } from '@/config/constants';
+import Swal from 'sweetalert2';
+import Select, { components } from "react-select";
+import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill } from 'react-bootstrap-icons';
+
+interface PartnerProps {
+	idUsers: number,
+	fullName: string,
+	phoneNumber: string,
+	location: string,
+	joiningDate: string,
+	label: string,
+	value: number,
+	Partnerships: {
+		Project: {
+			projectName: string,
+			location: string
+		}
+	}[]
+}
+
+interface ProjectProps {
+	idProjects: number,
+	projectName: string,
+	duration: number,
+	tenure: number,
+	location: string,
+	label: string,
+	value: number
+}
+
+
+const CustomOptionPartner = ({ data, ...props }: { data: PartnerProps, [key: string]: any }) => (
+	// @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
+	<components.Option {...props}>
+		<PersonBadge /> Name: {data.label}
+		<br />
+		<Telephone /> Mobile: {data.phoneNumber}
+		<br />
+		<GeoAltFill /> Location: {data.location}
+		<br />
+		<Calendar2CheckFill /> Joining Date: {data.joiningDate}
+	</components.Option>
+);
+
+const CustomOptionProject = ({ data, ...props }: { data: ProjectProps, [key: string]: any }) => (
+	// @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
+	<components.Option {...props}>
+		<BookmarkFill /> Project: {data.label}
+		<br />
+		<Calendar2RangeFill /> Tenure: {data.duration} {data.tenure}
+		<br />
+		<GeoAltFill /> Location: {data.location}
+	</components.Option>
+);
+
+function PartnerAssign() {
+	const [partnersList, setPartnersList] = useState<PartnerProps[]>([]);
+	const [selectedPartner, setSelectedPartner] = useState<PartnerProps | null>(null);
+	const [projectList, setProjectList] = useState<ProjectProps[]>([]);
+	const [selectedProject, setSelectedProject] = useState<ProjectProps | null>(null);
+
+	useEffect(() => {
+		const fetchPartnersList = async () => {
+			try {
+				const res = await fetch('/api/partners/get_all_partners', getRequestOptions());
+				const data = await res.json();
+				if (res.status === 200) {
+					const newItems = data.map(function (element: { fullName: string, idUsers: number }) {
+						return { ...element, label: element.fullName, value: element.idUsers }
+					});
+					setPartnersList(newItems);
+				} else {
+					console.log('Failed to fetch partners list');
+				}
+			} catch (err) {
+				console.log(err);
+			}
+		}
+		fetchPartnersList();
+	}, []);
+
+	useEffect(() => {
+		const fetchProjectsList = async () => {
+			try {
+				const res = await fetch('/api/projects/get_all_projects', getRequestOptions());
+				const data = await res.json();
+				if (res.status === 200) {
+					const newItems = data.map(function (element: { projectName: string, idProjects: number }) {
+						return { ...element, label: element.projectName, value: element.idProjects }
+					});
+					setProjectList(newItems);
+
+				} else {
+					console.log('Failed to fetch projects list');
+				}
+			} catch (err) {
+				console.log(err);
+			}
+		}
+		fetchProjectsList();
+	}, []);
+
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You want to assign this partner to this project!",
+			icon: 'warning',
+			showCancelButton: true,
+			cancelButtonText: 'No',
+			confirmButtonText: 'Yes'
+		}).then((result) => {
+			if (result.value) {
+				try {
+					const formData = {
+						partner: selectedPartner?.value,
+						project: selectedProject?.value
+					};
+
+					const fetchData = async () => {
+						const res = await fetch(API_URL + 'api/projects/partner_assign', postRequestOptions(formData));
+						if (res.status === 200) {
+							Swal.fire({
+								icon: 'success',
+								title: 'Success',
+								text: 'Partner assigned successfully!',
+							});
+							setSelectedPartner(null);
+							setSelectedProject(null);
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								html: (await res.json()).message,
+							});
+						}
+					};
+					fetchData();
+
+				} catch (err) {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Something went wrong!',
+					});
+				}
+			}
+		});
+	}
+
+	return (
+		<Container>
+			<h2 className="text-center">Partner Assign</h2>
+			<hr />
+			<Form onSubmit={handleSubmit}>
+				<Row>
+					<Col md={6}>
+						<Form.Group as={Row} className='mb-3'>
+							<Form.Label column sm='4' >Select Partner <span className='text-danger'>*</span></Form.Label>
+							<Col sm='8'>
+								<Select
+									options={partnersList}
+									isSearchable
+									isClearable
+									placeholder='Select Partner'
+									onChange={(selectedOption: any) => setSelectedPartner(selectedOption)}
+									value={selectedPartner}
+									components={{ Option: CustomOptionPartner }}
+								/>
+							</Col>
+						</Form.Group>
+						<Form.Group as={Row} className='mb-3'>
+							<Form.Label column sm='4' >Select Project <span className='text-danger'>*</span></Form.Label>
+							<Col sm='8'>
+								<Select
+									options={projectList}
+									isSearchable
+									isClearable
+									placeholder='Select Project'
+									components={{ Option: CustomOptionProject }}
+									onChange={(selectedOption: any) => setSelectedProject(selectedOption)}
+									value={selectedProject}
+								/>
+							</Col>
+						</Form.Group>
+						<Row>
+							<Col sm='4'></Col>
+							<Col sm='8'>
+								<Row className='justify-content-center'>
+									<Button className='w-50' variant="primary" type="submit">
+										Submit
+									</Button>
+								</Row>
+							</Col>
+						</Row>
+					</Col>
+					<Col md={6}>
+						<Card>
+							<Card.Header>Existing Projects of Partner</Card.Header>
+							<Card.Body>
+								{selectedPartner && selectedPartner.value && (
+									<ul>
+										{selectedPartner.Partnerships && selectedPartner.Partnerships.map((project, index: number) => (
+											<li key={index}>{project.Project?.projectName}  ({project.Project?.location})</li>
+										))}
+									</ul>
+								)}
+							</Card.Body>
+						</Card>
+					</Col>
+				</Row>
+			</Form>
+		</Container>
+	);
+}
+
+export default PartnerAssign;
+
+PartnerAssign.getLayout = function PageLayout(page: any) {
+	return (
+		<MainLayout>
+			{page}
+		</MainLayout>
+	)
+}

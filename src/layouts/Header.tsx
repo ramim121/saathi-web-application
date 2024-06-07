@@ -70,6 +70,7 @@ function Header() {
                                 <NavDropdown title="Projects" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/projects/create">Create</NavDropdown.Item>
                                     <NavDropdown.Item href="/projects/list">List</NavDropdown.Item>
+                                    <NavDropdown.Item href="/projects/partner_assign">Partner Assign</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Investments" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Setup</NavDropdown.Item>
