@@ -32,7 +32,8 @@ ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
 
 ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
-ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
+ProjectInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
+
 File.belongsTo(User, { foreignKey: 'refId' });
 
 export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog };

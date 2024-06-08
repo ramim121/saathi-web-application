@@ -15,6 +15,10 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    idProjectPartners: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     idUsers: {
         type: DataTypes.INTEGER,
         allowNull: false
