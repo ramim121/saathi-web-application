@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User } from '@/models/__associations'
+import { Project, ProjectPartner } from '@/models/__associations'
+import { Op } from 'sequelize';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -7,20 +8,19 @@ export default async function handler(
 ): Promise<void> {
 	if (req.method === 'GET') {
 		try {
-			const result = await User.findAll({
+			const result = await Project.findAll({
 				attributes: [
-					'idUsers',
-					'fullName',
-					'phoneNumber',
-					'age',
-					'location',
-					'role',
-					'joiningDate',
-					'skills'
+					'idProjects',
+					'projectName',
+					'duration',
+					'tenure',
+					'location'
 				],
-				where: {
-					userType: 'partner'
-				}
+				include: [
+					{
+						model: ProjectPartner, as: 'ProjectPartners', required: false
+					}
+				]
 			})
 
 			return res.status(200).json(result)

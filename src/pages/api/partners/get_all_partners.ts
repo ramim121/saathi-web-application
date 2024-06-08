@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User } from '@/models/__associations'
+import { User, ProjectPartner, Project } from '@/models/__associations'
 
 export default async function handler(
 	req: NextApiRequest,
@@ -18,6 +18,14 @@ export default async function handler(
 					'joiningDate',
 					'skills'
 				],
+				include: [
+					{
+						model: ProjectPartner, as: 'Partnerships',
+						include: [
+							{ model: Project, as: 'Project', attributes: ['projectName', 'location'] }
+						]
+
+					}],
 				where: {
 					userType: 'partner'
 				}
@@ -25,7 +33,6 @@ export default async function handler(
 
 			return res.status(200).json(result)
 		} catch (error) {
-			console.error(error)
 			return res.status(500).json({ error: 'Server error' })
 		}
 	} else {

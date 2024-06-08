@@ -1,0 +1,55 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+import { Blog } from '@/models/__associations';
+import Joi from 'joi';
+
+const schema = Joi.object({
+    heading: Joi.string().required().messages({
+        "any.required": "Heading is required",
+        "string.empty": "Heading can not be empty",
+    }),
+    description: Joi.string().required().messages({
+        "any.required": "Description is required",
+        "string.empty": "Description can not be empty",
+    }),
+    writtenBy: Joi.string().required().messages({
+        "any.required": "Written by is required",
+        "string.empty": "Written by can not be empty",
+    }),
+    writtenDate: Joi.date().required().messages({
+        "any.required": "Written date is required",
+        "date.base": "Written date can not be empty",
+    })
+}).unknown();
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'POST') {
+        const { heading, description, writtenBy, writtenDate } = req.body
+        const options = {
+            abortEarly: false,
+        };
+
+        const { error } = schema.validate({ heading, description, writtenBy, writtenDate }, options);
+
+        if (error) {
+            let errorMessage: string[] = [];
+
+            error.details.forEach((e) => {
+                errorMessage.push(e.message);
+            });
+            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+        }
+        try {
+            const blog = await Blog.create({
+                heading,
+                description,
+                writtenBy,
+                writtenDate
+            })
+            return res.status(200).json({ blog })
+        } catch (err) {
+            return res.status(500).json({ message: (err as Error).message })
+        }
+    } else {
+        res.status(405).json({ message: 'Method not allowed' })
+    }
+}

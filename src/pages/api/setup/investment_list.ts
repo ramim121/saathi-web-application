@@ -1,16 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Skill } from '@/models/__associations';
+import { InvestmentSetup } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         try {
 
-            const result = await Skill.findAll({
-                attributes: [
-                    ['id_skills', 'value'],
-                    ['skill_name', 'label']
-                ]
-            });
+            const result = await InvestmentSetup.findAll({});
 
             return res.status(200).json(result);
         } catch (error) {

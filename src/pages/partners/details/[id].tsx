@@ -3,6 +3,9 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col } from "react-bootstrap";
+import Image from "next/image";
+import Carousel from 'react-bootstrap/Carousel';
+import { S3_URL } from '@/config/constants';
 
 interface DetailsProps {
     idUsers: number,
@@ -15,6 +18,23 @@ interface DetailsProps {
     skills: string,
     interestedIn: string,
     bio: string,
+    education: string,
+    Partnerships?: {
+        Project: {
+            projectName: string,
+            location: string
+        }
+    }[],
+    ProfilePicture?: {
+        idFiles: number,
+        originalFileName: string,
+        fileName: string,
+    },
+    FeaturedImages: {
+        idFiles: number,
+        originalFileName: string,
+        fileName: string,
+    }[]
 }
 
 function Details() {
@@ -66,8 +86,24 @@ function Details() {
                                 <td>{details.location}</td>
                             </tr>
                             <tr>
-                                <td>Bio</td>
-                                <td dangerouslySetInnerHTML={{ __html: details.bio }}></td>
+                                <td>Education</td>
+                                <td>{details.education}</td>
+                            </tr>
+                            <tr>
+                                <td> Projects </td>
+                                <td>
+                                    <ul>
+                                        {details.Partnerships && details.Partnerships.map((project, index) => (
+                                            <li key={index}>{project.Project?.projectName} - {project.Project?.location}</li>
+                                        ))}
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Profile Picture</td>
+                                <td className="text-center">
+                                    {details.ProfilePicture && <Image src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
+                                </td>
                             </tr>
                         </tbody>
                     </Table>
@@ -91,8 +127,24 @@ function Details() {
                                 <td>Interested In</td>
                                 <td>{details.interestedIn}</td>
                             </tr>
+                            <tr>
+                                <td>Bio</td>
+                                <td dangerouslySetInnerHTML={{ __html: details.bio }}></td>
+                            </tr>
                         </tbody>
                     </Table>
+                </Col>
+            </Row>
+            <Row className="mt-2">
+                <h3>Featured Images</h3>
+                <Col>
+                    <Carousel>
+                        {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
+                            <Carousel.Item key={index}>
+                                <Image src={`${S3_URL}featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
+                            </Carousel.Item>
+                        ))}
+                    </Carousel>
                 </Col>
             </Row>
         </Container>

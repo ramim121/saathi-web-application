@@ -1,24 +1,24 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner, Project } from '@/models/__associations';
+import { Project } from '@/models/__associations';
+import { User, ProjectPartner } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         try {
 
-            const result = await User.findOne({
-                where: {
-                    idUsers: req.query.id
-                },
+            const result = await Project.findOne({
                 include: [
-                    { model: File, as: 'ProfilePicture' },
-                    { model: File, as: 'FeaturedImages' },
+                    { model: User, as: 'CreatedBy', attributes: ['fullName'] },
                     {
-                        model: ProjectPartner, as: 'Partnerships',
+                        model: ProjectPartner, as: 'ProjectPartners',
                         include: [
-                            { model: Project, as: 'Project', attributes: ['projectName', 'location'] }
+                            { model: User, attributes: ['fullName'] }
                         ]
-
-                    }],
+                    }
+                ],
+                where: {
+                    idProjects: req.query.id
+                },
             });
 
             return res.status(200).json(result);
