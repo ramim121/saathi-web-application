@@ -1,6 +1,4 @@
 import { Optional } from 'sequelize';
-
-
 import Project from './Project';
 import User from './User';
 
@@ -10,7 +8,7 @@ export default interface ProjectInvestor {
     idUsers: number;
     unitPurchased: number;
     amountInvested: number;
-    investmentStatus: 'pending' | 'approved' | 'paid';
+    investmentStatus: 'booked' | 'approved' | 'paid';
     idProjectPartners: number;
     investmentDate: string; // Assuming date is in format 'YYYY-MM-DD'
     createdAt?: string; // Assuming it can be null

@@ -23,6 +23,23 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    unitPurchased: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    amountInvested: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: false
+    },
+    investmentStatus: {
+        type: DataTypes.ENUM('booked', 'approved', 'paid'),
+        allowNull: false,
+        defaultValue: 'booked'
+    },
+    investmentDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false
