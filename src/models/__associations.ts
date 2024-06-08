@@ -24,7 +24,7 @@ User.hasMany(File, {
 ProjectCategory.hasMany(Project, { foreignKey: 'idProjectCategories', as: 'Projects' });
 
 Project.belongsTo(ProjectCategory, { foreignKey: 'idProjectCategories', as: 'ProjectCategory' });
-Project.belongsTo(ProjectPartner, { foreignKey: 'idProjects', as: 'ProjectPartners' });
+Project.hasMany(ProjectPartner, { foreignKey: 'idProjects', as: 'ProjectPartners' });
 Project.hasMany(ProjectInvestor, { foreignKey: 'idProjects', as: 'ProjectInvestors' });
 Project.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
 
