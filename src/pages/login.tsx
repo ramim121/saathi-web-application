@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { useRouter } from 'next/router';
 import MainLayout from '@/layouts/MainLayout';
+import Swal from 'sweetalert2';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
@@ -50,11 +51,19 @@ const LoginPage = () => {
 				});
 				router.push('/');
 			} else {
-				console.log('Login failed');
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					html: data.message,
+				});
 			}
 
-		} catch (err) {
-			console.log(err);
+		} catch (err: any) {
+			Swal.fire({
+				icon: 'error',
+				title: 'Error',
+				text: err.message,
+			});
 		}
 	};
 

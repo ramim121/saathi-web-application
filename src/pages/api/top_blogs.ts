@@ -5,7 +5,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         try {
 
-            const result = await Blog.findAll({});
+            const result = await Blog.findAll({ limit: 3 });
 
             return res.status(200).json({ success: true, data: result });
         } catch (error) {

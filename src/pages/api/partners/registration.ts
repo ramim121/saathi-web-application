@@ -7,6 +7,7 @@ import * as formidable from 'formidable';
 import fs from 'fs';
 import AWS from 'aws-sdk';
 import _ from 'await-to-js';
+import sequelize from '@/config/db';
 
 AWS.config.update({
     accessKeyId: S3_BUCKET_ACCESS_KEY,
@@ -62,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
             if (err) {
-                return res.status(500).json({ message: err.message });
+                return res.status(500).json({ success: false, message: err.message });
             }
 
             const profilePicture = files['profilePicture'] ? files['profilePicture'][0] as formidable.File : null;
@@ -95,6 +96,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
             }
 
+            const existingUser = await User.findOne({ where: { phoneNumber: data.phoneNumber } });
+            if (existingUser) {
+                return res.status(400).json({ success: false, message: 'User with this phone number already exists' });
+            }
+
             if (profilePicture !== null) {
                 if (profilePicture.mimetype !== 'image/jpeg' && profilePicture.mimetype !== 'image/png' && profilePicture.mimetype !== 'image/jpg') {
                     res.status(400).json({ message: `Invalid file type: ${profilePicture.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
@@ -117,6 +123,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ACL: 'public-read'
             };
 
+            const transaction = await sequelize.transaction();
+
             try {
                 const partner = await User.create({
                     fullName: data.name,
@@ -130,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     skills: data.skills,
                     userType: 'partner',
                     education: data.education,
-                })
+                }, { transaction });
                 if (profilePicture !== null) {
                     let profilePicFileName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
                     await File.create({
@@ -138,9 +146,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         fileName: profilePicFileName,
                         refType: 'profile-picture',
                         refId: partner.idUsers
-                    });
+                    }, { transaction });
                     let [err1] = await _(s3.upload({ ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + partner.idUsers + '/' + profilePicFileName }).promise());
-                    if (err1) { return res.status(500).json({ message: err1.message }); }
+                    if (err1) {
+                        await transaction.rollback();
+                        return res.status(500).json({ success: false, message: err1.message });
+
+                    }
                 }
 
                 if (featuredImages.length > 0) {
@@ -151,18 +163,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             fileName: featuredImageFileName,
                             refType: 'featured-image',
                             refId: partner.idUsers
-                        });
+                        }, { transaction });
                         let [err2] = await _(s3.upload({ ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + partner.idUsers + '/' + featuredImageFileName }).promise());
-                        if (err2) { return res.status(500).json({ message: err2.message }); }
+                        if (err2) {
+                            await transaction.rollback();
+                            return res.status(500).json({ success: false, message: err2.message });
+                        }
                     });
                 }
-
-                return res.status(200).json({ partner })
+                await transaction.commit();
+                return res.status(200).json({ success: true, message: 'Partner registered successfully', data: partner })
             } catch (err) {
-                return res.status(500).json({ message: (err as Error).message })
+                await transaction.rollback();
+                return res.status(500).json({ success: false, message: (err as Error).message })
             }
         });
     } else {
-        res.status(405).json({ message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }

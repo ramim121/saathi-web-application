@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
+import Swal from "sweetalert2";
 
 interface ListProps {
     idBlogs: number,
@@ -20,12 +21,20 @@ function List() {
                 const res = await fetch('/api/blogs/list', getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    setBlogsList(data);
+                    setBlogsList(data.data);
                 } else {
-                    console.log('Failed to fetch partners list');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
                 }
-            } catch (err) {
-                console.log(err);
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.message,
+                });
             }
         }
         fetchBlogsList();

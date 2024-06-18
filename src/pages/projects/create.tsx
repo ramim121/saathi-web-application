@@ -67,7 +67,7 @@ function Projects() {
 				const res = await fetch(API_URL + 'api/investment_plans');
 				const data = await res.json();
 				if (res.status === 200) {
-					const plans = data.map((plan: any) => {
+					const plans = data.data.map((plan: any) => {
 						return {
 							value: plan.idInvestmentSetup,
 							label: plan.planName,
@@ -82,10 +82,18 @@ function Projects() {
 					});
 					setInvestmentPlans(plans);
 				} else {
-					console.log('Failed to fetch investment plans');
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: data.message,
+					});
 				}
-			} catch (err) {
-				console.log(err);
+			} catch (err: any) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: err.message,
+				});
 			}
 		}
 		fetchInvestmentPlans();

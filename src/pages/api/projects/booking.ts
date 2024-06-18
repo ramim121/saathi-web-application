@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestor } from '@/models/__associations';
+import { ProjectInvestor, ProjectPartnerInvestor } from '@/models/__associations';
+import sequelize from '@/config/db';
 import Joi from 'joi';
 
 const schema = Joi.object({
@@ -21,16 +22,16 @@ const schema = Joi.object({
                 "any.required": "Unit purchased is required",
                 "number.base": "Unit purchased can not be empty",
             }),
-            amountInvested: Joi.number().min(0).required().messages({
-                "any.required": "Amount invested is required",
-                "number.base": "Amount invested can not be empty",
-                "number.min": "Amount invested can not be less than 0",
-            }),
             projectPartners: Joi.array().items(
                 Joi.object({
                     idProjectPartners: Joi.number().required().messages({
                         "any.required": "Project partner must be selected",
                         "number.base": "Project partner must be selected",
+                    }),
+                    amountInvested: Joi.number().min(0).required().messages({
+                        "any.required": "Amount invested is required",
+                        "number.base": "Amount invested can not be empty",
+                        "number.min": "Amount invested can not be less than 0",
                     }),
                 })
             ).required().messages({
@@ -55,27 +56,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
+        const transaction = await sequelize.transaction();
+
         try {
             for (const project of projects) {
+                const projectInvestor = await ProjectInvestor.create({
+                    idUsers,
+                    idProjects: project.idProjects,
+                    unitPurchased: project.unitPurchased,
+                    investmentStatus: 'booked',
+                    investmentDate,
+                }, { transaction });
+
                 for (const partner of project.projectPartners) {
-                    const booking = await ProjectInvestor.create({
-                        idUsers,
-                        idProjects: project.idProjects,
+                    const projectPartnerInvestor = await ProjectPartnerInvestor.create({
+                        idProjectInvestors: projectInvestor.idProjectInvestors,
                         idProjectPartners: partner.idProjectPartners,
-                        unitPurchased: project.unitPurchased,
-                        amountInvested: project.amountInvested,
-                        investmentStatus: 'booked',
-                        investmentDate,
-                    });
+                        amountInvested: partner.amountInvested,
+                    }, { transaction });
                 }
             }
-
-
-            return res.status(200).json({ message: 'Investment booked successfully' })
+            await transaction.commit();
+            return res.status(200).json({ success: true, message: 'Investment booked successfully' })
         } catch (err) {
-            return res.status(500).json({ message: (err as Error).message })
+            await transaction.rollback();
+            return res.status(500).json({ success: false, message: (err as Error).message })
         }
     } else {
-        res.status(405).json({ message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }

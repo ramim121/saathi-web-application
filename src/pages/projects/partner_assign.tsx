@@ -70,15 +70,23 @@ function PartnerAssign() {
 				const res = await fetch('/api/partners/get_all_partners', getRequestOptions());
 				const data = await res.json();
 				if (res.status === 200) {
-					const newItems = data.map(function (element: { fullName: string, idUsers: number }) {
+					const newItems = data.data.map(function (element: { fullName: string, idUsers: number }) {
 						return { ...element, label: element.fullName, value: element.idUsers }
 					});
 					setPartnersList(newItems);
 				} else {
-					console.log('Failed to fetch partners list');
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: data.message,
+					});
 				}
-			} catch (err) {
-				console.log(err);
+			} catch (err: any) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: err.message,
+				});
 			}
 		}
 		fetchPartnersList();
@@ -90,16 +98,24 @@ function PartnerAssign() {
 				const res = await fetch('/api/projects/get_all_projects', getRequestOptions());
 				const data = await res.json();
 				if (res.status === 200) {
-					const newItems = data.map(function (element: { projectName: string, idProjects: number }) {
+					const newItems = data.data.map(function (element: { projectName: string, idProjects: number }) {
 						return { ...element, label: element.projectName, value: element.idProjects }
 					});
 					setProjectList(newItems);
 
 				} else {
-					console.log('Failed to fetch projects list');
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: data.message,
+					});
 				}
-			} catch (err) {
-				console.log(err);
+			} catch (err: any) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: err.message,
+				});
 			}
 		}
 		fetchProjectsList();
