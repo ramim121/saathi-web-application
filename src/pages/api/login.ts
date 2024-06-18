@@ -10,31 +10,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Check if username and password are provided
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' })
+            return res.status(400).json({ success: false, message: 'Email and password are required' })
         }
 
         try {
             // Find the user with the provided username
             const user = await User.scope('withPassword').findOne({
-                where: { email, userType: 'admin'},
+                where: { email, userType: 'admin' },
                 include: [
                     { model: ProjectInvestor, as: 'Investments', include: [Project] },
                     { model: ProjectPartner, as: 'Partnerships', include: [Project] }
                 ],
             })
 
-            console.log(bcrypt.hashSync(password, 10));
-
             // If the user is not found, return a 404 Not Found response
             if (!user) {
-                return res.status(404).json({ message: 'User not found' })
+                return res.status(404).json({ success: false, message: 'User not found' })
             }
 
             // Verify the password
             const passwordMatch = await bcrypt.compare(password, user.password)
 
             if (!passwordMatch) {
-                return res.status(401).json({ message: 'Invalid email or password' })
+                return res.status(401).json({ success: false, message: 'Invalid email or password' })
             }
 
 
@@ -43,12 +41,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 expiresIn: '30d',
             })
 
-            return res.status(200).json({ token, user })
+            return res.status(200).json({ success: true, token, user })
         } catch (err: any) {
             console.error(err)
-            return res.status(500).json({ message: err.message })
+            return res.status(500).json({ success: false, message: err.message })
         }
     } else {
-        res.status(405).json({ message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }

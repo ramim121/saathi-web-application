@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Project } from '@/models/__associations';
 import Joi from 'joi';
+import sequelize from '@/config/db';
 
 const schema = Joi.object({
     projectName: Joi.string().required().messages({
@@ -84,6 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
 
+        const transaction = await sequelize.transaction();
         try {
             const data = await Project.create({
                 projectName,
@@ -103,13 +105,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 collectionEnds,
                 otherLocations,
                 projectStatus: 'created'
-            })
+            }, { transaction });
 
-            return res.status(200).json({ data })
+            await transaction.commit();
+
+            return res.status(200).json({ success: true, message: 'Project created successfully', data: data });
         } catch (err) {
-            return res.status(500).json({ message: (err as Error).message })
+            await transaction.rollback();
+            return res.status(500).json({ success: false, message: (err as Error).message })
         }
     } else {
-        res.status(405).json({ message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }

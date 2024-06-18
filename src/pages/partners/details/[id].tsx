@@ -6,6 +6,7 @@ import { Container, Row, Table, Col } from "react-bootstrap";
 import Image from "next/image";
 import Carousel from 'react-bootstrap/Carousel';
 import { S3_URL } from '@/config/constants';
+import Swal from "sweetalert2";
 
 interface DetailsProps {
     idUsers: number,
@@ -49,12 +50,20 @@ function Details() {
                     const res = await fetch('/api/partners/details/' + id, getRequestOptions());
                     const data = await res.json();
                     if (res.status === 200) {
-                        setDetails(data);
+                        setDetails(data.data);
                     } else {
-                        console.log('Failed to fetch partners details');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                        });
                     }
-                } catch (err) {
-                    console.log(err);
+                } catch (err: any) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: err.message,
+                    });
                 }
             }
             fetchPartnerDetails();

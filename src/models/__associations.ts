@@ -7,6 +7,7 @@ import InvestmentSetup from "./InvestmentSetup";
 import Skill from "./Skill";
 import File from "./File";
 import Blog from "./Blog";
+import ProjectPartnerInvestor from "./ProjectPartnerInvestor";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -30,10 +31,14 @@ Project.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
 
 ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
+ProjectPartner.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectPartners' });
 
 ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
-ProjectInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
+ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
+ProjectInvestor.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectInvestors' });
+ProjectPartnerInvestor.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
+ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
 
 File.belongsTo(User, { foreignKey: 'refId' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog };
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor };

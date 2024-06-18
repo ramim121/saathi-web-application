@@ -22,16 +22,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
         const { phone } = req.body;
         if (!phone) {
-            return res.status(400).json({ message: 'Phone number is required' });
+            return res.status(400).json({ success: false, message: 'Phone number is required' });
         }
 
         const bangladeshPhoneRegex = /^(\+88)?(01[3-9]\d{8})$/;
         if (!bangladeshPhoneRegex.test(phone)) {
-            return res.status(400).json({ message: 'Invalid phone number' });
+            return res.status(400).json({ success: false, message: 'Invalid phone number' });
         }
 
         if (otps[phone] && otps[phone].expiry > Date.now()) {
-            return res.status(400).json({ message: 'OTP already sent' });
+            return res.status(400).json({ success: false, message: 'OTP already sent' });
         }
 
         otps[phone] = {
@@ -39,22 +39,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             expiry: Date.now() + OTP_EXPIRY
         };
         const message = `Welcome to SAATHI. Your OTP is ${otps[phone].otp}`;
-        console.log(await SendSms(message, phone));
+        await SendSms(message, phone);
 
-        return res.status(200).json({ message: 'OTP sent successfully' });
+        return res.status(200).json({ success: false, message: 'OTP sent successfully' });
     } else if (req.method === 'PUT') {
         const { phone, otp } = req.body;
 
         if (!phone || !otp) {
-            return res.status(400).json({ message: 'Phone number and OTP is required' });
+            return res.status(400).json({ success: false, message: 'Phone number and OTP is required' });
         }
 
         if (!otps[phone] || otps[phone].otp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP' });
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
         }
 
         if (otps[phone].expiry < Date.now()) {
-            return res.status(400).json({ message: 'OTP expired. try again' });
+            return res.status(400).json({ success: false, message: 'OTP expired. try again' });
         }
 
         delete otps[phone];
@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             expiresIn: '30d'
         });
 
-        return res.status(200).json({ token, user });
+        return res.status(200).json({ success: true, token, user });
     }
 }
 

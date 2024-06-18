@@ -3,6 +3,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 interface ListProps {
     idProjects: number,
@@ -20,7 +21,7 @@ interface ListProps {
         User: {
             fullName: string
         }
-    },
+    }[],
     CreatedBy: {
         fullName: string
     }
@@ -36,12 +37,21 @@ function List() {
                 const res = await fetch('/api/projects/list', getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    setProjectsList(data);
+                    setProjectsList(data.data);
                 } else {
-                    console.log('Failed to fetch partners list');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
                 }
-            } catch (err) {
-                console.log(err);
+            } catch (err: any) {
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.message,
+                });
             }
         }
         fetchProjectsList();
@@ -80,7 +90,13 @@ function List() {
                             </td>
                             <td>{project.duration} {project.tenure}</td>
                             <td>{project.location}</td>
-                            <td>{project.ProjectPartners?.User.fullName}</td>
+                            <td>
+                                <ul>
+                                    {project.ProjectPartners && project.ProjectPartners.map((partner, index) => (
+                                        <li key={index}>{partner.User.fullName}</li>
+                                    ))}
+                                </ul>
+                            </td>
                             <td>{project.CreatedBy?.fullName}</td>
                             <td>
                                 <Link href={`/projects/details/${project.idProjects}`}>

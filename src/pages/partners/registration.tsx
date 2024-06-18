@@ -53,12 +53,20 @@ function Registration() {
                 const res = await fetch(API_URL + 'api/all_skills');
                 const data = await res.json();
                 if (res.status === 200) {
-                    setSkills(data);
+                    setSkills(data.data);
                 } else {
-                    console.log('Failed to fetch skills');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
                 }
             } catch (err) {
-                console.log(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Something went wrong!',
+                });
             }
         };
         fetchSkills();

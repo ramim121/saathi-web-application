@@ -105,13 +105,21 @@ function Investment() {
                 const res = await fetch('/api/setup/investment_list', getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    setInvestmentList(data);
+                    setInvestmentList(data.data);
                     setReload(false);
                 } else {
-                    console.log('Failed to fetch partners list');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
                 }
-            } catch (err) {
-                console.log(err);
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.message,
+                });
             }
         }
         if (reload) {

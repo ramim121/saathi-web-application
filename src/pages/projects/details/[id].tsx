@@ -3,6 +3,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col } from "react-bootstrap";
+import Swal from "sweetalert2";
 
 interface DetailsProps {
     idProjects: number,
@@ -26,7 +27,7 @@ interface DetailsProps {
         User: {
             fullName: string
         }
-    },
+    }[],
     CreatedBy: {
         fullName: string
     },
@@ -44,12 +45,20 @@ function Details() {
                     const res = await fetch('/api/projects/details/' + id, getRequestOptions());
                     const data = await res.json();
                     if (res.status === 200) {
-                        setDetails(data);
+                        setDetails(data.data);
                     } else {
-                        console.log('Failed to fetch partners details');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                        });
                     }
-                } catch (err) {
-                    console.log(err);
+                } catch (err: any) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: err.message,
+                    });
                 }
             }
             fetchProjectDetails();
@@ -116,7 +125,13 @@ function Details() {
                             </tr>
                             <tr>
                                 <td>Partner</td>
-                                <td>{details.ProjectPartners?.User.fullName}</td>
+                                <td>
+                                    <ul>
+                                        {details.ProjectPartners && details.ProjectPartners.map((partner, index) => (
+                                            <li key={index}>{partner.User.fullName}</li>
+                                        ))}
+                                    </ul>
+                                </td>
                             </tr>
                             <tr>
                                 <td>Created By</td>

@@ -15,20 +15,12 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    idProjectPartners: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
     idUsers: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
     unitPurchased: {
         type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    amountInvested: {
-        type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
     investmentStatus: {

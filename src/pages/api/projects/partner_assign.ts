@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ProjectPartner } from '@/models/__associations';
 import Joi from 'joi';
+import sequelize from '@/config/db';
 
 const schema = Joi.object({
     partner: Joi.number().required().messages({
@@ -28,17 +29,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
+        const transaction = await sequelize.transaction();
         try {
             const partnerProject = await ProjectPartner.create({
                 idProjects: project,
                 idUsers: partner
-            })
-
-            return res.status(200).json({ partnerProject })
-        } catch (err) {
-            return res.status(500).json({ message: (err as Error).message })
+            }, { transaction });
+            await transaction.commit();
+            return res.status(200).json({ success: true, message: 'Partner assigned successfully', data: partnerProject })
+        } catch (error) {
+            await transaction.rollback();
+            return res.status(500).json({ success: false, message: (error as Error).message })
         }
     } else {
-        res.status(405).json({ message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
