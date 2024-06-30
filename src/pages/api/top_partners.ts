@@ -18,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     'skills',
                     'joiningDate',
                     'education',
+                    'disability',
                 ],
                 include: [
                     { model: File, as: 'ProfilePicture' },

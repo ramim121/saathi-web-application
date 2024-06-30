@@ -19,8 +19,9 @@ interface FormDataType {
     multiSkills: any[],
     education: string,
     skills: string,
-    profilePicture: any
-    featuredImages: any
+    profilePicture: any,
+    featuredImages: any,
+    disability: string
 }
 
 interface Skills {
@@ -42,7 +43,8 @@ function Registration() {
         education: '',
         skills: '',
         profilePicture: '',
-        featuredImages: ''
+        featuredImages: '',
+        disability: 'no'
     });
     const bioRef = useRef<any>(null);
     const [skills, setSkills] = useState<Skills[]>([]);
@@ -148,6 +150,7 @@ function Registration() {
                 newFormData.append('joiningDate', formData.joiningDate);
                 newFormData.append('skills', formData.skills);
                 newFormData.append('education', formData.education);
+                newFormData.append('disability', formData.disability);
                 newFormData.append('profilePicture', formData.profilePicture);
                 if (formData.featuredImages) {
                     for (let i = 0; i < formData.featuredImages.length; i++) {
@@ -180,7 +183,8 @@ function Registration() {
                                 education: '',
                                 skills: '',
                                 profilePicture: '',
-                                featuredImages: ''
+                                featuredImages: '',
+                                disability: 'no'
                             });
                             bioRef.current.setContent('');
 
@@ -292,12 +296,26 @@ function Registration() {
                                 <Form.Label column sm='4'>Location / Address <span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <Form.Control
-                                        as="textarea"
+                                        type='text'
                                         placeholder="Enter your current location/address"
                                         name="location"
                                         onChange={handleOnChange}
-                                        rows={2}
                                         value={formData.location}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Disabilty <span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Select
+                                        id="disability"
+                                        instanceId="disability"
+                                        options={[
+                                            { value: 'yes', label: 'Yes' },
+                                            { value: 'no', label: 'No' }
+                                        ]}
+                                        value={{ value: formData.disability, label: formData.disability === 'yes' ? 'Yes' : 'No' }}
+                                        onChange={(selectedOption: any) => setFormData({ ...formData, disability: selectedOption.value })}
                                     />
                                 </Col>
                             </Form.Group>
