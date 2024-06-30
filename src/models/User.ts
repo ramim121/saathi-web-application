@@ -101,6 +101,11 @@ const User = sequelize.define<UserModel>('User', {
     education: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    disability: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull: false
     }
 }, {
     tableName: 'users',

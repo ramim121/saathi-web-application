@@ -32,6 +32,7 @@ export default interface User {
     education: string | null;
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
+    disability: 'yes' | 'no';
 
 }
 

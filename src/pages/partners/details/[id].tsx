@@ -14,6 +14,7 @@ interface DetailsProps {
     phoneNumber: string,
     age: number,
     location: string,
+    disability: string,
     role: string,
     joiningDate: string,
     skills: string,
@@ -91,8 +92,12 @@ function Details() {
                                 <td>{details.age}</td>
                             </tr>
                             <tr>
-                                <td>Location</td>
+                                <td>Location/Address</td>
                                 <td>{details.location}</td>
+                            </tr>
+                            <tr>
+                                <td>Disability</td>
+                                <td>{details.disability?.charAt(0).toUpperCase() + details.disability?.slice(1)}</td>
                             </tr>
                             <tr>
                                 <td>Education</td>

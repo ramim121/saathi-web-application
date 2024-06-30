@@ -13,7 +13,8 @@ interface ListProps {
 	location: string,
 	role: string,
 	joiningDate: string,
-	skills: string
+	skills: string,
+	disability: string
 }
 
 interface FilterProps {
@@ -25,6 +26,7 @@ interface FilterProps {
 	joiningDate: string,
 	skills: string,
 	idUsers: string,
+	disability: string,
 	orderBy: string,
 	orderType: string,
 	page: number,
@@ -42,6 +44,7 @@ function List() {
 		joiningDate: '',
 		skills: '',
 		idUsers: '',
+		disability: '',
 		orderBy: 'idUsers',
 		orderType: 'ASC',
 		page: 1,
@@ -130,7 +133,7 @@ function List() {
 			<Table responsive striped bordered hover>
 				<thead>
 					<tr>
-						<th>#</th>
+						<th>Id</th>
 						<th>Full Name</th>
 						<th>Phone Number</th>
 						<th>Age</th>
@@ -138,6 +141,7 @@ function List() {
 						<th>Role</th>
 						<th>Joining Date</th>
 						<th>Skills</th>
+						<th>Disability</th>
 						<th>Actions</th>
 					</tr>
 					<tr>
@@ -165,6 +169,9 @@ function List() {
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="skills" onChange={handleInputOnChange} value={filter.skills} />
 						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="disability" onChange={handleInputOnChange} value={filter.disability} />
+						</td>
 						<td></td>
 
 					</tr>
@@ -180,6 +187,7 @@ function List() {
 							<td>{partner.role}</td>
 							<td>{partner.joiningDate}</td>
 							<td>{partner.skills}</td>
+							<td>{partner.disability.charAt(0).toUpperCase() + partner.disability.slice(1)}</td>
 							<td>
 								<Link href={`/partners/details/${partner.idUsers}`}>
 									<Button variant="primary">Details</Button>

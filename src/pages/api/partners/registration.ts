@@ -80,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 joiningDate: fields.joiningDate ? new Date(fields.joiningDate[0]) : null,
                 skills: fields.skills ? fields.skills[0] : null,
                 education: fields.education ? fields.education[0] : null,
+                disability: fields.disability ? fields.disability[0] : null
             }
 
             const options = {
@@ -138,6 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     skills: data.skills,
                     userType: 'partner',
                     education: data.education,
+                    disability: data.disability
                 }, { transaction });
                 if (profilePicture !== null) {
                     let profilePicFileName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
