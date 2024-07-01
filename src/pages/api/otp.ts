@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await user.save();
         }
 
-        const token = jwt.sign({ id: user.idUsers }, JWT_SECRET, {
+        const token = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
             expiresIn: '30d'
         });
 
