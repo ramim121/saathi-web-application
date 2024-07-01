@@ -47,8 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             return res.status(400).json({ success: false, message: errorMessage });
         }
-
-        let updatedUser = await User.update(req.body, { where: { idUsers: userInfo!.idUsers } });
+        let { fullName, email, dateOfBirth } = req.body
+        let updatedUser = await User.update({ fullName, email, dateOfBirth }, { where: { idUsers: userInfo!.idUsers } });
         res.status(200).json({ updatedUser });
     }
 
