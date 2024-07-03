@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     {
                         model: ProjectPartner, as: 'Partnerships',
                         include: [
-                            { model: Project, as: 'Project', attributes: ['projectName', 'location'] }
+                            { model: Project, as: 'Project' }
                         ]
 
                     }],
