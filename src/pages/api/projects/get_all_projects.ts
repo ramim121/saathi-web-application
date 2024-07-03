@@ -9,13 +9,6 @@ export default async function handler(
 	if (req.method === 'GET') {
 		try {
 			const result = await Project.findAll({
-				attributes: [
-					'idProjects',
-					'projectName',
-					'duration',
-					'tenure',
-					'location'
-				],
 				include: [
 					{
 						model: ProjectPartner, as: 'ProjectPartners', required: false
