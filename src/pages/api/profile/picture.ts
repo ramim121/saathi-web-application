@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return;
         }
 
-        if (!profilePicture) { return res.status(400).json({ success: false, message: 'NID front image is required' }); }
+        if (!profilePicture) { return res.status(400).json({ success: false, message: 'Profile picture is required' }); }
 
         let profilePicturefileName = generateHash(Date.now() + user.email.toString() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
 
@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ACL: 'public-read'
         };
 
-        let [err1, result1] = await _(s3.upload({ ...params, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile/' + profilePicture }).promise());
+        let [err1, result1] = await _(s3.upload({ ...params, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile/' + profilePicturefileName }).promise());
         if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
 
         user.profileImage = profilePicturefileName;
