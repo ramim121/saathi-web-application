@@ -4,6 +4,9 @@ import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col } from "react-bootstrap";
 import Swal from "sweetalert2";
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
+import Carousel from 'react-bootstrap/Carousel';
 
 interface DetailsProps {
     idProjects: number,
@@ -31,6 +34,16 @@ interface DetailsProps {
     CreatedBy: {
         fullName: string
     },
+    MainImage?: {
+        idFiles: number,
+        originalFileName: string,
+        fileName: string,
+    },
+    FeaturedImages: {
+        idFiles: number,
+        originalFileName: string,
+        fileName: string,
+    }[]
 }
 
 function Details() {
@@ -105,6 +118,12 @@ function Details() {
                                 <td>Tenure</td>
                                 <td>{details.duration} {details.tenure}</td>
                             </tr>
+                            <tr>
+                                <td>Main Image</td>
+                                <td className="text-center">
+                                    {details.MainImage && <Image src={`${S3_URL}project-main-image/${id}/${details.MainImage?.fileName}`} alt={details.MainImage?.originalFileName} width={100} height={100} />}
+                                </td>
+                            </tr>
                         </tbody>
                     </Table>
                 </Col>
@@ -143,6 +162,18 @@ function Details() {
                             </tr>
                         </tbody>
                     </Table>
+                </Col>
+            </Row>
+            <Row className="mt-2">
+                <h3>Featured Images</h3>
+                <Col>
+                    <Carousel>
+                        {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
+                            <Carousel.Item key={index}>
+                                <Image src={`${S3_URL}project-featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
+                            </Carousel.Item>
+                        ))}
+                    </Carousel>
                 </Col>
             </Row>
         </Container>

@@ -28,6 +28,16 @@ Project.belongsTo(ProjectCategory, { foreignKey: 'idProjectCategories', as: 'Pro
 Project.hasMany(ProjectPartner, { foreignKey: 'idProjects', as: 'ProjectPartners' });
 Project.hasMany(ProjectInvestor, { foreignKey: 'idProjects', as: 'ProjectInvestors' });
 Project.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
+Project.hasOne(File, {
+	foreignKey: 'refId', as: 'MainImage', scope: {
+		ref_type: 'project-main-image'
+	}
+});
+Project.hasMany(File, {
+	foreignKey: 'refId', as: 'FeaturedImages', scope: {
+		ref_type: 'project-featured-image'
+	}
+})
 
 ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });

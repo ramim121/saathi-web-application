@@ -20,7 +20,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
     },
     summary: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: true
     },
     projectBanner: {
         type: DataTypes.STRING,
