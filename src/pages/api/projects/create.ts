@@ -1,7 +1,28 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Project } from '@/models/__associations';
+import { Project, File } from '@/models/__associations';
 import Joi from 'joi';
 import sequelize from '@/config/db';
+import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
+import { generateHash } from '@/utils/GenerateHash';
+import * as formidable from 'formidable';
+import fs from 'fs';
+import AWS from 'aws-sdk';
+import _ from 'await-to-js';
+
+AWS.config.update({
+    accessKeyId: S3_BUCKET_ACCESS_KEY,
+    secretAccessKey: S3_BUCKET_SECRET_KEY,
+    region: S3_BUCKET_REGION,
+});
+
+// Create an S3 instance
+const s3 = new AWS.S3();
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
 
 const schema = Joi.object({
     projectName: Joi.string().required().messages({
@@ -70,51 +91,141 @@ const schema = Joi.object({
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { projectName, unitInvestmentValue, investment, summary, location, createdBy, totalReturnMax, totalReturnMin, collectionStarts, collectionEnds, otherLocations } = req.body
-        const options = {
-            abortEarly: false,
-        };
-        const { error } = schema.validate({ projectName, unitInvestmentValue, investment, location, createdBy, totalReturnMax, totalReturnMin, collectionStarts, collectionEnds }, options);
 
-        if (error) {
-            let errorMessage: string[] = [];
+        const form = new formidable.IncomingForm();
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                return res.status(500).json({ success: false, message: err.message });
+            }
 
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
-            });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
-        }
+            const mainImage = files['mainImage'] ? files['mainImage'][0] as formidable.File : null;
+            const featuredImages = files['featuredImages'] ? files['featuredImages'] as formidable.File[] : [];
+            const investmentFields = fields.investment && fields.investment.length > 0 ? JSON.parse(fields.investment[0]) : null;
 
-        const transaction = await sequelize.transaction();
-        try {
-            const data = await Project.create({
-                projectName,
-                summary,
-                returnRangeMin: investment.minimumReturn !== undefined ? investment.minimumReturn : 0,
-                returnRangeMax: investment.maximumReturn !== undefined ? investment.maximumReturn : 0,
-                investmentType: investment.investmentType,
-                returnType: investment.returnType,
-                duration: investment.duration,
-                tenure: investment.tenure,
-                location,
-                unitInvestmentValue,
-                createdBy,
-                totalReturnMin,
-                totalReturnMax,
-                collectionStarts,
-                collectionEnds,
-                otherLocations,
-                projectStatus: 'created'
-            }, { transaction });
 
-            await transaction.commit();
+            const data = {
+                projectName: fields.projectName ? fields.projectName[0].toString() : null,
+                unitInvestmentValue: fields.unitInvestmentValue ? fields.unitInvestmentValue[0] : null,
+                investment: {
+                    minimumReturn: investmentFields.minimumReturn ? parseInt(investmentFields.minimumReturn) : null,
+                    maximumReturn: investmentFields.maximumReturn ? parseInt(investmentFields.maximumReturn) : null,
+                    investmentType: investmentFields.investmentType,
+                    returnType: investmentFields.returnType,
+                    duration: investmentFields.duration ? parseInt(investmentFields.duration) : null,
+                    tenure: investmentFields.tenure,
+                    label: investmentFields.label,
+                    value: investmentFields.value ? parseInt(investmentFields.value) : null
+                },
+                location: fields.location ? fields.location[0] : null,
+                totalReturnMax: fields.totalReturnMax ? fields.totalReturnMax[0] : null,
+                totalReturnMin: fields.totalReturnMin ? fields.totalReturnMin[0] : null,
+                collectionStarts: fields.collectionStarts ? fields.collectionStarts[0] : null,
+                collectionEnds: fields.collectionEnds ? fields.collectionEnds[0] : null,
+                otherLocations: fields.otherLocations ? fields.otherLocations[0] : null,
+                summary: fields.summary ? fields.summary[0] : null,
+                createdBy: fields.createdBy ? fields.createdBy[0] : null
+            }
 
-            return res.status(200).json({ success: true, message: 'Project created successfully', data: data });
-        } catch (err) {
-            await transaction.rollback();
-            return res.status(500).json({ success: false, message: (err as Error).message })
-        }
+            const options = {
+                abortEarly: false,
+            };
+            const { error } = schema.validate(data, options);
+
+            if (error) {
+                let errorMessage: string[] = [];
+
+                error.details.forEach((e) => {
+                    errorMessage.push(e.message);
+                });
+                return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+            }
+
+            if (mainImage !== null) {
+                if (mainImage.mimetype !== 'image/jpeg' && mainImage.mimetype !== 'image/png' && mainImage.mimetype !== 'image/jpg') {
+                    res.status(400).json({ message: `Invalid file type: ${mainImage.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
+                    return;
+                }
+
+            }
+
+            if (featuredImages.length > 0) {
+                featuredImages.forEach((file: formidable.File) => {
+                    if (file.mimetype !== 'image/jpeg' && file.mimetype !== 'image/png' && file.mimetype !== 'image/jpg') {
+                        res.status(400).json({ message: `Invalid file type: ${file.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
+                        return;
+                    }
+                }
+                )
+            }
+            const params = {
+                Bucket: S3_BUCKET_NAME,
+                ACL: 'public-read'
+            };
+
+            const transaction = await sequelize.transaction();
+            try {
+                const project = await Project.create({
+                    projectName: data.projectName,
+                    summary: data.summary,
+                    returnRangeMin: data.investment && data.investment.minimumReturn,
+                    returnRangeMax: data.investment && data.investment.maximumReturn,
+                    investmentType: data.investment && data.investment.investmentType,
+                    returnType: data.investment && data.investment.returnType,
+                    duration: data.investment && data.investment.duration,
+                    tenure: data.investment && data.investment.tenure,
+                    location: data.location,
+                    unitInvestmentValue: data.unitInvestmentValue,
+                    createdBy: data.createdBy,
+                    totalReturnMin: data.totalReturnMin,
+                    totalReturnMax: data.totalReturnMax,
+                    collectionStarts: data.collectionStarts,
+                    collectionEnds: data.collectionEnds,
+                    otherLocations: data.otherLocations,
+                    projectStatus: 'created'
+                }, { transaction });
+
+                if (mainImage !== null) {
+                    let mainImageFileName = generateHash(Date.now() + mainImage.originalFilename!.toString()) + '.' + mainImage.originalFilename!.split('.').pop();
+                    await File.create({
+                        originalFileName: mainImage.originalFilename!,
+                        fileName: mainImageFileName,
+                        refType: 'project-main-image',
+                        refId: project.idProjects
+                    }, { transaction });
+
+                    let [err1] = await _(s3.upload({ ...params, ContentType: mainImage.mimetype!, Body: fs.createReadStream(mainImage.filepath), Key: 'project-main-image/' + project.idProjects + '/' + mainImageFileName }).promise());
+                    if (err1) {
+                        await transaction.rollback();
+                        return res.status(500).json({ success: false, message: err1.message });
+                    }
+                }
+
+                if (featuredImages.length > 0) {
+                    for (const file of featuredImages) {
+                        let featuredImageFileName = generateHash(Date.now() + file.originalFilename!.toString()) + '.' + file.originalFilename!.split('.').pop();
+                        await File.create({
+                            originalFileName: file.originalFilename!,
+                            fileName: featuredImageFileName,
+                            refType: 'project-featured-image',
+                            refId: project.idProjects
+                        }, { transaction });
+
+                        let [err2] = await _(s3.upload({ ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'project-featured-image/' + project.idProjects + '/' + featuredImageFileName }).promise());
+                        if (err2) {
+                            await transaction.rollback();
+                            return res.status(500).json({ success: false, message: err2.message });
+                        }
+                    }
+                }
+
+                await transaction.commit();
+                return res.status(200).json({ success: true, message: 'Project created successfully', data: project });
+            } catch (err) {
+                await transaction.rollback();
+                return res.status(500).json({ success: false, message: (err as Error).message });
+            }
+        });
     } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }

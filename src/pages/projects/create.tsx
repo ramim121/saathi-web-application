@@ -6,7 +6,7 @@ import Select from 'react-select';
 import { Editor } from '@tinymce/tinymce-react';
 import { AppContext } from '@/context/AppContext';
 import Swal from 'sweetalert2';
-import { postRequestOptions } from '@/utils/Fetch';
+import { getCookie } from '@/utils/GetCookie';
 
 interface FormDataType {
 	projectName: string,
@@ -28,7 +28,9 @@ interface FormDataType {
 	totalReturnMax: number,
 	collectionStarts: string,
 	collectionEnds: string,
-	otherLocations?: string
+	otherLocations: string,
+	mainImage?: any,
+	featuredImages?: any,
 }
 
 interface InvestmentPlan {
@@ -52,7 +54,9 @@ function Projects() {
 		totalReturnMax: 0,
 		collectionStarts: '',
 		collectionEnds: '',
-		otherLocations: ''
+		otherLocations: '',
+		mainImage: '',
+		featuredImages: ''
 	});
 	const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
 	const editorRef = useRef<any>(null);
@@ -112,6 +116,49 @@ function Projects() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [formData.investment, formData.unitInvestmentValue]);
 
+	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			const fileType = file.type;
+			const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+			if (validImageTypes.includes(fileType)) {
+				setFormData({ ...formData, mainImage: file });
+			} else {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'Invalid file type. Please upload a jpeg, jpg, or png image.',
+				});
+			}
+		}
+	}
+
+	const handleFeatureImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = event.target.files;
+		if (files) {
+			const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+			const invalidFiles = [];
+
+			for (let i = 0; i < files.length; i++) {
+				const fileType = files[i].type;
+				if (!validImageTypes.includes(fileType)) {
+					invalidFiles.push(files[i].name);
+				}
+			}
+
+			if (invalidFiles.length > 0) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: `Invalid file type. The following files are not jpeg, jpg, or png images: ${invalidFiles.join(', ')}`,
+				});
+			} else {
+				setFormData({ ...formData, featuredImages: files });
+			}
+		}
+	}
+
+
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		Swal.fire({
@@ -124,10 +171,32 @@ function Projects() {
 		}).then((result) => {
 			if (result.value) {
 				try {
-					formData.summary = editorRef.current.getContent();
 					formData.createdBy = currentUser?.idUsers || null;
+					const newFormData = new FormData();
+					newFormData.append('projectName', formData.projectName);
+					newFormData.append('unitInvestmentValue', formData.unitInvestmentValue.toString());
+					newFormData.append('summary', editorRef.current.getContent());
+					newFormData.append('location', formData.location);
+					newFormData.append('createdBy', formData.createdBy?.toString() || '');
+					newFormData.append('totalReturnMin', formData.totalReturnMin.toString());
+					newFormData.append('totalReturnMax', formData.totalReturnMax.toString());
+					newFormData.append('collectionStarts', formData.collectionStarts);
+					newFormData.append('collectionEnds', formData.collectionEnds);
+					newFormData.append('otherLocations', formData.otherLocations);
+					newFormData.append('mainImage', formData.mainImage);
+					newFormData.append('investment', JSON.stringify(formData.investment));
+					if (formData.featuredImages) {
+						for (let i = 0; i < formData.featuredImages.length; i++) {
+							newFormData.append('featuredImages', formData.featuredImages[i]);
+						}
+					}
+
 					const fetchData = async () => {
-						const res = await fetch(API_URL + 'api/projects/create', postRequestOptions(formData));
+						const res = await fetch(API_URL + 'api/projects/create', {
+							method: 'POST',
+							headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+							body: newFormData,
+						});
 						if (res.status === 200) {
 							Swal.fire({
 								icon: 'success',
@@ -148,7 +217,9 @@ function Projects() {
 								totalReturnMax: 0,
 								collectionStarts: '',
 								collectionEnds: '',
-								otherLocations: ''
+								otherLocations: '',
+								mainImage: '',
+								featuredImages: ''
 							});
 							editorRef.current.setContent('');
 
@@ -264,6 +335,12 @@ function Projects() {
 									<Form.Control type="date" placeholder="Enter collection start date" name="collectionStarts" onChange={handleOnChange} value={formData.collectionStarts} />
 								</Col>
 							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Main Image </Form.Label>
+								<Col sm='8'>
+									<Form.Control type="file" onChange={handleFileUpload} />
+								</Col>
+							</Form.Group>
 						</Col>
 						<Col md={6}>
 							<Form.Group as={Row} className='mb-3'>
@@ -305,6 +382,12 @@ function Projects() {
 								<Form.Label column sm='4'>Collection Ends <span className='text-danger'>*</span></Form.Label>
 								<Col sm='8'>
 									<Form.Control type="date" placeholder="Enter collection end date" name="collectionEnds" onChange={handleOnChange} value={formData.collectionEnds} />
+								</Col>
+							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Featured Images</Form.Label>
+								<Col sm='8'>
+									<Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
 								</Col>
 							</Form.Group>
 						</Col>

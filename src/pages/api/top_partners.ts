@@ -27,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {
                     user_type: 'partner',
                 },
+                order: [['createdAt', 'DESC']]
             });
 
             res.status(200).json({ success: true, data: result });

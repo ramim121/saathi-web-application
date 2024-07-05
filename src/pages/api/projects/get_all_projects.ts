@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project, ProjectPartner } from '@/models/__associations'
-import { Op } from 'sequelize';
+import { Project, ProjectPartner, File } from '@/models/__associations'
 
 export default async function handler(
 	req: NextApiRequest,
@@ -12,6 +11,12 @@ export default async function handler(
 				include: [
 					{
 						model: ProjectPartner, as: 'ProjectPartners', required: false
+					},
+					{
+						model: File, as: 'MainImage', required: false
+					},
+					{
+						model: File, as: 'FeaturedImages', required: false
 					}
 				]
 			})
