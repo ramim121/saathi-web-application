@@ -67,7 +67,7 @@ function PartnerAssign() {
 	useEffect(() => {
 		const fetchPartnersList = async () => {
 			try {
-				const res = await fetch('/api/partners/get_all_partners', getRequestOptions());
+				const res = await fetch('/api/partners/get_partner_for_assign', getRequestOptions());
 				const data = await res.json();
 				if (res.status === 200) {
 					const newItems = data.data.map(function (element: { fullName: string, idUsers: number }) {
@@ -95,7 +95,7 @@ function PartnerAssign() {
 	useEffect(() => {
 		const fetchProjectsList = async () => {
 			try {
-				const res = await fetch('/api/projects/get_all_projects', getRequestOptions());
+				const res = await fetch(`/api/projects/get-projects-for-assign/${selectedPartner?.value}`, getRequestOptions());
 				const data = await res.json();
 				if (res.status === 200) {
 					const newItems = data.data.map(function (element: { projectName: string, idProjects: number }) {
@@ -118,8 +118,10 @@ function PartnerAssign() {
 				});
 			}
 		}
-		fetchProjectsList();
-	}, []);
+		if (selectedPartner !== null) {
+			fetchProjectsList();
+		}
+	}, [selectedPartner]);
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -201,6 +203,7 @@ function PartnerAssign() {
 									components={{ Option: CustomOptionProject }}
 									onChange={(selectedOption: any) => setSelectedProject(selectedOption)}
 									value={selectedProject}
+									isDisabled={selectedPartner === null}
 								/>
 							</Col>
 						</Form.Group>
@@ -219,7 +222,7 @@ function PartnerAssign() {
 						<Card>
 							<Card.Header>Existing Projects of Partner</Card.Header>
 							<Card.Body>
-								{selectedPartner && selectedPartner.value && (
+								{(selectedPartner && selectedPartner.value) && (
 									<ul>
 										{selectedPartner.Partnerships && selectedPartner.Partnerships.map((project, index: number) => (
 											<li key={index}>{project.Project?.projectName}  ({project.Project?.location})</li>
