@@ -46,7 +46,7 @@ function List() {
 		idUsers: '',
 		disability: '',
 		orderBy: 'idUsers',
-		orderType: 'ASC',
+		orderType: 'DESC',
 		page: 1,
 		pageSize: 10
 
@@ -196,7 +196,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={9} className="text-center">No partners found</td>
+							<td colSpan={10} className="text-center">No partners found</td>
 						</tr>
 					)}
 

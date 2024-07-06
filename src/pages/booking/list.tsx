@@ -83,7 +83,7 @@ function List() {
                             <td>
                                 <ul>
                                     {booking.ProjectPartnerInvestors && booking.ProjectPartnerInvestors.map((partner, index) => (
-                                        <li key={index}>{partner.ProjectPartner.User.fullName}</li>
+                                        <li key={index}>{partner.ProjectPartner?.User?.fullName}</li>
                                     ))}
                                 </ul>
                             </td>

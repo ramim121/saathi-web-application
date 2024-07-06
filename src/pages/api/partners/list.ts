@@ -65,7 +65,7 @@ export default async function handler(
 				}],
 				limit,
 				offset,
-				order: [[orderBy as string, orderType === 'desc' ? 'DESC' : 'ASC']],
+				order: [[orderBy as string, orderType === 'DESC' ? 'DESC' : 'ASC']],
 			})
 
 			return res.status(200).json({
