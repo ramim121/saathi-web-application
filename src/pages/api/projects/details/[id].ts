@@ -12,7 +12,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     {
                         model: ProjectPartner, as: 'ProjectPartners',
                         include: [
-                            { model: User, attributes: ['fullName'] }
+                            {
+                                model: User,
+                                include: [
+                                    { model: File, as: 'ProfilePicture' }
+                                ]
+                            }
                         ]
                     },
                     {
