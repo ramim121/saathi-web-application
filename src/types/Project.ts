@@ -29,6 +29,7 @@ export default interface Project {
     updatedAt?: string;
     ProjectCategory?: ProjectCategory;
     CreatedBy?: User;
+    showInUpcoming: 'yes' | 'no';
     projectStatus: 'created' | 'collection_started' | 'collection_done' | 'project_started' | 'project_finished' | 'fund_disbursed' | 'closed'
 };
 

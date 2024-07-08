@@ -92,6 +92,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
         defaultValue: 'pending',
         allowNull: false
     },
+    showInUpcoming: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false
