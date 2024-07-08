@@ -25,17 +25,6 @@ export default async function handler(
 
 		try {
 			const result = await User.findAll({
-				attributes: [
-					'idUsers',
-					'fullName',
-					'phoneNumber',
-					'age',
-					'location',
-					'role',
-					'joiningDate',
-					'skills',
-					'disability',
-				],
 				include: [{
 					model: ProjectPartner, as: 'Partnerships',
 					include: [
