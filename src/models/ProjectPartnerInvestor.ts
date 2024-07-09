@@ -23,10 +23,18 @@ const ProjectPartnerInvestor = sequelize.define<ProjectPartnerInvestorModel>('Pr
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    }
 }, {
     tableName: 'project_partner_investors',
     underscored: true,
-    timestamps: false
+    timestamps: true
 });
 
 export default ProjectPartnerInvestor;

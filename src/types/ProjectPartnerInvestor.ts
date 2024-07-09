@@ -5,6 +5,8 @@ export default interface ProjectPartnerInvestor {
     idProjectInvestors: number;
     idProjectPartners: number;
     amountInvested: number;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface ProjectPartnerInvestorAttributes extends Optional<ProjectPartnerInvestor, 'idProjectPartnerInvestors'> { }

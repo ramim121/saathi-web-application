@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestor, ProjectPartnerInvestor, UserBank } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 
@@ -75,6 +75,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const transaction = await sequelize.transaction();
 
         try {
+
+            const userBank = await UserBank.create({
+                idUsers,
+                idBanks: req.body.idBanks,
+                branchName: req.body.branchName,
+                accountNumber: req.body.accountNumber,
+                accountHolderName: req.body.accountHolderName,
+            }, { transaction });
+
+            const projectInvestmentBooking = await ProjectInvestmentBooking.create({
+                idUsers,
+                paymentMethod: 'bank',
+                bookingId: '1',
+                paymentConfirmationStatus: 'pending',
+                idUserBanks: userBank.idUserBanks,
+            }, { transaction });
+
+
             for (const project of projects) {
                 const projectInvestor = await ProjectInvestor.create({
                     idUsers,
@@ -82,6 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     unitPurchased: project.unitPurchased,
                     investmentStatus: 'booked',
                     investmentDate,
+                    idProjectInvestmentBookings: projectInvestmentBooking.idProjectInvestmentBookings
                 }, { transaction });
 
                 for (const partner of project.projectPartners) {
@@ -93,16 +112,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             }
 
-            const userBank = await UserBank.create({
-                idUsers,
-                idBanks: req.body.idBanks,
-                branchName: req.body.branchName,
-                accountNumber: req.body.accountNumber,
-                accountHolderName: req.body.accountHolderName,
-            }, { transaction });
-
             await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Investment booked successfully' })
+            return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
         } catch (err) {
             await transaction.rollback();
             return res.status(500).json({ success: false, message: (err as Error).message })

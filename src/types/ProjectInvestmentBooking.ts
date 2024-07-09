@@ -13,8 +13,8 @@ export default interface ProjectInvestmentBooking {
     paymentAmount?: number;
     paymentDate?: string;
     transactionId?: string;
-    createDate: string;
-    updateDate: string;
+    createdAt: Date;
+    updatedAt: Date;
     idUserBanks?: number;
     Users?: User[];
     UserBank?: UserBank;
