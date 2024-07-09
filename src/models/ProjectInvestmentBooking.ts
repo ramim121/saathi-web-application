@@ -39,11 +39,11 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.STRING,
         allowNull: true
     },
-    createDate: {
+    createdAt: {
         type: DataTypes.DATE,
         allowNull: false
     },
-    updateDate: {
+    updatedAt: {
         type: DataTypes.DATE,
         allowNull: false
     },
