@@ -11,6 +11,7 @@ export default interface ProjectInvestmentBooking {
     paymentConfirmationStatus: 'pending' | 'confirmed' | 'denied';
     bookingId?: string;
     paymentAmount?: number;
+    paymentDate?: string;
     transactionId?: string;
     createDate: string;
     updateDate: string;

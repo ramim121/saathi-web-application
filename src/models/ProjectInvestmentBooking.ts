@@ -19,12 +19,20 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('bank', 'cash', 'card', 'mobile'),
         allowNull: false
     },
+    paymentConfirmationStatus: {
+        type: DataTypes.ENUM('pending', 'confirmed', 'denied'),
+        allowNull: false
+    },
     bookingId: {
         type: DataTypes.STRING,
         allowNull: true
     },
     paymentAmount: {
         type: DataTypes.DECIMAL(12, 2),
+        allowNull: true
+    },
+    paymentDate: {
+        type: DataTypes.DATE,
         allowNull: true
     },
     transactionId: {
