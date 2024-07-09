@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestor, ProjectPartnerInvestor } from '@/models/__associations';
+import { ProjectInvestor, ProjectPartnerInvestor, UserBank } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 
@@ -11,6 +11,22 @@ const schema = Joi.object({
     investmentDate: Joi.date().required().messages({
         "any.required": "Investment date is required",
         "date.base": "Invalid date",
+    }),
+    idBanks: Joi.number().required().messages({
+        "any.required": "Bank must be selected",
+        "number.base": "Bank must be selected",
+    }),
+    branchName: Joi.string().required().messages({
+        "any.required": "Branch name is required",
+        "string.base": "Branch name can not be empty",
+    }),
+    accountNumber: Joi.string().required().messages({
+        "any.required": "Account number is required",
+        "string.base": "Account number can not be empty",
+    }),
+    accountHolderName: Joi.string().required().messages({
+        "any.required": "Account holder name is required",
+        "string.base": "Account holder name can not be empty",
     }),
     projects: Joi.array().items(
         Joi.object({
@@ -43,11 +59,11 @@ const schema = Joi.object({
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { idUsers, investmentDate, projects } = req.body
+        const { idUsers, investmentDate, projects, idBanks, branchName, accountHolderName, accountNumber } = req.body
         const options = {
             abortEarly: false,
         };
-        const { error } = schema.validate({ idUsers, investmentDate, projects }, options);
+        const { error } = schema.validate({ idUsers, investmentDate, projects, idBanks, branchName, accountHolderName, accountNumber }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -76,6 +92,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     }, { transaction });
                 }
             }
+
+            const userBank = await UserBank.create({
+                idUsers,
+                idBanks: req.body.idBanks,
+                branchName: req.body.branchName,
+                accountNumber: req.body.accountNumber,
+                accountHolderName: req.body.accountHolderName,
+            }, { transaction });
+
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Investment booked successfully' })
         } catch (err) {
