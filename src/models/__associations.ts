@@ -10,10 +10,15 @@ import Blog from "./Blog";
 import ProjectPartnerInvestor from "./ProjectPartnerInvestor";
 import UserBank from "./UserBank";
 import Bank from "./Bank";
+import ProjectInvestmentBooking from "./ProjectInvestmentBooking";
+
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
 User.hasMany(ProjectInvestor, { foreignKey: 'idUsers', as: 'Investments' });
+User.hasMany(ProjectInvestmentBooking, { foreignKey: 'idUsers' });
+User.hasMany(UserBank, { foreignKey: 'idUsers' });
+
 User.hasOne(File, {
 	foreignKey: 'refId', as: 'ProfilePicture', scope: {
 		ref_type: 'profile-picture'
@@ -45,12 +50,20 @@ ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
 ProjectPartner.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectPartners' });
 
+ProjectInvestmentBooking.hasMany(ProjectInvestor, { foreignKey: 'idProjectInvestmentBookings' });
+ProjectInvestmentBooking.belongsTo(User, { foreignKey: 'idUsers' });
+ProjectInvestmentBooking.belongsTo(UserBank, { foreignKey: 'idUserBanks' });
+
 ProjectInvestor.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
+ProjectInvestor.belongsTo(ProjectInvestmentBooking, { foreignKey: 'idProjectInvestmentBookings' });
+
 ProjectInvestor.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectPartnerInvestor.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
 
+UserBank.belongsTo(User, { foreignKey: 'idUsers' });
+
 File.belongsTo(User, { foreignKey: 'refId' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank };
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking };

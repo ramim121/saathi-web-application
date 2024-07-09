@@ -1,6 +1,7 @@
 import { Optional } from 'sequelize';
 import ProjectInvestor from './ProjectInvestor';
 import ProjectPartner from './ProjectPartner';
+import UserBank from './UserBank';
 
 type UserType = 'admin' | 'investor' | 'partner';
 
@@ -33,7 +34,7 @@ export default interface User {
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
     disability: 'yes' | 'no';
-
+    UserBank?: UserBank[];
 }
 
 
