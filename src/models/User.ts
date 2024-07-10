@@ -70,6 +70,10 @@ const User = sequelize.define<UserModel>('User', {
         defaultValue: 'active',
         allowNull: false
     },
+    dateOfBirth: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     age: {
         type: DataTypes.INTEGER,
         allowNull: true
