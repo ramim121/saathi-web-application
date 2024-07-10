@@ -15,7 +15,7 @@ export default interface User {
     createdAt: Date;
     updatedAt: Date;
     userType: UserType;
-    dateOfBirth: string;
+    dateOfBirth: Date;
     emailVerified: 'yes' | 'no';
     phoneVerified: 'yes' | 'no';
     nidNumber: string | null;
