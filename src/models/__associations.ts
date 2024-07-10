@@ -11,6 +11,7 @@ import ProjectPartnerInvestor from "./ProjectPartnerInvestor";
 import UserBank from "./UserBank";
 import Bank from "./Bank";
 import ProjectInvestmentBooking from "./ProjectInvestmentBooking";
+import DigigramBank from "./DigigramBank";
 
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
@@ -66,4 +67,4 @@ UserBank.belongsTo(User, { foreignKey: 'idUsers' });
 
 File.belongsTo(User, { foreignKey: 'refId' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking };
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking, DigigramBank };
