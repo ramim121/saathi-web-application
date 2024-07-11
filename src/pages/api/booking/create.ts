@@ -76,20 +76,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         try {
 
-            const userBank = await UserBank.create({
-                idUsers,
-                idBanks: req.body.idBanks,
-                branchName: req.body.branchName,
-                accountNumber: req.body.accountNumber,
-                accountHolderName: req.body.accountHolderName,
-            }, { transaction });
+            const userBankExist = await UserBank.findOne({
+                where: {
+                    idUsers,
+                    accountNumber
+                }
+            });
+
+            let userBankId = null;
+
+            if (userBankExist) {
+                userBankId = userBankExist.idUserBanks;
+            }
+            else {
+                const userBank = await UserBank.create({
+                    idUsers,
+                    idBanks: req.body.idBanks,
+                    branchName: req.body.branchName,
+                    accountNumber: req.body.accountNumber,
+                    accountHolderName: req.body.accountHolderName,
+                }, { transaction });
+
+                userBankId = userBank.idUserBanks;
+            }
+
+            const maximumBookingId = await ProjectInvestmentBooking.max('bookingId');
+            const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
             const projectInvestmentBooking = await ProjectInvestmentBooking.create({
                 idUsers,
                 paymentMethod: 'bank',
-                bookingId: '1',
+                bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
-                idUserBanks: userBank.idUserBanks,
+                idUserBanks: userBankId,
             }, { transaction });
 
 
