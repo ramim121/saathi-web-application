@@ -8,13 +8,14 @@ export default interface ProjectInvestmentBooking {
     idProjectInvestmentBookings: number;
     idUsers: number;
     paymentMethod: 'bank' | 'cash' | 'card' | 'mobile';
-    paymentConfirmationStatus: 'pending' | 'confirmed' | 'denied';
+    paymentConfirmationStatus: 'pending' | 'uploaded' | 'confirmed' | 'denied';
     bookingId?: string;
     paymentAmount?: number;
     paymentDate?: string;
     transactionId?: string;
     createdAt: Date;
     updatedAt: Date;
+    proofOfPayment?: string;
     idUserBanks?: number;
     Users?: User[];
     UserBank?: UserBank;

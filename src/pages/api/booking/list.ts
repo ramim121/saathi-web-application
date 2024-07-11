@@ -1,60 +1,74 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { ProjectInvestor, Project, ProjectPartnerInvestor, User, ProjectPartner } from '@/models/__associations'
-import { Sequelize } from 'sequelize'
+import { ProjectInvestor, Project, ProjectPartnerInvestor, User, ProjectPartner, ProjectInvestmentBooking } from '@/models/__associations'
+import { Op } from 'sequelize'
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
+		const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
+		let whereClause: { idProjectInvestmentBookings?: { [Op.like]: string }; bookingId?: { [Op.like]: string }; paymentConfirmationStatus?: { [Op.like]: string } } = {};
+
+		if (idProjectInvestmentBookings) {
+			whereClause = { ...whereClause, idProjectInvestmentBookings: { [Op.like]: `%${idProjectInvestmentBookings}%` } };
+		}
+
+		if (bookingId) {
+			whereClause = { ...whereClause, idProjectInvestmentBookings: { [Op.like]: `%${bookingId}%` } };
+		}
+
+		if (paymentConfirmationStatus) {
+			whereClause = { ...whereClause, paymentConfirmationStatus: { [Op.like]: `%${paymentConfirmationStatus}%` } };
+		}
+
+		const limit = pageSize ? parseInt(pageSize as string) : 10;
+		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
+
 		try {
 
-			const result = await ProjectInvestor.findAll({
-				attributes: [
-					'idProjectInvestors',
-					'investmentStatus',
-					'investmentDate',
-					'unitPurchased'],
+			const result = await ProjectInvestmentBooking.findAndCountAll({
+				where: whereClause,
 				include: [
 					{
-						model: Project,
-						attributes: ['projectName', 'location'],
-
-					},
-					{
 						model: User,
-						attributes: ['fullName']
+						where: investorName ? { fullName: { [Op.like]: `%${investorName}%` } } : undefined,
 					},
 					{
-						model: ProjectPartnerInvestor,
+						model: ProjectInvestor,
 						include: [
 							{
-								model: ProjectPartner,
+								model: Project,
+								// where: projects ? { projectName: { [Op.like]: `%${projects}%` } } : undefined,
+							},
+							{
+								model: ProjectPartnerInvestor,
 								include: [
 									{
-										model: User,
-										attributes: ['fullName']
+										model: ProjectPartner,
+										include: [
+											{
+												model: User,
+											}
+										]
 									}
 								]
 							}
 						]
-					},
+					}
 				],
+				limit,
+				offset,
+				order: [[orderBy as string, orderType === 'DESC' ? 'DESC' : 'ASC']],
 			})
 
-			for (let i = 0; i < result.length; i++) {
-				let totalInvestedAmount = 0;
-				if (result[i].ProjectPartnerInvestors) {
-					for (let j = 0; j < result[i].ProjectPartnerInvestors.length; j++) {
-						totalInvestedAmount += Number(result[i].ProjectPartnerInvestors[j].amountInvested);
-					}
-				}
-				result[i].dataValues.totalInvestedAmount = totalInvestedAmount;
-			}
-
-
-
-			return res.status(200).json({ success: true, data: result })
+			return res.status(200).json({
+				success: true,
+				data: result.rows,
+				total: result.count,
+				currentPage: page ? parseInt(page as string) : 1,
+				totalPages: Math.ceil(result.count / limit)
+			})
 		} catch (error) {
 			return res.status(500).json({ success: false, message: (error as Error).message })
 		}

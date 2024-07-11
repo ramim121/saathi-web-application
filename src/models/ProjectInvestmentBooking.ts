@@ -20,7 +20,7 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         allowNull: false
     },
     paymentConfirmationStatus: {
-        type: DataTypes.ENUM('pending', 'confirmed', 'denied'),
+        type: DataTypes.ENUM('pending', 'uploaded', 'confirmed', 'denied'),
         allowNull: false
     },
     bookingId: {
@@ -49,6 +49,10 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
     },
     idUserBanks: {
         type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    proofOfPayment: {
+        type: DataTypes.STRING,
         allowNull: true
     }
 }, {
