@@ -189,7 +189,8 @@ function List() {
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td></td>
+                        <td>
+                        </td>
 
                     </tr>
                 </thead>
@@ -199,7 +200,8 @@ function List() {
                             <td>{booking.idProjectInvestmentBookings}</td>
                             <td>{booking.bookingId}</td>
                             <td>{booking.User.fullName}</td>
-                            <td>{booking.paymentConfirmationStatus}</td>
+                            <td>{booking.paymentConfirmationStatus?.charAt(0).toUpperCase() + booking.paymentConfirmationStatus?.slice(1)}
+                            </td>
                             <td>
                                 <ul>
                                     {booking.ProjectInvestors.map((invest, index) => (
@@ -225,26 +227,10 @@ function List() {
                                 </ul>
                             </td>
                             <td>
-                            </td>
-
-                            {/* <td>{booking?.User.fullName}</td>
-                            <td>{booking.Project.projectName}</td>
-                            <td>{booking.unitPurchased}</td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectPartnerInvestors && booking.ProjectPartnerInvestors.map((partner, index) => (
-                                        <li key={index}>{partner.ProjectPartner?.User?.fullName}</li>
-                                    ))}
-                                </ul>
-                            </td>
-                            <td>{booking.totalInvestedAmount}</td>
-                            <td>{booking.investmentDate}</td>
-                            <td>{booking.investmentStatus}</td>
-                            <td>
-                                <Link href={`/booking/details/${booking.idProjectInvestors}`}>
+                                <Link href={`/booking/details/${booking.idProjectInvestmentBookings}`}>
                                     <Button variant="primary">Details</Button>
                                 </Link>
-                            </td> */}
+                            </td>
                         </tr>
                     )) : (
                         <tr>

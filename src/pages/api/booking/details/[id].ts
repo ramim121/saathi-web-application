@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -29,6 +29,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             },
                             {
                                 model: Project,
+                            }
+                        ]
+                    },
+                    {
+                        model: User
+                    },
+                    {
+                        model: UserBank,
+                        include: [
+                            {
+                                model: Bank
                             }
                         ]
                     }
