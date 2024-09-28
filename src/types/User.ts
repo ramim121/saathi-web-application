@@ -34,6 +34,7 @@ export default interface User {
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
     disability: 'yes' | 'no';
+    partnerType: 'none' | 'project' | 'product' | 'both';
     UserBank?: UserBank[];
 }
 
