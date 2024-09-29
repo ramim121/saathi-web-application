@@ -75,6 +75,9 @@ function Header() {
                                 <NavDropdown title="Investments" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Setup</NavDropdown.Item>
                                 </NavDropdown>
+                                <NavDropdown title="Products" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/product/category">Category</NavDropdown.Item>
+                                </NavDropdown>
                                 <NavDropdown title="Booking" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/booking/list">List</NavDropdown.Item>
                                 </NavDropdown>
