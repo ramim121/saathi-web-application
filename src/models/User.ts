@@ -110,6 +110,11 @@ const User = sequelize.define<UserModel>('User', {
         type: DataTypes.ENUM('yes', 'no'),
         defaultValue: 'no',
         allowNull: false
+    },
+    partnerType: {
+        type: DataTypes.ENUM('none', 'project', 'product', 'both'),
+        defaultValue: 'none',
+        allowNull: false
     }
 }, {
     tableName: 'users',
