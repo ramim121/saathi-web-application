@@ -25,7 +25,7 @@ export const config = {
 };
 
 const schema = Joi.object({
-    categoryName: Joi.string().required().messages({
+    productCategoryName: Joi.string().required().messages({
         'string.empty': 'Category name is required',
         'any.required': 'Category name is required'
     }),
@@ -48,14 +48,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const categoryImage = files['categoryImage'] ? files['categoryImage'][0] as formidable.File : null;
             const data = {
-                categoryName: fields.categoryName ? fields.categoryName[0] : null,
+                productCategoryName: fields.productCategoryName ? fields.productCategoryName[0] : null,
                 status: fields.status ? fields.status[0] : null,
             }
 
             const options = {
                 abortEarly: false,
             };
-            console.log(data);
             const { error } = schema.validate(data, options);
 
             if (error) {
@@ -65,6 +64,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     errorMessage.push(e.message);
                 });
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+            }
+
+            const existingCategory = await ProductCategory.findOne({
+                where: {
+                    productCategoryName: data.productCategoryName
+                }
+            });
+
+            if (existingCategory) {
+                return res.status(400).json({ success: false, message: 'Category name already exists' });
             }
 
             if (categoryImage !== null) {
@@ -93,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
                 productCategoryId = await generateProductCategoryId();
                 const productCategory = await ProductCategory.create({
-                    productCategoryName: data.categoryName,
+                    productCategoryName: data.productCategoryName,
                     categoryImage: categoryImage !== null ? categoryImageFileName : null,
                     productCategoryId: productCategoryId,
                     status: data.status

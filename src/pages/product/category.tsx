@@ -1,24 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Col, Container, Form, InputGroup, Row, Table } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Table, Pagination } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
-import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
+import { getRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
-    categoryName: string;
+    idProductCategories?: string;
+    productCategoryName: string;
+    productCategoryId?: string;
     categoryImage: any;
     status: 'active' | 'inactive';
 }
 
+interface FilterProps {
+    idProductCategories: string;
+    productCategoryName: string;
+    productCategoryId: string;
+    status: string;
+    orderBy: string;
+    orderType: string;
+    page: number;
+    pageSize: number;
+}
 
 function Category() {
     const [formData, setFormData] = useState<FormDataType>({
-        categoryName: '',
+        productCategoryName: '',
         categoryImage: '',
         status: 'active',
     });
+
+    const [filter, setFilter] = useState<FilterProps>({
+        idProductCategories: '',
+        productCategoryName: '',
+        productCategoryId: '',
+        status: '',
+        orderBy: 'idProductCategories',
+        orderType: 'DESC',
+        page: 1,
+        pageSize: 10
+    });
+    const [total, setTotal] = useState<number>(0);
+    const [totalPages, setTotalPages] = useState<number>(1);
+
+    const [productCategoryList, setProductCategoryList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
 
     const handleOnChange = (e: React.ChangeEvent<any>) => {
@@ -42,6 +71,80 @@ function Category() {
         }
     }
 
+    useEffect(() => {
+        const fetchProductCategoryList = async () => {
+            const query = new URLSearchParams(filter as any).toString();
+            try {
+                const res = await fetch(`/api/product-category/list?${query}`, getRequestOptions());
+                const data = await res.json();
+                if (res.status === 200) {
+                    setProductCategoryList(data.data);
+                    setTotal(data.total);
+                    setTotalPages(data.totalPages);
+                    setReload(false);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
+                }
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.message,
+                });
+            }
+        }
+        fetchProductCategoryList();
+    }, [filter, reload]);
+
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilter({
+            ...filter,
+            [name]: value
+        });
+    }
+
+    const pagesNumber = () => {
+        if (total === 0) {
+            return [];
+        }
+        let from = Number(filter.page) - 4;
+        if (from < 1) {
+            from = 1;
+        }
+        let to = from + 4 * 2
+        if (to >= Math.ceil(total / 10)) {
+            to = Math.ceil(total / 10)
+        }
+        let pagesArray = []
+
+        for (let page = from; page <= to; page++) {
+            pagesArray.push(page)
+        }
+        return pagesArray
+    }
+
+    const pageList = () => {
+        return pagesNumber().map((pageNumber) => {
+            return (
+                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
+                    {pageNumber}
+                </Pagination.Item>
+            )
+        })
+    }
+
+    const handlePageChange = (page: number) => {
+        setFilter({
+            ...filter,
+            page: page
+        })
+    }
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         Swal.fire({
@@ -54,7 +157,7 @@ function Category() {
         }).then((result) => {
             if (result.value) {
                 const newFormData = new FormData();
-                newFormData.append('categoryName', formData.categoryName);
+                newFormData.append('productCategoryName', formData.productCategoryName);
                 newFormData.append('status', formData.status);
                 newFormData.append('categoryImage', formData.categoryImage);
 
@@ -72,7 +175,7 @@ function Category() {
                                 text: 'Product category created successfully!',
                             });
                             setFormData({
-                                categoryName: '',
+                                productCategoryName: '',
                                 categoryImage: '',
                                 status: 'active',
                             });
@@ -111,7 +214,7 @@ function Category() {
                             <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Category Name<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter category name" name="categoryName" onChange={handleOnChange} value={formData.categoryName} />
+                                    <Form.Control type="text" placeholder="Enter category name" name="productCategoryName" onChange={handleOnChange} value={formData.productCategoryName} />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
@@ -144,40 +247,70 @@ function Category() {
                 </Row>
             </Container>
 
-            {/* <Container className='mt-5'>
-                <h2 className="text-center">Investment Setup List</h2>
+            <Container className='mt-5'>
+                <h2 className="text-center">Product Category List</h2>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Plan Name</th>
-                            <th>Investment Type</th>
-                            <th>Return Type</th>
-                            <th>Return</th>
-                            <th>Tenure</th>
+                            <th>Id</th>
+                            <th>Category Name</th>
+                            <th>Product Category Id</th>
+                            <th>Category Image</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idProductCategories" onChange={handleInputOnChange} value={filter.idProductCategories} />
+                            </td>
+                            <td>
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="productCategoryName" onChange={handleInputOnChange} value={filter.productCategoryName} />
+                            </td>
+                            <td>
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="productCategoryId" onChange={handleInputOnChange} value={filter.productCategoryId} />
+                            </td>
+                            <td>
+
+                            </td>
+                            <td>
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="status" onChange={handleInputOnChange} value={filter.status} />
+                            </td>
+                            <td></td>
+
                         </tr>
                     </thead>
                     <tbody>
-                        {investmentList.length > 0 ? investmentList.map((investment, index) => (
+                        {productCategoryList.length > 0 ? productCategoryList.map((product, index) => (
                             <tr key={index}>
-                                <td>{index + 1}</td>
-                                <td>{investment.planName}</td>
-                                <td>{investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
-                                <td>{investment.returnType}</td>
-                                <td>{investment.minimumReturn}% - {investment.maximumReturn}%</td>
-                                <td>{investment.duration} {investment.tenure}</td>
+                                <td>{product.idProductCategories}</td>
+                                <td>{product.productCategoryName}</td>
+                                <td>{product.productCategoryId}</td>
+                                <td>
+                                    {product.categoryImage && <Image src={`${S3_URL}category-image/${product.idProductCategories}/${product.categoryImage}`} alt={product.categoryImage} width={100} height={100} />}
+
+                                </td>
+                                <td>{product.status.charAt(0).toUpperCase() + product.status.slice(1)}</td>
+                                <td>
+                                </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={6} className="text-center">No investment setup found</td>
+                                <td colSpan={10} className="text-center">No partners found</td>
                             </tr>
                         )}
 
                     </tbody>
                 </Table>
-            </Container> */}
-            <pre>{JSON.stringify(formData, null, 2)}</pre>
+                <Pagination>
+                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
+                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
+                    {pageList()}
+                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
+                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
+                </Pagination>
+            </Container>
+            {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
         </>
 
     );
