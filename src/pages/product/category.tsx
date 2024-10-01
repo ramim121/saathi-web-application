@@ -145,6 +145,16 @@ function Category() {
         })
     }
 
+    const handleEditChange = (product: FormDataType) => () => {
+        setFormData({
+            idProductCategories: product.idProductCategories,
+            productCategoryName: product.productCategoryName,
+            productCategoryId: product.productCategoryId,
+            categoryImage: product.categoryImage,
+            status: product.status,
+        });
+    }
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         Swal.fire({
@@ -160,10 +170,20 @@ function Category() {
                 newFormData.append('productCategoryName', formData.productCategoryName);
                 newFormData.append('status', formData.status);
                 newFormData.append('categoryImage', formData.categoryImage);
-
+                if (formData.idProductCategories) {
+                    if (formData.productCategoryId) {
+                        newFormData.append('productCategoryId', formData.productCategoryId);
+                    }
+                }
+                let url = ''
+                if (formData.idProductCategories) {
+                    url = API_URL + 'api/product-category/update/' + formData.idProductCategories;
+                } else {
+                    url = API_URL + 'api/product-category/create';
+                }
                 try {
                     const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/product-category/create', {
+                        const res = await fetch(url, {
                             method: 'POST',
                             headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                             body: newFormData,
@@ -172,7 +192,7 @@ function Category() {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Product category created successfully!',
+                                text: (await res.json()).message,
                             });
                             setFormData({
                                 productCategoryName: '',
@@ -206,44 +226,72 @@ function Category() {
     return (
         <>
             <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
+                <Row>
+                    <Col md={2}></Col>
+                    <Col md={8}>
                         <h2 className="text-center">Product Category</h2>
                         <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Category Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter category name" name="productCategoryName" onChange={handleOnChange} value={formData.productCategoryName} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Category Image<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" name="categoryImage" onChange={handleFileUpload} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Status<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='status' onChange={handleOnChange} value={formData.status}>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit">
-                                            Submit
-                                        </Button>
+                        <Row>
+                            <Col md={8}>
+                                <Form onSubmit={handleSubmit}>
+                                    <Form.Group as={Row}>
+                                        <Form.Label column sm='4' className='mb-3'>Category Name<span className='text-danger'>*</span></Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" placeholder="Enter category name" name="productCategoryName" onChange={handleOnChange} value={formData.productCategoryName} />
+                                        </Col>
+                                    </Form.Group>
+                                    {formData.idProductCategories && (
+                                        <Form.Group as={Row}>
+                                            <Form.Label column sm='4' className='mb-3'>Product Category Id</Form.Label>
+                                            <Col sm='8'>
+                                                <Form.Control type="text" placeholder="Enter product category id" name="productCategoryId" value={formData.productCategoryId} disabled />
+                                            </Col>
+                                        </Form.Group>
+                                    )}
+                                    <Form.Group as={Row}>
+                                        <Form.Label column sm='4' className='mb-3'>Category Image<span className='text-danger'>*</span></Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="file" name="categoryImage" onChange={handleFileUpload} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row}>
+                                        <Form.Label column sm='4' className='mb-3'>Status<span className='text-danger'>*</span></Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Select name='status' onChange={handleOnChange} value={formData.status}>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </Form.Select>
+                                        </Col>
+                                    </Form.Group>
+                                    <Row>
+                                        <Col sm='4'></Col>
+                                        <Col sm='8'>
+                                            <Row className='justify-content-center'>
+                                                <Button className='w-50' variant="primary" type="submit">
+                                                    Submit
+                                                </Button>
+                                            </Row>
+                                        </Col>
                                     </Row>
-                                </Col>
-                            </Row>
-                        </Form>
+                                </Form>
+                            </Col>
+                            <Col md={4}>
+                                {(formData.idProductCategories && typeof (formData.categoryImage) === 'string') ?
+                                    <Image src={`${S3_URL}category-image/${formData.idProductCategories}/${formData.categoryImage}`} alt={formData.categoryImage} width={200} height={200} />
+                                    : formData.categoryImage !== '' &&
+                                    <Image
+                                        src={URL.createObjectURL(formData.categoryImage)}
+                                        alt={formData.categoryImage.name}
+                                        width={200}
+                                        height={150}
+                                    />
+                                }
+                            </Col>
+                        </Row>
                     </Col>
+                    <Col md={2}>
+                    </Col>
+
                 </Row>
             </Container>
 
@@ -271,7 +319,6 @@ function Category() {
                                 <input type="text" className="form-control form-control-sm" placeholder="Search" name="productCategoryId" onChange={handleInputOnChange} value={filter.productCategoryId} />
                             </td>
                             <td>
-
                             </td>
                             <td>
                                 <input type="text" className="form-control form-control-sm" placeholder="Search" name="status" onChange={handleInputOnChange} value={filter.status} />
@@ -292,11 +339,12 @@ function Category() {
                                 </td>
                                 <td>{product.status.charAt(0).toUpperCase() + product.status.slice(1)}</td>
                                 <td>
+                                    <Button variant="primary" size="sm" onClick={handleEditChange(product)}>Edit</Button>
                                 </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={10} className="text-center">No partners found</td>
+                                <td colSpan={6} className="text-center">No Product Category found</td>
                             </tr>
                         )}
 
