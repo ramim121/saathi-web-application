@@ -28,7 +28,8 @@
     "react-select": "^5.8.0",
     "sequelize": "^6.37.3",
     "sweetalert2": "^11.11.0",
-    "sweetalert2-react-content": "^5.0.7"
+    "sweetalert2-react-content": "^5.0.7",
+    "lucide-react": "^0.447.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
