@@ -51,7 +51,7 @@ export default function DeletionRequestForm() {
           <div className="text-center">
             <h2 className="text-xl font-semibold text-green-600 mb-2">Request Submitted!</h2>
             <p className="text-gray-600">
-              We've received your deletion request. We'll process it and send a confirmation to your phone number.
+              We have received your deletion request. We will process it and send a confirmation to your phone number.
             </p>
           </div>
         )}
