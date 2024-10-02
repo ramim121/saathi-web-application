@@ -5,7 +5,7 @@ export default function DeletionRequestForm() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e:any) => {
     e.preventDefault();
     // Here you would typically send the request to your backend
     setIsSubmitted(true);
