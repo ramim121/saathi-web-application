@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if(phone=="01966662633" && otp == "7910"){
-            console.log:"default user logged in";
+            console.log("default user logged in");
         } else {
             if (!otps[phone] || otps[phone].otp !== otp) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
