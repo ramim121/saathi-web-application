@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project } from '@/models/__associations'
-import { User, ProjectPartner } from '@/models/__associations'
+import { User, ProjectPartner, Project } from '@/models/__associations'
 import { Op } from 'sequelize'
 
 
