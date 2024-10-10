@@ -153,7 +153,7 @@ function List() {
 			<Table responsive striped bordered hover>
 				<thead>
 					<tr>
-						<th>Id</th>
+						<th>#</th>
 						<th>Project Name</th>
 						<th>Investment Type</th>
 						<th>Return Type</th>
