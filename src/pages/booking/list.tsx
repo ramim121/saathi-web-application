@@ -154,7 +154,7 @@ function List() {
             <Table responsive striped bordered hover>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Booking Id</th>
                         <th>Investor Name</th>
                         <th>Payment Status</th>

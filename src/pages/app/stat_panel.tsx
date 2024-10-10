@@ -281,7 +281,7 @@ function StatPanel() {
                 <Table responsive striped bordered hover>
                     <thead>
                         <tr>
-                            <th>Id</th>
+                            <th>#</th>
                             <th>Stat Label</th>
                             <th>Stat Value</th>
                             <th>Stat Type</th>

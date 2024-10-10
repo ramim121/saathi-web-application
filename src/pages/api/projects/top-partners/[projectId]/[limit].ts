@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner } from '@/models/__associations';
+import { User, File, ProjectPartner, ProjectPartnerInvestor } from '@/models/__associations';
+import sequelize from 'sequelize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -18,15 +19,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         include: [
                             { model: File, as: 'ProfilePicture' }
                         ]
+                    },
+                    {
+                        model: ProjectPartnerInvestor,
                     }
-                ]
+                ],
+                attributes: {
+                    include: [
+                        [
+                            sequelize.literal(`(
+                                SELECT COUNT(*)
+                                FROM project_partner_investors AS ppi
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
+                            )`),
+                            'investorCount'
+                        ]
+                    ]
+                },
+                order: [[sequelize.literal('investorCount'), 'ASC']]
             });
 
             return res.status(200).json({ success: true, data: result });
         } catch (error) {
-            return res.status(500).json({ success: false, message: (error as Error).message })
+            return res.status(500).json({ success: false, message: (error as Error).message });
         }
     } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
