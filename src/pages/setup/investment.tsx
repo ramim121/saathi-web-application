@@ -40,6 +40,14 @@ function Investment() {
         setFormData({ ...formData, investmentType: e.target.value });
     }
 
+    const minimumReturnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (formData.returnType === 'fixed') {
+            setFormData({ ...formData, minimumReturn: Number(e.target.value), maximumReturn: Number(e.target.value) });
+        } else {
+            setFormData({ ...formData, minimumReturn: Number(e.target.value) });
+        }
+    }
+
     const handleTenureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setFormData({ ...formData, tenure: e.target.value });
     }
@@ -165,23 +173,25 @@ function Investment() {
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Minimum Return<span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4' className='mb-3'>{formData.returnType === "fixed" ? "Total " : "Minimum "} Return<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <InputGroup>
-                                        <Form.Control type="number" placeholder="Enter minimum return" name="minimumReturn" onChange={handleOnChange} value={formData.minimumReturn} />
+                                        <Form.Control type="number" placeholder="Enter minimum return" name="minimumReturn" onChange={minimumReturnChange} value={formData.minimumReturn} />
                                         <InputGroup.Text>%</InputGroup.Text>
                                     </InputGroup>
                                 </Col>
                             </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Maximum Return<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <InputGroup>
-                                        <Form.Control type="number" placeholder="Enter maximum return" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn} disabled={formData.returnType === 'fixed'} />
-                                        <InputGroup.Text>%</InputGroup.Text>
-                                    </InputGroup>
-                                </Col>
-                            </Form.Group>
+                            {formData.returnType === 'variable' &&
+                                <Form.Group as={Row}>
+                                    <Form.Label column sm='4' className='mb-3'>Maximum Return<span className='text-danger'>*</span></Form.Label>
+                                    <Col sm='8'>
+                                        <InputGroup>
+                                            <Form.Control type="number" placeholder="Enter maximum return" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn} />
+                                            <InputGroup.Text>%</InputGroup.Text>
+                                        </InputGroup>
+                                    </Col>
+                                </Form.Group>
+                            }
                             <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Tenure<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
