@@ -88,7 +88,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: false
     },
     projectStatus: {
-        type: DataTypes.ENUM('created', 'collection_started', 'collection_done', 'project_started', 'project_finished', 'fund_disbursed', 'closed'),
+        type: DataTypes.ENUM('created', 'collection_started', 'collection_done', 'project_started', 'project_finished', 'fund_disbursed', 'closed', 'completed'),
         defaultValue: 'pending',
         allowNull: false
     },

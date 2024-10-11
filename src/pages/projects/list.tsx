@@ -17,6 +17,7 @@ interface ListProps {
 	location: string,
 	unitInvestmentValue: number,
 	projectStatus: string,
+	showInUpcoming: string,
 	ProjectPartners: {
 		User: {
 			fullName: string
@@ -39,6 +40,7 @@ interface FilterProps {
 	location: string,
 	unitInvestmentValue: string,
 	projectStatus: string,
+	showInUpcoming: string,
 	partnersName: string,
 	createdBy: string,
 	orderBy: string,
@@ -60,6 +62,7 @@ function List() {
 		location: '',
 		unitInvestmentValue: '',
 		projectStatus: '',
+		showInUpcoming: '',
 		partnersName: '',
 		createdBy: '',
 		orderBy: 'idProjects',
@@ -161,8 +164,10 @@ function List() {
 						<th>Return</th>
 						<th>Tenure</th>
 						<th>Location</th>
-						<th>Partner</th>
+						<th>Upcoming</th>
+						<th>Status</th>
 						<th>Created By</th>
+						<th>Partner</th>
 						<th>Actions</th>
 					</tr>
 					<tr>
@@ -191,10 +196,16 @@ function List() {
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="location" onChange={handleInputOnChange} value={filter.location} />
 						</td>
 						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnersName" onChange={handleInputOnChange} value={filter.partnersName} />
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="showInUpcoming" onChange={handleInputOnChange} value={filter.showInUpcoming} />
+						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="projectStatus" onChange={handleInputOnChange} value={filter.projectStatus} />
 						</td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
+						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnersName" onChange={handleInputOnChange} value={filter.partnersName} />
 						</td>
 						<td></td>
 
@@ -213,6 +224,9 @@ function List() {
 							</td>
 							<td>{project.duration} {project.tenure}</td>
 							<td>{project.location}</td>
+							<td>{project.showInUpcoming.charAt(0).toUpperCase() + project.showInUpcoming.slice(1)}</td>
+							<td>{project.projectStatus.charAt(0).toUpperCase() + project.projectStatus.slice(1)}</td>
+							<td>{project.CreatedBy?.fullName}</td>
 							<td>
 								<ul>
 									{project.ProjectPartners && project.ProjectPartners.map((partner, index) => (
@@ -220,7 +234,6 @@ function List() {
 									))}
 								</ul>
 							</td>
-							<td>{project.CreatedBy?.fullName}</td>
 							<td>
 								<Link href={`/projects/details/${project.idProjects}`}>
 									<Button variant="primary">Details</Button>
@@ -229,7 +242,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={12} className="text-center">No projects found</td>
+							<td colSpan={13} className="text-center">No projects found</td>
 						</tr>
 					)}
 

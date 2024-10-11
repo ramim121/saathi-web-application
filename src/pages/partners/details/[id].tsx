@@ -21,6 +21,7 @@ interface DetailsProps {
     interestedIn: string,
     bio: string,
     education: string,
+    partnerType: string,
     Partnerships?: {
         Project: {
             projectName: string,
@@ -140,6 +141,10 @@ function Details() {
                             <tr>
                                 <td>Interested In</td>
                                 <td>{details.interestedIn}</td>
+                            </tr>
+                            <tr>
+                                <td>Partner Type</td>
+                                <td>{details.partnerType?.charAt(0).toUpperCase() + details.partnerType?.slice(1)}</td>
                             </tr>
                             <tr>
                                 <td>Bio</td>

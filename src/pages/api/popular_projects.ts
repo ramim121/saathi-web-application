@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Project, File } from '@/models/__associations';
+import { Project, File, ProjectInvestor } from '@/models/__associations';
+import sequelize from '@/config/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -10,10 +11,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     include: [
                         {
                             model: File, as: 'MainImage', required: false
+                        },
+                        {
+                            model: ProjectInvestor,
+                            as: 'ProjectInvestors'
                         }
                     ],
-                    limit: 5,
-                    order: [['createdAt', 'DESC']]
+                    attributes: {
+                        include: [
+                            [
+                                sequelize.literal(`(
+                                    SELECT COUNT(*)
+                                    FROM project_investors AS ppi
+                                    WHERE ppi.id_projects = Project.id_projects
+                                )`),
+                                'investorCount'
+                            ]
+                        ]
+                    },
+                    order: [[sequelize.literal('investorCount'), 'DESC']],
+                    limit: 5
                 }
             )
 

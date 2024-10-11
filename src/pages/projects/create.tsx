@@ -29,6 +29,7 @@ interface FormDataType {
 	collectionStarts: string,
 	collectionEnds: string,
 	otherLocations: string,
+	showInUpcoming?: 'yes' | 'no',
 	mainImage?: any,
 	featuredImages?: any,
 }
@@ -56,7 +57,8 @@ function Projects() {
 		collectionEnds: '',
 		otherLocations: '',
 		mainImage: '',
-		featuredImages: ''
+		featuredImages: '',
+		showInUpcoming: 'no'
 	});
 	const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
 	const editorRef = useRef<any>(null);
@@ -185,6 +187,7 @@ function Projects() {
 					newFormData.append('otherLocations', formData.otherLocations);
 					newFormData.append('mainImage', formData.mainImage);
 					newFormData.append('investment', JSON.stringify(formData.investment));
+					newFormData.append('showInUpcoming', formData.showInUpcoming || 'no');
 					if (formData.featuredImages) {
 						for (let i = 0; i < formData.featuredImages.length; i++) {
 							newFormData.append('featuredImages', formData.featuredImages[i]);
@@ -219,7 +222,8 @@ function Projects() {
 								collectionEnds: '',
 								otherLocations: '',
 								mainImage: '',
-								featuredImages: ''
+								featuredImages: '',
+								showInUpcoming: 'no'
 							});
 							editorRef.current.setContent('');
 
@@ -363,7 +367,7 @@ function Projects() {
 										onInit={(evt, editor) => editorRef.current = editor}
 										id='summary'
 										init={{
-											height: 400,
+											height: 350,
 											plugins: [
 												'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
 												'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
@@ -388,6 +392,21 @@ function Projects() {
 								<Form.Label column sm='4'>Featured Images</Form.Label>
 								<Col sm='8'>
 									<Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
+								</Col>
+							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Show in upcoming</Form.Label>
+								<Col sm='8'>
+									<Select
+										id="showInUpcoming"
+										instanceId="showInUpcoming"
+										options={[
+											{ value: 'no', label: 'No' },
+											{ value: 'yes', label: 'Yes' }
+										]}
+										value={{ value: formData.showInUpcoming, label: formData.showInUpcoming === 'yes' ? 'Yes' : 'No' }}
+										onChange={(selectedOption: any) => setFormData({ ...formData, showInUpcoming: selectedOption.value })}
+									/>
 								</Col>
 							</Form.Group>
 						</Col>

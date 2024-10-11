@@ -21,7 +21,8 @@ interface FormDataType {
     skills: string,
     profilePicture: any,
     featuredImages: any,
-    disability: string
+    disability: string,
+    partnerType: string
 }
 
 interface Skills {
@@ -44,7 +45,8 @@ function Registration() {
         skills: '',
         profilePicture: '',
         featuredImages: '',
-        disability: 'no'
+        disability: 'no',
+        partnerType: 'none'
     });
     const bioRef = useRef<any>(null);
     const [skills, setSkills] = useState<Skills[]>([]);
@@ -152,6 +154,7 @@ function Registration() {
                 newFormData.append('education', formData.education);
                 newFormData.append('disability', formData.disability);
                 newFormData.append('profilePicture', formData.profilePicture);
+                newFormData.append('partnerType', formData.partnerType);
                 if (formData.featuredImages) {
                     for (let i = 0; i < formData.featuredImages.length; i++) {
                         newFormData.append('featuredImages', formData.featuredImages[i]);
@@ -184,7 +187,8 @@ function Registration() {
                                 skills: '',
                                 profilePicture: '',
                                 featuredImages: '',
-                                disability: 'no'
+                                disability: 'no',
+                                partnerType: 'none'
                             });
                             bioRef.current.setContent('');
 
@@ -365,7 +369,7 @@ function Registration() {
                                         onInit={(evt, editor) => bioRef.current = editor}
                                         id='painPoints'
                                         init={{
-                                            height: 400,
+                                            height: 360,
                                             plugins: [
                                                 'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
                                                 'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
@@ -377,6 +381,23 @@ function Registration() {
                                                 'removeformat | help',
                                             content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
                                         }}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Partner Type</Form.Label>
+                                <Col sm='8'>
+                                    <Select
+                                        id="partnerType"
+                                        instanceId="partnerType"
+                                        options={[
+                                            { value: 'none', label: 'None' },
+                                            { value: 'project', label: 'Project' },
+                                            { value: 'product', label: 'Product' },
+                                            { value: 'both', label: 'Both' }
+                                        ]}
+                                        value={{ value: formData.partnerType, label: formData.partnerType === 'none' ? 'None' : formData.partnerType === 'project' ? 'Project' : formData.partnerType === 'product' ? 'Product' : 'Both' }}
+                                        onChange={(selectedOption: any) => setFormData({ ...formData, partnerType: selectedOption.value })}
                                     />
                                 </Col>
                             </Form.Group>

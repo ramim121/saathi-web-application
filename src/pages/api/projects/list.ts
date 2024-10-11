@@ -8,9 +8,9 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, orderBy, orderType, page, pageSize } = req.query;
+		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, showInUpcoming, orderBy, orderType, page, pageSize } = req.query;
 
-		let whereClause: { idProjects?: { [key: string]: any }; projectName?: { [key: string]: any }; returnRangeMin?: { [key: string]: any }; returnRangeMax?: { [key: string]: any }; investmentType?: { [key: string]: any }; returnType?: { [key: string]: any }; duration?: { [key: string]: any }; location?: { [key: string]: any }; unitInvestmentValue?: { [key: string]: any }; projectStatus?: { [key: string]: any } } = {};
+		let whereClause: { idProjects?: { [Op.like]: string }; projectName?: { [Op.like]: string }; returnRangeMin?: { [Op.like]: string }; returnRangeMax?: { [Op.like]: string }; investmentType?: { [Op.like]: string }; returnType?: { [Op.like]: string }; duration?: { [Op.like]: string }; location?: { [Op.like]: string }; unitInvestmentValue?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string } } = {};
 
 		if (idProjects) {
 			whereClause = { ...whereClause, idProjects: { [Op.like]: `%${idProjects}%` } };
@@ -52,6 +52,9 @@ export default async function handler(
 			whereClause = { ...whereClause, projectStatus: { [Op.like]: `%${projectStatus}%` } };
 		}
 
+		if (showInUpcoming) {
+			whereClause = { ...whereClause, showInUpcoming: { [Op.like]: `%${showInUpcoming}%` } };
+		}
 
 		const limit = pageSize ? parseInt(pageSize as string) : 10;
 		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
@@ -71,7 +74,8 @@ export default async function handler(
 					'tenure',
 					'location',
 					'unitInvestmentValue',
-					'projectStatus'
+					'projectStatus',
+					'showInUpcoming'
 				],
 				include: [
 					{

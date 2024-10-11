@@ -14,7 +14,8 @@ interface ListProps {
 	role: string,
 	joiningDate: string,
 	skills: string,
-	disability: string
+	disability: string,
+	partnerType: string
 }
 
 interface FilterProps {
@@ -27,6 +28,7 @@ interface FilterProps {
 	skills: string,
 	idUsers: string,
 	disability: string,
+	partnerType: string,
 	orderBy: string,
 	orderType: string,
 	page: number,
@@ -45,6 +47,7 @@ function List() {
 		skills: '',
 		idUsers: '',
 		disability: '',
+		partnerType: '',
 		orderBy: 'idUsers',
 		orderType: 'DESC',
 		page: 1,
@@ -142,6 +145,7 @@ function List() {
 						<th>Joining Date</th>
 						<th>Skills</th>
 						<th>Disability</th>
+						<th>Partner Type</th>
 						<th>Actions</th>
 					</tr>
 					<tr>
@@ -172,6 +176,9 @@ function List() {
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="disability" onChange={handleInputOnChange} value={filter.disability} />
 						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnerType" onChange={handleInputOnChange} value={filter.partnerType} />
+						</td>
 						<td></td>
 
 					</tr>
@@ -188,6 +195,7 @@ function List() {
 							<td>{partner.joiningDate}</td>
 							<td>{partner.skills}</td>
 							<td>{partner.disability.charAt(0).toUpperCase() + partner.disability.slice(1)}</td>
+							<td>{partner.partnerType.charAt(0).toUpperCase() + partner.partnerType.slice(1)}</td>
 							<td>
 								<Link href={`/partners/details/${partner.idUsers}`}>
 									<Button variant="primary">Details</Button>
@@ -196,7 +204,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={10} className="text-center">No partners found</td>
+							<td colSpan={11} className="text-center">No partners found</td>
 						</tr>
 					)}
 
