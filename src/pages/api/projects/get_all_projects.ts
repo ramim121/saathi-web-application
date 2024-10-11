@@ -6,6 +6,17 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
+		const { projectStatus, showInUpcoming } = req.query;
+
+		const whereClause: { projectStatus?: string; showInUpcoming?: string } = {};
+
+		if (projectStatus) {
+			whereClause.projectStatus = projectStatus as string;
+		}
+
+		if (showInUpcoming) {
+			whereClause.showInUpcoming = showInUpcoming as string;
+		}
 		try {
 			const result = await Project.findAll({
 				include: [
@@ -18,7 +29,8 @@ export default async function handler(
 					{
 						model: File, as: 'FeaturedImages', required: false
 					}
-				]
+				],
+				where: whereClause
 			})
 
 			return res.status(200).json({ success: true, data: result })

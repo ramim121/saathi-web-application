@@ -7,8 +7,8 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { name, disabilty, fromJoiningDate, toJoiningDate, skills } = req.query
-		const whereClause: { userType: string; fullName?: { [Op.like]: string }; disability?: { [Op.like]: string }; joiningDate?: { [Op.between]: string[] }; skills?: { [Op.like]: string } } = { userType: 'partner' };
+		const { name, disabilty, fromJoiningDate, toJoiningDate, skills, partnerType } = req.query
+		const whereClause: { userType: string; fullName?: { [Op.like]: string }; disability?: { [Op.like]: string }; joiningDate?: { [Op.between]: string[] }; skills?: { [Op.like]: string }; partnerType?: { [Op.in]: string[] } } = { userType: 'partner' };
 
 		if (name) {
 			whereClause.fullName = { [Op.like]: `%${name}%` };
@@ -21,6 +21,10 @@ export default async function handler(
 		}
 		if (skills) {
 			whereClause.skills = { [Op.like]: `%${skills}%` };
+		}
+
+		if (partnerType) {
+			whereClause.partnerType = { [Op.in]: Array.isArray(partnerType) ? partnerType : [partnerType] };
 		}
 
 		try {

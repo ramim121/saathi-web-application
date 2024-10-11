@@ -7,9 +7,9 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { fullName, phoneNumber, age, location, role, joiningDate, skills, idUsers, disability, orderBy, orderType, page, pageSize } = req.query
+		const { fullName, phoneNumber, age, location, role, joiningDate, skills, idUsers, disability, partnerType, orderBy, orderType, page, pageSize } = req.query
 
-		let whereClause: { userType: string; fullName?: { [Op.like]: string }; phoneNumber?: { [Op.like]: string }; age?: { [Op.like]: string }; location?: { [Op.like]: string }; idUsers?: { [Op.like]: string }; skills?: { [Op.like]: string }; role?: { [Op.like]: string }; joiningDate?: { [Op.like]: string }; disability?: { [Op.like]: string } } = { userType: 'partner' };
+		let whereClause: { userType: string; fullName?: { [Op.like]: string }; phoneNumber?: { [Op.like]: string }; age?: { [Op.like]: string }; location?: { [Op.like]: string }; idUsers?: { [Op.like]: string }; skills?: { [Op.like]: string }; role?: { [Op.like]: string }; joiningDate?: { [Op.like]: string }; disability?: { [Op.like]: string }; partnerType?: { [Op.like]: string } } = { userType: 'partner' };
 
 		if (fullName) {
 			whereClause = { ...whereClause, fullName: { [Op.like]: `%${fullName}%` } };
@@ -40,6 +40,11 @@ export default async function handler(
 			whereClause = { ...whereClause, disability: { [Op.like]: `%${disability}%` } };
 		}
 
+		if (partnerType) {
+			whereClause = { ...whereClause, partnerType: { [Op.like]: `%${partnerType}%` } };
+		}
+
+
 		const limit = pageSize ? parseInt(pageSize as string) : 10;
 		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
 		try {
@@ -55,6 +60,7 @@ export default async function handler(
 					'joiningDate',
 					'skills',
 					'disability',
+					'partnerType'
 				],
 				include: [{
 					model: ProjectPartner, as: 'Partnerships',

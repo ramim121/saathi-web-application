@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project } from '@/models/__associations'
+import { Op } from 'sequelize'
 
 export default async function handler(
     req: NextApiRequest,
@@ -27,7 +28,10 @@ export default async function handler(
 
                     }],
                 where: {
-                    userType: 'partner'
+                    userType: 'partner',
+                    partnerType: {
+                        [Op.or]: ['project', 'both']
+                    }
                 }
             })
 

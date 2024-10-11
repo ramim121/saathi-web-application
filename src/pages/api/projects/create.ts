@@ -123,7 +123,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 collectionEnds: fields.collectionEnds ? fields.collectionEnds[0] : null,
                 otherLocations: fields.otherLocations ? fields.otherLocations[0] : null,
                 summary: fields.summary ? fields.summary[0] : null,
-                createdBy: fields.createdBy ? fields.createdBy[0] : null
+                createdBy: fields.createdBy ? fields.createdBy[0] : null,
+                showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
             }
 
             const options = {
@@ -181,7 +182,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     collectionStarts: data.collectionStarts,
                     collectionEnds: data.collectionEnds,
                     otherLocations: data.otherLocations,
-                    projectStatus: 'created'
+                    projectStatus: 'created',
+                    showInUpcoming: data.showInUpcoming
                 }, { transaction });
 
                 if (mainImage !== null) {

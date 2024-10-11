@@ -301,6 +301,8 @@ function Details() {
                                 <th>Project Partners</th>
                                 <th>Unit Price</th>
                                 <th>Total Amount</th>
+                                <th>Investment Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -325,6 +327,14 @@ function Details() {
                                     <td>
                                         {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
                                     </td>
+                                    <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
+                                    <td>
+                                        {project.investmentStatus === 'booked' &&
+                                            <Button className='w-50' variant="danger" type="submit" onClick={() => setApproverModalShow(true)}>
+                                                Cancel
+                                            </Button>
+                                        }
+                                    </td>
                                 </tr>
                             ))}
 
@@ -337,6 +347,7 @@ function Details() {
                                 <td>
                                     {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
                                 </td>
+                                <td colSpan={2}></td>
                             </tr>
                         </tfoot>
                     </Table>
