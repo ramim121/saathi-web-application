@@ -47,6 +47,7 @@ interface DetailsProps {
             };
             amountInvested: number;
         }[];
+        idProjectInvestors: number;
     }[];
 
 
@@ -204,6 +205,51 @@ function Details() {
         }
     }
 
+    const handleInvestmentStatusChange = async (idProjectInvestors: number, investmentStatus: string) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to change status of this investment!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then((result) => {
+            if (result.value) {
+                try {
+                    const fetchData = async () => {
+                        const formData = {
+                            idProjectInvestors,
+                            investmentStatus
+                        }
+                        const res = await fetch(API_URL + 'api/booking/investment_status_change', putRequestOptions(formData));
+                        if (res.status === 200) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Investment status changed successfully!',
+                            });
+                            setReload(true);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: (await res.json()).message,
+                            });
+                        }
+                    };
+                    fetchData();
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                }
+            }
+        });
+    }
+
     return (
         <Container>
             <h2 className="text-center"> Booking Details</h2>
@@ -330,7 +376,7 @@ function Details() {
                                     <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
                                     <td>
                                         {project.investmentStatus === 'booked' &&
-                                            <Button className='w-50' variant="danger" type="submit" onClick={() => setApproverModalShow(true)}>
+                                            <Button variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
                                                 Cancel
                                             </Button>
                                         }
