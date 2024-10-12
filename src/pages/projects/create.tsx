@@ -32,9 +32,18 @@ interface FormDataType {
 	showInUpcoming?: 'yes' | 'no',
 	mainImage?: any,
 	featuredImages?: any,
+	projectCategory: {
+		label: string,
+		value: number
+	}
 }
 
 interface InvestmentPlan {
+	value: number,
+	label: string
+}
+
+interface ProjectCategory {
 	value: number,
 	label: string
 }
@@ -58,9 +67,14 @@ function Projects() {
 		otherLocations: '',
 		mainImage: '',
 		featuredImages: '',
-		showInUpcoming: 'no'
+		showInUpcoming: 'no',
+		projectCategory: {
+			label: 'Select project category',
+			value: 0
+		}
 	});
 	const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
+	const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>([]);
 	const editorRef = useRef<any>(null);
 
 	const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +118,38 @@ function Projects() {
 		}
 		fetchInvestmentPlans();
 	}, []);
+
+	useEffect(() => {
+		const fetchProjectCategories = async () => {
+			try {
+				const res = await fetch(API_URL + 'api/project-category/get_all_categories');
+				const data = await res.json();
+				if (res.status === 200) {
+					const categories = data.data.map((category: any) => {
+						return {
+							value: category.idProjectCategories,
+							label: category.categoryName
+						}
+					});
+					setProjectCategories(categories);
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: data.message,
+					});
+				}
+			} catch (err: any) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: err.message,
+				});
+			}
+		}
+		fetchProjectCategories();
+	}
+		, []);
 
 	useEffect(() => {
 		if (formData.investment.value !== 0 && formData.unitInvestmentValue !== 0) {
@@ -188,6 +234,7 @@ function Projects() {
 					newFormData.append('mainImage', formData.mainImage);
 					newFormData.append('investment', JSON.stringify(formData.investment));
 					newFormData.append('showInUpcoming', formData.showInUpcoming || 'no');
+					newFormData.append('projectCategory', formData.projectCategory.value.toString());
 					if (formData.featuredImages) {
 						for (let i = 0; i < formData.featuredImages.length; i++) {
 							newFormData.append('featuredImages', formData.featuredImages[i]);
@@ -223,7 +270,11 @@ function Projects() {
 								otherLocations: '',
 								mainImage: '',
 								featuredImages: '',
-								showInUpcoming: 'no'
+								showInUpcoming: 'no',
+								projectCategory: {
+									label: 'Select project category',
+									value: 0
+								}
 							});
 							editorRef.current.setContent('');
 
@@ -267,6 +318,18 @@ function Projects() {
 								<Form.Label column sm='4'>Share / Unit <span className='text-danger'>*</span></Form.Label>
 								<Col sm='8'>
 									<Form.Control type="number" placeholder="Enter share per unit" name="unitInvestmentValue" onChange={handleOnChange} value={formData.unitInvestmentValue} />
+								</Col>
+							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Project Category <span className='text-danger'>*</span></Form.Label>
+								<Col sm='8'>
+									<Select
+										id="projectCategory"
+										instanceId="projectCategory"
+										options={projectCategories}
+										value={formData.projectCategory}
+										onChange={(selectedOption: any) => setFormData({ ...formData, projectCategory: selectedOption })}
+									/>
 								</Col>
 							</Form.Group>
 							<Card className='mb-3'>
@@ -367,7 +430,7 @@ function Projects() {
 										onInit={(evt, editor) => editorRef.current = editor}
 										id='summary'
 										init={{
-											height: 350,
+											height: 400,
 											plugins: [
 												'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
 												'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
@@ -417,7 +480,7 @@ function Projects() {
 						</Button>
 					</Row>
 				</Form>
-				{/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
+				<pre>{JSON.stringify(formData, null, 2)}</pre>
 			</Container>
 		</>
 	);

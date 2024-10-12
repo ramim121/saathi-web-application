@@ -5,6 +5,8 @@ export default interface ProjectCategory {
     idProjectCategories: number;
     categoryName: string;
     categoryImage: string | null;
+    createdAt: Date;
+    updatedAt: Date;
     Projects?: Project[];
 }
 
