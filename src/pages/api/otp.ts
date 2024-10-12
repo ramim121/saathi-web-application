@@ -4,7 +4,6 @@ import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
 import SendSms from '@/utils/SendSms';
 
-
 interface OTP {
     [key: string]: {
         otp: string;

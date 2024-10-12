@@ -18,6 +18,10 @@ const AppVersion = sequelize.define<AppVersionModel>('AppVersion', {
         type: DataTypes.ENUM('android', 'ios'),
         allowNull: false
     },
+    appUrl: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     remarks: {
         type: DataTypes.STRING,
         allowNull: false
