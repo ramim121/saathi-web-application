@@ -363,7 +363,7 @@ function Projects() {
 								<Form.Label column sm='4'>Summary</Form.Label>
 								<Col sm='8'>
 									<Editor
-										apiKey="27k7mo6dhwbg8ogpsyq0gfjtfd4d5682zmurtqp44ean979x"
+										apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
 										onInit={(evt, editor) => editorRef.current = editor}
 										id='summary'
 										init={{
