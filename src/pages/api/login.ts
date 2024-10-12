@@ -5,6 +5,9 @@ import bcrypt from 'bcrypt';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if(req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
     if (req.method === 'POST') {
         const { email, password } = req.body
 
