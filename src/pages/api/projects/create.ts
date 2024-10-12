@@ -87,6 +87,11 @@ const schema = Joi.object({
         "any.required": "Collection ends is required",
         "date.base": "Collection ends must be a date",
     }),
+    projectCategory: Joi.number().min(1).required().messages({
+        "any.required": "Project Category is required",
+        "number.base": "Project Category must be a number",
+        "number.min": "Project Category must be greater than 0",
+    }),
 }).unknown();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

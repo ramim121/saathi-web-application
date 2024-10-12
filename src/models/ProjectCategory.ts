@@ -17,7 +17,15 @@ const ProjectCategory = sequelize.define<ProjectCategoryModel>('ProjectCategory'
     categoryImage: {
         type: DataTypes.STRING,
         allowNull: true
-    }
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
 }, {
     tableName: 'project_categories',
     underscored: true,
