@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Project } from '@/models/__associations';
-import { User, ProjectPartner, File, ProjectInvestor, ProjectInvestmentBooking } from '@/models/__associations';
+import { User, ProjectPartner, File, ProjectInvestor, ProjectInvestmentBooking, ProjectCategory } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -36,7 +36,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                     {
                         model: File, as: 'FeaturedImages'
-                    }
+                    },
+                    {
+                        model: ProjectCategory,
+                        as: 'ProjectCategory'
+                    },
 
                 ],
                 where: {

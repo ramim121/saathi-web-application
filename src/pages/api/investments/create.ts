@@ -55,6 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
+
+        const investmentExists = await InvestmentSetup.findOne({ where: { planName: nameOfThePlan } });
+
+        if (investmentExists) {
+            return res.status(400).json({ success: false, message: 'Investment plan already exists' })
+        }
+
         const transaction = await sequelize.transaction();
         try {
             const investment = await InvestmentSetup.create({

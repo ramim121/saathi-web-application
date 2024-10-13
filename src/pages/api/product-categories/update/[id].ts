@@ -46,7 +46,7 @@ const processImage = async (categoryImage: formidable.File, categoryId: string) 
         ...S3_PARAMS,
         ContentType: categoryImage.mimetype!,
         Body: fs.createReadStream(categoryImage.filepath),
-        Key: `category-image/${categoryId}/${categoryImageFileName}`,
+        Key: `product-category-image/${categoryImageFileName}`,
     }).promise();
     return categoryImageFileName;
 };

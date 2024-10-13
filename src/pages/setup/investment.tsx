@@ -69,7 +69,7 @@ function Investment() {
             if (result.value) {
                 try {
                     const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/setup/investment', postRequestOptions(formData));
+                        const res = await fetch(API_URL + 'api/investments/create', postRequestOptions(formData));
                         if (res.status === 200) {
                             Swal.fire({
                                 icon: 'success',
@@ -110,7 +110,7 @@ function Investment() {
     useEffect(() => {
         const fetchInvestmentSetupList = async () => {
             try {
-                const res = await fetch('/api/setup/investment_list', getRequestOptions());
+                const res = await fetch('/api/investments/list', getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
                     setInvestmentList(data.data);
