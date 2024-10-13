@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project } from '@/models/__associations'
+import { User, ProjectPartner, Project, ProjectCategory } from '@/models/__associations'
 import { Op } from 'sequelize'
 
 
@@ -8,7 +8,7 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, showInUpcoming, orderBy, orderType, page, pageSize } = req.query;
+		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, showInUpcoming, categoryName, orderBy, orderType, page, pageSize } = req.query;
 
 		let whereClause: { idProjects?: { [Op.like]: string }; projectName?: { [Op.like]: string }; returnRangeMin?: { [Op.like]: string }; returnRangeMax?: { [Op.like]: string }; investmentType?: { [Op.like]: string }; returnType?: { [Op.like]: string }; duration?: { [Op.like]: string }; location?: { [Op.like]: string }; unitInvestmentValue?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string } } = {};
 
@@ -94,6 +94,11 @@ export default async function handler(
 								where: partnersName ? { fullName: { [Op.like]: `%${partnersName}%` } } : undefined, // Adjusted condition for partnersName
 							}
 						]
+					},
+					{
+						model: ProjectCategory,
+						as: 'ProjectCategory',
+						where: categoryName ? { categoryName: { [Op.like]: `%${categoryName}%` } } : undefined
 					}
 				],
 				limit,

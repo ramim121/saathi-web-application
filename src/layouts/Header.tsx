@@ -63,8 +63,11 @@ function Header() {
                         <Navbar.Toggle aria-controls="basic-navbar-nav" />
                         <Navbar.Collapse id="basic-navbar-nav">
                             <Nav className="ms-auto">
-                                <NavDropdown title="App" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/app/stat_panel">Stat Panel</NavDropdown.Item>
+                                <NavDropdown title="Setup" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/setup/investment">Investment</NavDropdown.Item>
+                                    <NavDropdown.Item href="/setup/stat_panel">Stat Panel</NavDropdown.Item>
+                                    <NavDropdown.Item href="/setup/project_category">Project Category</NavDropdown.Item>
+                                    <NavDropdown.Item href="/setup/skill">Skill</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/partners/registration">Registration</NavDropdown.Item>
@@ -75,14 +78,11 @@ function Header() {
                                     <NavDropdown.Item href="/projects/list">List</NavDropdown.Item>
                                     <NavDropdown.Item href="/projects/partner_assign">Partner Assign</NavDropdown.Item>
                                 </NavDropdown>
-                                <NavDropdown title="Investments" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/setup/investment">Setup</NavDropdown.Item>
-                                </NavDropdown>
                                 <NavDropdown title="Products" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/product/category">Category</NavDropdown.Item>
+                                    <NavDropdown.Item href="/products/category">Category</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Booking" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/booking/list">List</NavDropdown.Item>
+                                    <NavDropdown.Item href="/bookings/list">List</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Blogs" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/blogs/create">Create</NavDropdown.Item>

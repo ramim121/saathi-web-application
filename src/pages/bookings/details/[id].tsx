@@ -95,7 +95,7 @@ function Details() {
 
     const fetchPartnerDetails = async () => {
         try {
-            const res = await fetch('/api/booking/details/' + id, getRequestOptions());
+            const res = await fetch('/api/bookings/details/' + id, getRequestOptions());
             const data = await res.json();
             if (res.status === 200) {
                 setDetails(data.data);
@@ -141,7 +141,7 @@ function Details() {
                             bookingId: details.bookingId,
                             paymentConfirmationStatus: 'denied'
                         }
-                        const res = await fetch(API_URL + `api/booking/deny`, putRequestOptions(formData));
+                        const res = await fetch(API_URL + `api/bookings/deny`, putRequestOptions(formData));
                         if (res.status === 200) {
                             Swal.fire({
                                 icon: 'success',
@@ -177,7 +177,7 @@ function Details() {
         try {
             const fetchData = async () => {
                 formData.bookingId = details.bookingId;
-                const res = await fetch(API_URL + `api/booking/approve`, putRequestOptions(formData));
+                const res = await fetch(API_URL + `api/bookings/approve`, putRequestOptions(formData));
                 if (res.status === 200) {
                     Swal.fire({
                         icon: 'success',
@@ -221,7 +221,7 @@ function Details() {
                             idProjectInvestors,
                             investmentStatus
                         }
-                        const res = await fetch(API_URL + 'api/booking/investment_status_change', putRequestOptions(formData));
+                        const res = await fetch(API_URL + 'api/bookings/investment_status_change', putRequestOptions(formData));
                         if (res.status === 200) {
                             Swal.fire({
                                 icon: 'success',

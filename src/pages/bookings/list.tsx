@@ -78,7 +78,7 @@ function List() {
         const fetchBookingList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/booking/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/bookings/list?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
                     setBookingList(data.data);

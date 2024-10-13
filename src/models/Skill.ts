@@ -14,6 +14,14 @@ const Skill = sequelize.define<SkillModel>('Skill', {
         type: DataTypes.INTEGER,
         allowNull: true
     },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    }
 }, {
     tableName: 'skills',
     underscored: true,

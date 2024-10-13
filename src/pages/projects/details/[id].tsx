@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
@@ -29,6 +30,9 @@ interface DetailsProps {
     collectionEnds: string,
     summary: string,
     showInUpcoming: string,
+    ProjectCategory: {
+        categoryName: string
+    }
     ProjectPartners: {
         User: {
             idUsers: number,
@@ -169,6 +173,10 @@ function Details() {
                                         <td>{details.projectName}</td>
                                     </tr>
                                     <tr>
+                                        <td>Category</td>
+                                        <td>{details.ProjectCategory?.categoryName}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Location</td>
                                         <td>{details.location}</td>
                                     </tr>
@@ -305,7 +313,7 @@ function Details() {
                             <Carousel>
                                 {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
                                     <Carousel.Item key={index}>
-                                        <Image src={`${S3_URL}project-featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
+                                        <img src={`${S3_URL}project-featured-image/${id}/${image.fileName}`} alt={image.originalFileName} style={{ maxHeight: '50vh', maxWidth: "100%" }} />
                                     </Carousel.Item>
                                 ))}
                             </Carousel>
@@ -314,7 +322,7 @@ function Details() {
                 </Tab>
             </Tabs>
             {details.projectStatus === 'created' &&
-                <Row className='justify-content-center'>
+                <Row className='justify-content-center mt-3'>
                     <Button className='w-50' variant="primary" onClick={() => projectStatusChange('completed')}>
                         Complete
                     </Button>
