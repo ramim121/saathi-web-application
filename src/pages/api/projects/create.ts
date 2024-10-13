@@ -89,8 +89,8 @@ const schema = Joi.object({
     }),
     projectCategory: Joi.number().min(1).required().messages({
         "any.required": "Project Category is required",
-        "number.base": "Project Category must be a number",
-        "number.min": "Project Category must be greater than 0",
+        "number.base": "Project Category must be selected",
+        "number.min": "Project Category must be selected",
     }),
 }).unknown();
 
@@ -130,6 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 summary: fields.summary ? fields.summary[0] : null,
                 createdBy: fields.createdBy ? fields.createdBy[0] : null,
                 showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
+                projectCategory: fields.projectCategory ? fields.projectCategory[0] : null
             }
 
             const options = {
@@ -188,7 +189,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     collectionEnds: data.collectionEnds,
                     otherLocations: data.otherLocations,
                     projectStatus: 'created',
-                    showInUpcoming: data.showInUpcoming
+                    showInUpcoming: data.showInUpcoming,
+                    idProjectCategories: data.projectCategory
                 }, { transaction });
 
                 if (mainImage !== null) {

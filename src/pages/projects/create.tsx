@@ -122,7 +122,7 @@ function Projects() {
 	useEffect(() => {
 		const fetchProjectCategories = async () => {
 			try {
-				const res = await fetch(API_URL + 'api/project-category/get_all_categories');
+				const res = await fetch(API_URL + 'api/project-categories/get_all_categories');
 				const data = await res.json();
 				if (res.status === 200) {
 					const categories = data.data.map((category: any) => {
@@ -480,7 +480,7 @@ function Projects() {
 						</Button>
 					</Row>
 				</Form>
-				<pre>{JSON.stringify(formData, null, 2)}</pre>
+				{/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
 			</Container>
 		</>
 	);

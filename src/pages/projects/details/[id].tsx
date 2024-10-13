@@ -30,6 +30,9 @@ interface DetailsProps {
     collectionEnds: string,
     summary: string,
     showInUpcoming: string,
+    ProjectCategory: {
+        categoryName: string
+    }
     ProjectPartners: {
         User: {
             idUsers: number,
@@ -168,6 +171,10 @@ function Details() {
                                     <tr>
                                         <td>Project Name</td>
                                         <td>{details.projectName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Category</td>
+                                        <td>{details.ProjectCategory?.categoryName}</td>
                                     </tr>
                                     <tr>
                                         <td>Location</td>
