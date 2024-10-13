@@ -34,4 +34,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 }
 
-export default cors(handler);
+export default cors(handler as any);

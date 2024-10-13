@@ -7,23 +7,29 @@ import * as formidable from 'formidable';
 import _ from 'await-to-js';
 import User from '@/models/User';
 import logResponse from '@/utils/log';
-import AWS from 'aws-sdk';
 import fs from 'fs';
-
-
-// Configure AWS SDK with your credentials and region
-AWS.config.update({
-    accessKeyId: S3_BUCKET_ACCESS_KEY,
-    secretAccessKey: S3_BUCKET_SECRET_KEY,
+const { S3Client } = require('@aws-sdk/client-s3');
+const { Upload } = require('@aws-sdk/lib-storage');
+const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
+    credentials: {
+        accessKeyId: S3_BUCKET_ACCESS_KEY,
+        secretAccessKey: S3_BUCKET_SECRET_KEY
+    }
+});
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
-// Create an S3 instance
-const s3 = new AWS.S3();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     logResponse(res);
     let tokenData = req.headers.authorization;
+    console.log(req.headers);
     let token = tokenData?.split(' ')[1];
     if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
 
@@ -54,11 +60,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const params = {
             Bucket: S3_BUCKET_NAME,
             ContentType: profilePicture.mimetype,
-            ACL: 'public-read'
+            ACL: 'public-read',
+            Body: fs.createReadStream(profilePicture.filepath),
+            Key: 'profile/' + profilePicturefileName
         };
+        const upload = new Upload({
+            client: s3Client,
+            params: params
+        });
 
-        let [err1, result1] = await _(s3.upload({ ...params, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile/' + profilePicturefileName }).promise());
+        upload.on('httpUploadProgress', (progress: any) => {
+            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+        });
+        let [err1, result1] = await _(upload.done());
         if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
+        console.log('File uploaded successfully', result1);
 
         user.profileImage = profilePicturefileName;
 
@@ -74,3 +90,5 @@ export const config = {
         bodyParser: false, // Disable body parsing, as we will handle it with Formidable
     },
 };
+
+export default cors(handler as any);
