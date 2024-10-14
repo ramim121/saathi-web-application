@@ -227,7 +227,7 @@ function List() {
                                 </ul>
                             </td>
                             <td>
-                                <Link href={`/booking/details/${booking.idProjectInvestmentBookings}`}>
+                                <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
                                     <Button variant="primary">Details</Button>
                                 </Link>
                             </td>
