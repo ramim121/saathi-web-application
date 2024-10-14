@@ -322,7 +322,7 @@ function Details() {
                             <tr>
                                 <td>Payment Amount</td>
                                 <td>
-                                    {details.paymentAmount.toLocaleString()}
+                                    {details.paymentAmount}
                                 </td>
                             </tr>
                             <tr>
