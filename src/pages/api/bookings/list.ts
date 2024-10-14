@@ -1,11 +1,19 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { ProjectInvestor, Project, ProjectPartnerInvestor, User, ProjectPartner, ProjectInvestmentBooking } from '@/models/__associations'
 import { Op } from 'sequelize'
+import Cors from 'micro-cors';
 
-export default async function handler(
+const cors = Cors({
+	origin: '*',
+	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+	allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
+
+async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
-): Promise<void> {
+) {
+	if (req.method === 'OPTIONS') { return res.status(200).end(); }
 	if (req.method === 'GET') {
 		const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
 		let whereClause: { idProjectInvestmentBookings?: { [Op.like]: string }; bookingId?: { [Op.like]: string }; paymentConfirmationStatus?: { [Op.like]: string } } = {};
@@ -76,3 +84,5 @@ export default async function handler(
 		res.status(405).json({ success: false, message: 'Method not allowed' })
 	}
 }
+
+export default cors(handler as any);

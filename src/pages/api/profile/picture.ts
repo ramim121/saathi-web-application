@@ -8,8 +8,9 @@ import _ from 'await-to-js';
 import User from '@/models/User';
 import logResponse from '@/utils/log';
 import fs from 'fs';
-const { S3Client } = require('@aws-sdk/client-s3');
-const { Upload } = require('@aws-sdk/lib-storage');
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -55,9 +56,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         if (!profilePicture) { return res.status(400).json({ success: false, message: 'Profile picture is required' }); }
 
-        let profilePicturefileName = generateHash(Date.now() + user.email.toString() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
+        let profilePicturefileName = generateHash(Date.now() + user.idUsers!.toString() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
 
-        const params = {
+        const params: any = {
             Bucket: S3_BUCKET_NAME,
             ContentType: profilePicture.mimetype,
             ACL: 'public-read',

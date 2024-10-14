@@ -8,8 +8,8 @@ import _ from 'await-to-js';
 import User from '@/models/User';
 import logResponse from '@/utils/log';
 import fs from 'fs';
-const { S3Client } = require('@aws-sdk/client-s3');
-const { Upload } = require('@aws-sdk/lib-storage');
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -62,10 +62,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         if (!nidFrontFile) { return res.status(400).json({ success: false, message: 'NID front image is required' }); return; }
         if (!nidBackFile) { return res.status(400).json({ success: false, message: 'NID back image is required' }); return; }
 
-        let nidFrontfileName = generateHash(Date.now() + user.email.toString() + nidFrontFile.originalFilename!.toString()) + '.' + nidFrontFile.originalFilename!.split('.').pop();
-        let nidBackfileName = generateHash(Date.now() + user.email.toString() + nidBackFile.originalFilename!.toString()) + '.' + nidBackFile.originalFilename!.split('.').pop();
+        let nidFrontfileName = generateHash(Date.now() + user.idUsers!.toString() + nidFrontFile.originalFilename!.toString()) + '.' + nidFrontFile.originalFilename!.split('.').pop();
+        let nidBackfileName = generateHash(Date.now() + user.idUsers!.toString() + nidBackFile.originalFilename!.toString()) + '.' + nidBackFile.originalFilename!.split('.').pop();
 
-        const frontParams = {
+        const frontParams: any = {
             Bucket: S3_BUCKET_NAME,
             ACL: 'public-read',
             ContentType: nidFrontFile.mimetype!,
@@ -73,7 +73,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             Key: 'nid/' + nidFrontfileName
         };
 
-        const backParams = {
+        const backParams: any = {
             Bucket: S3_BUCKET_NAME,
             ACL: 'public-read',
             ContentType: nidBackFile.mimetype!,
