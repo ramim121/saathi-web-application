@@ -1,5 +1,3 @@
-const { S3 } = require('aws-sdk')
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	async headers() {

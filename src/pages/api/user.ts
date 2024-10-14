@@ -4,14 +4,19 @@ import JWTPayload from '@/types/JWTPayload';
 import { JWT_SECRET } from '@/config/constants';
 import { User, Project, ProjectInvestor, ProjectPartner } from '@/models/__associations';
 import Joi from 'joi';
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
 const schema = Joi.object({
     fullName: Joi.string().required().messages({
         "any.required": "Name is required",
         "string.empty": "Name can not be empty",
     }),
-    email: Joi.string().email().required().messages({
-        "any.required": "email is required",
+    email: Joi.string().email().messages({
         "string.email": "Invalid email",
     }),
     dateOfBirth: Joi.date().required().messages({
@@ -20,7 +25,8 @@ const schema = Joi.object({
     }),
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
 
     let tokenData = req.headers.authorization;
     let token = tokenData?.split(' ')[1];
@@ -51,6 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let updatedUser = await User.update({ fullName, email, dateOfBirth }, { where: { idUsers: userInfo!.idUsers } });
         res.status(200).json({ updatedUser });
     }
-
-
 }
+
+export default cors(handler as any);

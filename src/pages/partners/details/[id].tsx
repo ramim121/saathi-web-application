@@ -154,9 +154,9 @@ function Details() {
                     </Table>
                 </Col>
             </Row>
-            <Row className="mt-2">
-                <h3>Featured Images</h3>
-                <Col>
+            <h3>Featured Images:</h3>
+            <Row className="ps-0 p-5">
+                <Col md={8} >
                     <Carousel>
                         {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
                             <Carousel.Item key={index}>

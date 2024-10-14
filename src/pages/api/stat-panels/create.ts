@@ -5,17 +5,23 @@ import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET
 import { generateHash } from '@/utils/GenerateHash';
 import * as formidable from 'formidable';
 import fs from 'fs';
-import AWS from 'aws-sdk';
 import _ from 'await-to-js';
 import sequelize from '@/config/db';
-
-AWS.config.update({
-    accessKeyId: S3_BUCKET_ACCESS_KEY,
-    secretAccessKey: S3_BUCKET_SECRET_KEY,
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
+    credentials: {
+        accessKeyId: S3_BUCKET_ACCESS_KEY,
+        secretAccessKey: S3_BUCKET_SECRET_KEY
+    }
 });
-
-const s3 = new AWS.S3();
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
 export const config = {
     api: {
@@ -58,7 +64,7 @@ const schema = Joi.object({
     })
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
 
         const form = new formidable.IncomingForm();
@@ -106,7 +112,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 if (data.statType === 'image') {
                     if (statValue && typeof statValue !== 'string') {
                         statValueFileName = generateHash(Date.now() + statValue.originalFilename!.toString()) + '.' + statValue.originalFilename!.split('.').pop();
-                        let [err1] = await _(s3.upload({ ...params, ContentType: statValue.mimetype!, Body: fs.createReadStream(statValue.filepath), Key: 'stat-panel/' + statValueFileName }).promise());
+
+                        const upload = new Upload({
+                            client: s3Client,
+                            params: { ...params, ContentType: statValue.mimetype!, Body: fs.createReadStream(statValue.filepath), Key: 'stat-panel/' + statValueFileName } as any
+                        });
+
+                        upload.on('httpUploadProgress', (progress: any) => {
+                            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                        });
+                        let [err1, result1] = await _(upload.done());
                         if (err1) {
                             await transaction.rollback();
                             return res.status(500).json({ success: false, message: err1.message });
@@ -133,3 +148,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
+export default cors(handler as any);
