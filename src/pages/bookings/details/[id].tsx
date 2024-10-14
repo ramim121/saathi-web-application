@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Row, Col, Table, Button, Modal, Form } from "react-bootstrap";
+import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup } from "react-bootstrap";
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
@@ -375,11 +375,19 @@ function Details() {
                                     </td>
                                     <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
                                     <td>
-                                        {project.investmentStatus === 'booked' &&
-                                            <Button size='sm' variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
+                                        <DropdownButton
+                                            as={ButtonGroup}
+                                            title="Status"
+                                            id="bg-vertical-dropdown-3"
+                                        >
+                                            {/* {project.investmentStatus === 'booked' &&
+                                            <Button variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
                                                 Cancel
                                             </Button>
-                                        }
+                                        } */}
+                                            <Dropdown.Item eventKey="1" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>Cancel</Dropdown.Item>
+                                            <Dropdown.Item eventKey="2">Dropdown link</Dropdown.Item>
+                                        </DropdownButton>
                                     </td>
                                 </tr>
                             ))}
