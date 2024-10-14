@@ -252,11 +252,11 @@ function Details() {
 
     return (
         <Container>
-            <h2 className="text-center"> Booking Details</h2>
+            <h4 className="text-start"> Booking Details</h4>
             <hr />
             <Row>
                 <Col md={6}>
-                    <Table bordered>
+                    <Table bordered size='sm'>
                         <tbody>
                             <tr>
                                 <td>Booking ID</td>
@@ -295,14 +295,14 @@ function Details() {
                     </Table>
                 </Col>
                 <Col md={6}>
-                    <Table bordered>
+                    <Table bordered size='sm'>
                         <tbody>
                             <tr>
                                 <td>Proof of Payment</td>
                                 <td>
                                     {details.proofOfPayment !== null && (
-                                        <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
-                                            <Image src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} alt={details.proofOfPayment} width={100} height={100} />
+                                        <a className='btn btn-secondary btn-sm text-light w-100' href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
+                                            View
                                         </a>
                                     )}
                                 </td>
@@ -322,7 +322,7 @@ function Details() {
                             <tr>
                                 <td>Payment Amount</td>
                                 <td>
-                                    {details.paymentAmount}
+                                    {details.paymentAmount.toLocaleString()}
                                 </td>
                             </tr>
                             <tr>
@@ -337,7 +337,7 @@ function Details() {
             </Row>
             <Row>
                 <Col md={12}>
-                    <Table bordered>
+                    <Table size='sm' bordered>
                         <thead>
                             <tr>
                                 <th>Sl</th>
@@ -376,7 +376,7 @@ function Details() {
                                     <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
                                     <td>
                                         {project.investmentStatus === 'booked' &&
-                                            <Button variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
+                                            <Button size='sm' variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
                                                 Cancel
                                             </Button>
                                         }

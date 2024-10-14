@@ -15,7 +15,7 @@ const nextConfig = {
 		]
 	},
 	images: {
-		domains: ['saathi-files.s3.ap-southeast-1.amazonaws.com'],
+		domains: ['saathi-files.s3.ap-southeast-1.amazonaws.com', 'picsum.photos'],
 	},
 	reactStrictMode: true,
 	env: {

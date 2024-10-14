@@ -47,7 +47,7 @@ function Header() {
                 <meta content="width=device-width, initial-scale=1" name="viewport" />
                 <meta name="description" content="Saathi is an investment management application" />
             </Head>
-            <div className="page-top" style={{ resize: "block", backgroundRepeat: "no-repeat", backgroundSize: "1920px", backgroundImage: "url(/assets/images/background-main.png)" }}>
+            <div className="page-top mb-3" style={{ resize: "block", backgroundRepeat: "no-repeat", backgroundSize: "1920px", backgroundImage: "url(/assets/images/background-main.png)" }}>
                 <Navbar expand="lg" bg="none" className='text-light'>
                     <Container style={{ maxWidth: "1140px" }}>
                         <Navbar.Brand href="/">
@@ -62,7 +62,9 @@ function Header() {
                         </Navbar.Brand>
                         <Navbar.Toggle aria-controls="basic-navbar-nav" />
                         <Navbar.Collapse id="basic-navbar-nav">
+
                             <Nav className="ms-auto">
+                                <Nav.Link href="/users">Users</Nav.Link>
                                 <NavDropdown title="Setups" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Investment</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/stat_panel">Stat Panel</NavDropdown.Item>

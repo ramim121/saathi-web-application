@@ -68,8 +68,8 @@ const LoginPage = () => {
 	};
 
 	return (
-		<div className="App">
-			<div className="d-flex justify-content-center align-items-center">
+		<div style={{height:"95vh"}} className="App">
+			<div className="h-100 d-flex justify-content-center align-items-center">
 
 				<Container>
 					<Row className="justify-content-md-center">
@@ -115,11 +115,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-
-LoginPage.getLayout = function PageLayout(page: any) {
-	return (
-		<MainLayout>
-			{page}
-		</MainLayout>
-	)
-}

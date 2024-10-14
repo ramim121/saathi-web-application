@@ -74,7 +74,7 @@ function Details() {
 
     return (
         <Container>
-            <h2 className="text-center"> Partner Details</h2>
+            <h4 className="text-start"> Partner Details</h4>
             <hr />
             <Row>
                 <Col md={6}>

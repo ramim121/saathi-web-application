@@ -149,9 +149,9 @@ function List() {
 
     return (
         <Container>
-            <h2 className="text-center">Booking List</h2>
+            <h4 className="text-start">Booking List</h4>
             <hr />
-            <Table responsive striped bordered hover>
+            <Table responsive striped bordered hover size="sm">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -228,7 +228,7 @@ function List() {
                             </td>
                             <td>
                                 <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
-                                    <Button variant="primary">Details</Button>
+                                    <Button size="sm" variant="primary">Details</Button>
                                 </Link>
                             </td>
                         </tr>

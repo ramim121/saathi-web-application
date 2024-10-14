@@ -216,7 +216,7 @@ function StatPanel() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h2 className="text-center">Stat Panel</h2>
+                        <h4 className="text-start">Stat Panel</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
@@ -276,7 +276,7 @@ function StatPanel() {
                 </Row>
             </Container>
             <Container className='mt-5'>
-                <h2 className="text-center">Stat Panel List</h2>
+                <h4 className="text-start">Stat Panel List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

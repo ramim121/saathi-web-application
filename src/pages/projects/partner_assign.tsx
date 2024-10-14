@@ -173,7 +173,7 @@ function PartnerAssign() {
 
 	return (
 		<Container>
-			<h2 className="text-center">Partner Assign</h2>
+			<h4 className="text-start">Partner Assign</h2>
 			<hr />
 			<Form onSubmit={handleSubmit}>
 				<Row>
