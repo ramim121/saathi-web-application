@@ -6,10 +6,14 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { projectStatus, showInUpcoming, projectCategory } = req.query;
+		const { projectName, projectStatus, showInUpcoming, projectCategory, investmentType } = req.query;
 
-		const whereClause: { projectStatus?: string; showInUpcoming?: string; } = {};
+		const whereClause: { projectName?: string, projectStatus?: string; showInUpcoming?: string; investmentType?: string } = {};
 		const projectCategoryClause: { category_name?: string } = {};
+
+		if (projectName) {
+			whereClause.projectName = projectName as string;
+		}
 
 		if (projectStatus) {
 			whereClause.projectStatus = projectStatus as string;
@@ -22,6 +26,11 @@ export default async function handler(
 		if (projectCategory) {
 			projectCategoryClause.category_name = projectCategory as string;
 		}
+
+		if (investmentType) {
+			whereClause.investmentType = investmentType as string;
+		}
+
 		try {
 			const result = await Project.findAll({
 				include: [
