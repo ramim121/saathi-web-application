@@ -167,6 +167,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
 
 export default UserList;
 
+// @ts-ignore
 UserList.getLayout = function PageLayout(page: any) {
     return (
         <MainLayout>

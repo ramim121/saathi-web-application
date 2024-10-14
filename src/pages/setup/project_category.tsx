@@ -199,7 +199,7 @@ function ProjectCategory() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h4 className="text-start">Project Category</h2>
+                        <h4 className="text-start">Project Category</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
@@ -231,7 +231,7 @@ function ProjectCategory() {
 
 
             <Container className='mt-5'>
-                <h4 className="text-start">Project Category List</h2>
+                <h4 className="text-start">Project Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

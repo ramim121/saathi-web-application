@@ -141,7 +141,7 @@ function Investment() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h4 className="text-start">Investment Setup</h2>
+                        <h4 className="text-start">Investment Setup</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
@@ -221,7 +221,7 @@ function Investment() {
             </Container>
 
             <Container className='mt-5'>
-                <h4 className="text-start">Investment Setup List</h2>
+                <h4 className="text-start">Investment Setup List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

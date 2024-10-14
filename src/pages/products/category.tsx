@@ -229,7 +229,7 @@ function Category() {
                 <Row>
                     <Col md={2}></Col>
                     <Col md={8}>
-                        <h4 className="text-start">Product Category</h2>
+                        <h4 className="text-start">Product Category</h4>
                         <hr />
                         <Row>
                             <Col md={8}>
@@ -296,7 +296,7 @@ function Category() {
             </Container>
 
             <Container className='mt-5'>
-                <h4 className="text-start">Product Category List</h2>
+                <h4 className="text-start">Product Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

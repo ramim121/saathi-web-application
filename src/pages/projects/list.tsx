@@ -156,7 +156,7 @@ function List() {
 
 	return (
 		<Container>
-			<h4 className="text-start">Projects List</h2>
+			<h4 className="text-start">Projects List</h4>
 			<hr />
 			<Table responsive striped bordered hover>
 				<thead>

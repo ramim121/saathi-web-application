@@ -168,7 +168,7 @@ function Skill() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h4 className="text-start">Skills</h2>
+                        <h4 className="text-start">Skills</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
@@ -194,7 +194,7 @@ function Skill() {
 
 
             <Container className='mt-5'>
-                <h4 className="text-start">Skills List</h2>
+                <h4 className="text-start">Skills List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

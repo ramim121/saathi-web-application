@@ -160,7 +160,7 @@ function Details() {
 
     return (
         <Container>
-            <h4 className="text-start"> Project Details</h2>
+            <h4 className="text-start"> Project Details</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
                 <Tab eventKey="details" title="Details">
