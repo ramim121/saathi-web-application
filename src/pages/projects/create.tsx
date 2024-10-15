@@ -480,7 +480,7 @@ function Projects() {
 						</Button>
 					</Row>
 				</Form>
-				<pre>{JSON.stringify(formData, null, 2)}</pre>
+				{/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
 			</Container>
 		</>
 	);
