@@ -386,7 +386,13 @@ function Details() {
                                             </Button>
                                         } */}
                                             <Dropdown.Item eventKey="1" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>Cancel</Dropdown.Item>
-                                            <Dropdown.Item eventKey="2">Dropdown link</Dropdown.Item>
+                                            <Dropdown.Item eventKey="2" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'approved')}>Approve</Dropdown.Item>
+                                            <Dropdown.Item eventKey="3" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'proof_submitted')}>Proof Submit</Dropdown.Item>
+                                            <Dropdown.Item eventKey="4" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'disbursed')}>Disburse</Dropdown.Item>
+                                            <Dropdown.Item eventKey="5" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'profit_added')}>Profit Add</Dropdown.Item>
+                                            <Dropdown.Item eventKey="6" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'paid')}>Paid</Dropdown.Item>
+                                            <Dropdown.Item eventKey="7" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>Ready for withdrawal</Dropdown.Item>
+                                            <Dropdown.Item eventKey="8" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'withdrawn')}>Withdraw</Dropdown.Item>
                                         </DropdownButton>
                                     </td>
                                 </tr>
