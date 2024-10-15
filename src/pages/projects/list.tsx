@@ -25,6 +25,9 @@ interface ListProps {
 	}[],
 	CreatedBy: {
 		fullName: string
+	},
+	ProjectCategory: {
+		categoryName: string
 	}
 
 }
@@ -43,6 +46,7 @@ interface FilterProps {
 	showInUpcoming: string,
 	partnersName: string,
 	createdBy: string,
+	categoryName: string,
 	orderBy: string,
 	orderType: string,
 	page: number,
@@ -65,6 +69,7 @@ function List() {
 		showInUpcoming: '',
 		partnersName: '',
 		createdBy: '',
+		categoryName: '',
 		orderBy: 'idProjects',
 		orderType: 'DESC',
 		page: 1,
@@ -151,13 +156,14 @@ function List() {
 
 	return (
 		<Container>
-			<h2 className="text-center">Projects List</h2>
+			<h4 className="text-start">Projects List</h4>
 			<hr />
 			<Table responsive striped bordered hover>
 				<thead>
 					<tr>
 						<th>#</th>
 						<th>Project Name</th>
+						<th>Category</th>
 						<th>Investment Type</th>
 						<th>Return Type</th>
 						<th>Share / Unit</th>
@@ -176,6 +182,9 @@ function List() {
 						</td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="projectName" onChange={handleInputOnChange} value={filter.projectName} />
+						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="categoryName" onChange={handleInputOnChange} value={filter.categoryName} />
 						</td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="investmentType" onChange={handleInputOnChange} value={filter.investmentType} />
@@ -216,6 +225,7 @@ function List() {
 						<tr key={index}>
 							<td>{project.idProjects}</td>
 							<td>{project.projectName}</td>
+							<td>{project.ProjectCategory?.categoryName}</td>
 							<td>{project.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
 							<td>{project.returnType.charAt(0).toUpperCase() + project.returnType.slice(1)}</td>
 							<td>{project.unitInvestmentValue}</td>
@@ -242,7 +252,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={13} className="text-center">No projects found</td>
+							<td colSpan={14} className="text-center">No projects found</td>
 						</tr>
 					)}
 

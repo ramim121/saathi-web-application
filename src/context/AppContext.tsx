@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { createContext, useState, useEffect } from "react";
 import { getCookie } from "@/utils/GetCookie";
+import { useRouter } from 'next/router';
 
 export interface User {
 	idUsers: number,
@@ -21,12 +23,16 @@ export const AppContext = createContext(defaultValue);
 function AppContextProvider(props: React.PropsWithChildren<object>) {
 	const [token, setToken] = useState<string | null>(null);
 	const [currentUser, setCurrentUser] = useState<User | undefined>(undefined);
+	const router = useRouter(); // Get the router instance
 
 	useEffect(() => {
 		const token = getCookie('saathi-token');;
 		const user = localStorage.getItem('user');
 		if (token) {
 			setToken(token);
+		}
+		else {
+			router.push('/login'); // Redirect to login page if no token
 		}
 		if (user) {
 			setCurrentUser(JSON.parse(user));

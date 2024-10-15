@@ -80,7 +80,7 @@ function Blogs() {
         <Container>
             <Row className="justify-content-center">
                 <Col md={6}>
-                    <h2 className="text-center">Blog Create</h2>
+                    <h4 className="text-start">Blog Create</h4>
                     <hr />
                     <Form onSubmit={handleSubmit}>
                         <Form.Group as={Row}>

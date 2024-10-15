@@ -122,7 +122,7 @@ function Projects() {
 	useEffect(() => {
 		const fetchProjectCategories = async () => {
 			try {
-				const res = await fetch(API_URL + 'api/project-category/get_all_categories');
+				const res = await fetch(API_URL + 'api/project-categories/get_all_categories');
 				const data = await res.json();
 				if (res.status === 200) {
 					const categories = data.data.map((category: any) => {
@@ -302,7 +302,7 @@ function Projects() {
 	return (
 		<>
 			<Container>
-				<h2 className="text-center">Project Creation</h2>
+				<h4 className="text-start">Project Creation</h4>
 				<hr />
 				<Form onSubmit={handleSubmit}>
 					<Row>

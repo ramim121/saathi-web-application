@@ -1,14 +1,19 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project, ProjectPartner, File } from '@/models/__associations'
+import { Project, ProjectPartner, File, ProjectCategory } from '@/models/__associations'
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { projectStatus, showInUpcoming } = req.query;
+		const { projectName, projectStatus, showInUpcoming, projectCategory, investmentType } = req.query;
 
-		const whereClause: { projectStatus?: string; showInUpcoming?: string } = {};
+		const whereClause: { projectName?: string, projectStatus?: string; showInUpcoming?: string; investmentType?: string } = {};
+		const projectCategoryClause: { category_name?: string } = {};
+
+		if (projectName) {
+			whereClause.projectName = projectName as string;
+		}
 
 		if (projectStatus) {
 			whereClause.projectStatus = projectStatus as string;
@@ -17,6 +22,15 @@ export default async function handler(
 		if (showInUpcoming) {
 			whereClause.showInUpcoming = showInUpcoming as string;
 		}
+
+		if (projectCategory) {
+			projectCategoryClause.category_name = projectCategory as string;
+		}
+
+		if (investmentType) {
+			whereClause.investmentType = investmentType as string;
+		}
+
 		try {
 			const result = await Project.findAll({
 				include: [
@@ -28,7 +42,12 @@ export default async function handler(
 					},
 					{
 						model: File, as: 'FeaturedImages', required: false
-					}
+					},
+					{
+						model: ProjectCategory,
+						as: 'ProjectCategory',
+						where: projectCategoryClause
+					},
 				],
 				where: whereClause
 			})

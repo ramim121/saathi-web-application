@@ -4,18 +4,27 @@ import Joi from 'joi';
 import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
 import { generateHash } from '@/utils/GenerateHash';
 import * as formidable from 'formidable';
+import _ from 'await-to-js';
 import fs from 'fs';
-import AWS from 'aws-sdk';
 import sequelize from '@/config/db';
 import { Op } from 'sequelize';
-
-AWS.config.update({
-    accessKeyId: S3_BUCKET_ACCESS_KEY,
-    secretAccessKey: S3_BUCKET_SECRET_KEY,
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
+    credentials: {
+        accessKeyId: S3_BUCKET_ACCESS_KEY,
+        secretAccessKey: S3_BUCKET_SECRET_KEY
+    }
+});
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
-const s3 = new AWS.S3();
+
 const S3_PARAMS = { Bucket: S3_BUCKET_NAME, ACL: 'public-read' };
 
 export const config = {
@@ -42,16 +51,28 @@ const handleValidationError = (error: Joi.ValidationError) => {
 
 const processImage = async (categoryImage: formidable.File, categoryId: string) => {
     const categoryImageFileName = generateHash(Date.now() + categoryImage.originalFilename!.toString()) + '.' + categoryImage.originalFilename!.split('.').pop();
-    await s3.upload({
-        ...S3_PARAMS,
-        ContentType: categoryImage.mimetype!,
-        Body: fs.createReadStream(categoryImage.filepath),
-        Key: `category-image/${categoryId}/${categoryImageFileName}`,
-    }).promise();
+    const upload = new Upload({
+        client: s3Client,
+        params: {
+            ...S3_PARAMS,
+            ContentType: categoryImage.mimetype!,
+            Body: fs.createReadStream(categoryImage.filepath),
+            Key: `product-category-image/${categoryImageFileName}`,
+        } as any,
+    });
+
+    upload.on('httpUploadProgress', (progress: any) => {
+        console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+    });
+    let [err1, result1] = await _(upload.done());
+    if (err1) {
+        throw new Error(err1.message);
+    }
+
     return categoryImageFileName;
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
@@ -108,3 +129,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
     });
 }
+
+export default cors(handler as any);

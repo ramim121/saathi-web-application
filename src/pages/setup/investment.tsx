@@ -69,7 +69,7 @@ function Investment() {
             if (result.value) {
                 try {
                     const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/setup/investment', postRequestOptions(formData));
+                        const res = await fetch(API_URL + 'api/investments/create', postRequestOptions(formData));
                         if (res.status === 200) {
                             Swal.fire({
                                 icon: 'success',
@@ -110,7 +110,7 @@ function Investment() {
     useEffect(() => {
         const fetchInvestmentSetupList = async () => {
             try {
-                const res = await fetch('/api/setup/investment_list', getRequestOptions());
+                const res = await fetch('/api/investments/list', getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
                     setInvestmentList(data.data);
@@ -141,7 +141,7 @@ function Investment() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h2 className="text-center">Investment Setup</h2>
+                        <h4 className="text-start">Investment Setup</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
@@ -221,7 +221,7 @@ function Investment() {
             </Container>
 
             <Container className='mt-5'>
-                <h2 className="text-center">Investment Setup List</h2>
+                <h4 className="text-start">Investment Setup List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>

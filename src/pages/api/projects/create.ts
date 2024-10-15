@@ -6,17 +6,23 @@ import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET
 import { generateHash } from '@/utils/GenerateHash';
 import * as formidable from 'formidable';
 import fs from 'fs';
-import AWS from 'aws-sdk';
 import _ from 'await-to-js';
 
-AWS.config.update({
-    accessKeyId: S3_BUCKET_ACCESS_KEY,
-    secretAccessKey: S3_BUCKET_SECRET_KEY,
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
+    credentials: {
+        accessKeyId: S3_BUCKET_ACCESS_KEY,
+        secretAccessKey: S3_BUCKET_SECRET_KEY
+    }
 });
-
-// Create an S3 instance
-const s3 = new AWS.S3();
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
 export const config = {
     api: {
@@ -89,12 +95,12 @@ const schema = Joi.object({
     }),
     projectCategory: Joi.number().min(1).required().messages({
         "any.required": "Project Category is required",
-        "number.base": "Project Category must be a number",
-        "number.min": "Project Category must be greater than 0",
+        "number.base": "Project Category must be selected",
+        "number.min": "Project Category must be selected",
     }),
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
 
         const form = new formidable.IncomingForm();
@@ -130,6 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 summary: fields.summary ? fields.summary[0] : null,
                 createdBy: fields.createdBy ? fields.createdBy[0] : null,
                 showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
+                projectCategory: fields.projectCategory ? fields.projectCategory[0] : null
             }
 
             const options = {
@@ -188,7 +195,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     collectionEnds: data.collectionEnds,
                     otherLocations: data.otherLocations,
                     projectStatus: 'created',
-                    showInUpcoming: data.showInUpcoming
+                    showInUpcoming: data.showInUpcoming,
+                    idProjectCategories: data.projectCategory
                 }, { transaction });
 
                 if (mainImage !== null) {
@@ -200,7 +208,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         refId: project.idProjects
                     }, { transaction });
 
-                    let [err1] = await _(s3.upload({ ...params, ContentType: mainImage.mimetype!, Body: fs.createReadStream(mainImage.filepath), Key: 'project-main-image/' + project.idProjects + '/' + mainImageFileName }).promise());
+                    const upload = new Upload({
+                        client: s3Client,
+                        params: { ...params, ContentType: mainImage.mimetype!, Body: fs.createReadStream(mainImage.filepath), Key: 'project-main-image/' + project.idProjects + '/' + mainImageFileName } as any
+                    });
+
+                    upload.on('httpUploadProgress', (progress: any) => {
+                        console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                    });
+                    let [err1, result1] = await _(upload.done());
+
                     if (err1) {
                         await transaction.rollback();
                         return res.status(500).json({ success: false, message: err1.message });
@@ -217,7 +234,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             refId: project.idProjects
                         }, { transaction });
 
-                        let [err2] = await _(s3.upload({ ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'project-featured-image/' + project.idProjects + '/' + featuredImageFileName }).promise());
+                        const upload = new Upload({
+                            client: s3Client,
+                            params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'project-featured-image/' + project.idProjects + '/' + featuredImageFileName } as any
+                        });
+
+                        upload.on('httpUploadProgress', (progress: any) => {
+                            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                        });
+                        let [err2, result1] = await _(upload.done());
                         if (err2) {
                             await transaction.rollback();
                             return res.status(500).json({ success: false, message: err2.message });
@@ -236,3 +261,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
+export default cors(handler as any);

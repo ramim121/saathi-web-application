@@ -74,7 +74,7 @@ function Details() {
 
     return (
         <Container>
-            <h2 className="text-center"> Partner Details</h2>
+            <h4 className="text-start"> Partner Details</h4>
             <hr />
             <Row>
                 <Col md={6}>
@@ -154,9 +154,9 @@ function Details() {
                     </Table>
                 </Col>
             </Row>
-            <Row className="mt-2">
-                <h3>Featured Images</h3>
-                <Col>
+            <h3>Featured Images:</h3>
+            <Row className="ps-0 p-5">
+                <Col md={8} >
                     <Carousel>
                         {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
                             <Carousel.Item key={index}>

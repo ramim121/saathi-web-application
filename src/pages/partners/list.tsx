@@ -131,7 +131,7 @@ function List() {
 
 	return (
 		<Container>
-			<h2 className="text-center">Partners List</h2>
+			<h4 className="text-start">Partners List</h4>
 			<hr />
 			<Table responsive striped bordered hover>
 				<thead>

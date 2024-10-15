@@ -216,7 +216,7 @@ function Registration() {
     return (
         <>
             <Container>
-                <h2 className="text-center">Partner Registration</h2>
+                <h4 className="text-start">Partner Registration</h4>
                 <hr />
                 <Form onSubmit={handleSubmit}>
                     <Row>

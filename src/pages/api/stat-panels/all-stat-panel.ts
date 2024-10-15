@@ -1,8 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { AppStatPanel } from '@/models/__associations';
 import { Op } from 'sequelize';
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
         try {
             const { q } = req.query;
@@ -25,3 +32,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default cors(handler as any);

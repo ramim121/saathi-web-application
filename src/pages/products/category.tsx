@@ -75,7 +75,7 @@ function Category() {
         const fetchProductCategoryList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/product-category/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/product-categories/list?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
                     setProductCategoryList(data.data);
@@ -177,9 +177,9 @@ function Category() {
                 }
                 let url = ''
                 if (formData.idProductCategories) {
-                    url = API_URL + 'api/product-category/update/' + formData.idProductCategories;
+                    url = API_URL + 'api/product-categories/update/' + formData.idProductCategories;
                 } else {
-                    url = API_URL + 'api/product-category/create';
+                    url = API_URL + 'api/product-categories/create';
                 }
                 try {
                     const fetchData = async () => {
@@ -229,7 +229,7 @@ function Category() {
                 <Row>
                     <Col md={2}></Col>
                     <Col md={8}>
-                        <h2 className="text-center">Product Category</h2>
+                        <h4 className="text-start">Product Category</h4>
                         <hr />
                         <Row>
                             <Col md={8}>
@@ -277,7 +277,7 @@ function Category() {
                             </Col>
                             <Col md={4}>
                                 {(formData.idProductCategories && typeof (formData.categoryImage) === 'string') ?
-                                    <Image src={`${S3_URL}category-image/${formData.idProductCategories}/${formData.categoryImage}`} alt={formData.categoryImage} width={200} height={200} />
+                                    <Image src={`${S3_URL}product-category-image/${formData.categoryImage}`} alt={formData.categoryImage} width={200} height={200} />
                                     : formData.categoryImage !== '' &&
                                     <Image
                                         src={URL.createObjectURL(formData.categoryImage)}
@@ -296,12 +296,12 @@ function Category() {
             </Container>
 
             <Container className='mt-5'>
-                <h2 className="text-center">Product Category List</h2>
+                <h4 className="text-start">Product Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>
                         <tr>
-                            <th>Id</th>
+                            <th>#</th>
                             <th>Category Name</th>
                             <th>Product Category Id</th>
                             <th>Category Image</th>
@@ -334,7 +334,7 @@ function Category() {
                                 <td>{product.productCategoryName}</td>
                                 <td>{product.productCategoryId}</td>
                                 <td>
-                                    {product.categoryImage && <Image src={`${S3_URL}category-image/${product.idProductCategories}/${product.categoryImage}`} alt={product.categoryImage} width={100} height={100} />}
+                                    {product.categoryImage && <Image src={`${S3_URL}product-category-image/${product.categoryImage}`} alt={product.categoryImage} width={100} height={100} />}
 
                                 </td>
                                 <td>{product.status.charAt(0).toUpperCase() + product.status.slice(1)}</td>

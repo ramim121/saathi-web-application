@@ -5,17 +5,23 @@ import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET
 import { generateHash } from '@/utils/GenerateHash';
 import * as formidable from 'formidable';
 import fs from 'fs';
-import AWS from 'aws-sdk';
 import _ from 'await-to-js';
 import sequelize from '@/config/db';
-
-AWS.config.update({
-    accessKeyId: S3_BUCKET_ACCESS_KEY,
-    secretAccessKey: S3_BUCKET_SECRET_KEY,
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
+    credentials: {
+        accessKeyId: S3_BUCKET_ACCESS_KEY,
+        secretAccessKey: S3_BUCKET_SECRET_KEY
+    }
 });
-
-const s3 = new AWS.S3();
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
 export const config = {
     api: {
@@ -55,7 +61,8 @@ const schema = Joi.object({
     })
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
 
         const form = new formidable.IncomingForm();
@@ -149,10 +156,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         refId: partner.idUsers
                     }, { transaction });
 
-                    let [err1] = await _(s3.upload({ ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + partner.idUsers + '/' + profilePicFileName }).promise());
+                    const upload = new Upload({
+                        client: s3Client,
+                        params: { ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + partner.idUsers + '/' + profilePicFileName } as any
+                    });
+
+                    upload.on('httpUploadProgress', (progress: any) => {
+                        console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                    });
+                    let [err1] = await _(upload.done());
                     if (err1) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: err1.message });
+                        return res.status(500).json({ success: false, message: "profile picture upload error. " + err1.message });
                     }
                 }
 
@@ -165,11 +180,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             refType: 'featured-image',
                             refId: partner.idUsers
                         }, { transaction });
+                        const upload = new Upload({
+                            client: s3Client,
+                            params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + partner.idUsers + '/' + featuredImageFileName } as any
+                        });
 
-                        let [err2] = await _(s3.upload({ ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + partner.idUsers + '/' + featuredImageFileName }).promise());
+                        upload.on('httpUploadProgress', (progress: any) => {
+                            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                        });
+                        let [err2] = await _(upload.done());
                         if (err2) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: err2.message });
+                            return res.status(500).json({ success: false, message: "Featured image upload error. " + err2.message });
                         }
                     }
                 }
@@ -185,3 +207,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
+export default cors(handler as any);

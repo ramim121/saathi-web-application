@@ -30,6 +30,9 @@ interface DetailsProps {
     collectionEnds: string,
     summary: string,
     showInUpcoming: string,
+    ProjectCategory: {
+        categoryName: string
+    }
     ProjectPartners: {
         User: {
             idUsers: number,
@@ -157,7 +160,7 @@ function Details() {
 
     return (
         <Container>
-            <h2 className="text-center"> Project Details</h2>
+            <h4 className="text-start"> Project Details</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
                 <Tab eventKey="details" title="Details">
@@ -168,6 +171,10 @@ function Details() {
                                     <tr>
                                         <td>Project Name</td>
                                         <td>{details.projectName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Category</td>
+                                        <td>{details.ProjectCategory?.categoryName}</td>
                                     </tr>
                                     <tr>
                                         <td>Location</td>

@@ -1,5 +1,3 @@
-const { S3 } = require('aws-sdk')
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	async headers() {
@@ -17,7 +15,7 @@ const nextConfig = {
 		]
 	},
 	images: {
-		domains: ['saathi-files.s3.ap-southeast-1.amazonaws.com'],
+		domains: ['saathi-files.s3.ap-southeast-1.amazonaws.com', 'picsum.photos'],
 	},
 	reactStrictMode: true,
 	env: {

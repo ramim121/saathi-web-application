@@ -42,7 +42,7 @@ function List() {
 
     return (
         <Container>
-            <h2 className="text-center">Blogs List</h2>
+            <h4 className="text-start">Blogs List</h4>
             <hr />
             <Table responsive striped bordered hover>
                 <thead>

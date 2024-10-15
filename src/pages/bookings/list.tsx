@@ -78,7 +78,7 @@ function List() {
         const fetchBookingList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/booking/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/bookings/list?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
                     setBookingList(data.data);
@@ -149,9 +149,9 @@ function List() {
 
     return (
         <Container>
-            <h2 className="text-center">Booking List</h2>
+            <h4 className="text-start">Booking List</h4>
             <hr />
-            <Table responsive striped bordered hover>
+            <Table responsive striped bordered hover size="sm">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -227,8 +227,8 @@ function List() {
                                 </ul>
                             </td>
                             <td>
-                                <Link href={`/booking/details/${booking.idProjectInvestmentBookings}`}>
-                                    <Button variant="primary">Details</Button>
+                                <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
+                                    <Button size="sm" variant="primary">Details</Button>
                                 </Link>
                             </td>
                         </tr>

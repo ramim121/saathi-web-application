@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Project, File, ProjectInvestor } from '@/models/__associations';
 import sequelize from '@/config/db';
+import { Op } from 'sequelize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -28,6 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 'investorCount'
                             ]
                         ]
+                    },
+                    where: {
+                        showInUpcoming: 'no',
+                        projectStatus: { [Op.ne]: 'completed' }
                     },
                     order: [[sequelize.literal('investorCount'), 'DESC']],
                     limit: 5
