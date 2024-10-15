@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Project, ProjectPartner, File, ProjectCategory } from '@/models/__associations'
+import { Op } from 'sequelize'
 
 export default async function handler(
 	req: NextApiRequest,
@@ -8,27 +9,27 @@ export default async function handler(
 	if (req.method === 'GET') {
 		const { projectName, projectStatus, showInUpcoming, projectCategory, investmentType } = req.query;
 
-		const whereClause: { projectName?: string, projectStatus?: string; showInUpcoming?: string; investmentType?: string } = {};
-		const projectCategoryClause: { category_name?: string } = {};
+		const whereClause: { projectName?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string }; investmentType?: { [Op.like]: string } } = {};
+		const projectCategoryClause: { category_name?: { [Op.like]: string } } = {};
 
 		if (projectName) {
-			whereClause.projectName = projectName as string;
+			whereClause.projectName = { [Op.like]: `%${projectName}%` }
 		}
 
 		if (projectStatus) {
-			whereClause.projectStatus = projectStatus as string;
+			whereClause.projectStatus = { [Op.like]: `%${projectStatus}%` }
 		}
 
 		if (showInUpcoming) {
-			whereClause.showInUpcoming = showInUpcoming as string;
-		}
-
-		if (projectCategory) {
-			projectCategoryClause.category_name = projectCategory as string;
+			whereClause.showInUpcoming = { [Op.like]: `%${showInUpcoming}%` }
 		}
 
 		if (investmentType) {
-			whereClause.investmentType = investmentType as string;
+			whereClause.investmentType = { [Op.like]: `%${investmentType}%` }
+		}
+
+		if (projectCategory) {
+			projectCategoryClause.category_name = { [Op.like]: `%${projectCategory}%` }
 		}
 
 		try {
