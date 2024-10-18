@@ -63,6 +63,7 @@ function PartnerAssign() {
 	const [selectedPartner, setSelectedPartner] = useState<PartnerProps | null>(null);
 	const [projectList, setProjectList] = useState<ProjectProps[]>([]);
 	const [selectedProject, setSelectedProject] = useState<ProjectProps | null>(null);
+	const [reload, setReload] = useState<boolean>(true);
 
 	useEffect(() => {
 		const fetchPartnersList = async () => {
@@ -74,6 +75,7 @@ function PartnerAssign() {
 						return { ...element, label: element.fullName, value: element.idUsers }
 					});
 					setPartnersList(newItems);
+					setReload(false);
 				} else {
 					Swal.fire({
 						icon: 'error',
@@ -89,8 +91,10 @@ function PartnerAssign() {
 				});
 			}
 		}
-		fetchPartnersList();
-	}, []);
+		if (reload) {
+			fetchPartnersList();
+		}
+	}, [reload]);
 
 	useEffect(() => {
 		const fetchProjectsList = async () => {
@@ -150,6 +154,7 @@ function PartnerAssign() {
 							});
 							setSelectedPartner(null);
 							setSelectedProject(null);
+							setReload(true);
 						} else {
 							Swal.fire({
 								icon: 'error',

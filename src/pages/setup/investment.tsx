@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Col, Container, Form, InputGroup, Row, Table } from 'react-bootstrap';
+import { Button, Col, Container, Form, InputGroup, Row, Table, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
@@ -31,6 +31,7 @@ function Investment() {
 
     const [investmentList, setInvestmentList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -58,6 +59,7 @@ function Investment() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to setup this investment!",
@@ -65,47 +67,51 @@ function Investment() {
             showCancelButton: true,
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/investments/create', postRequestOptions(formData));
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: 'Investment setup successfull!',
-                            });
-                            setFormData({
-                                nameOfThePlan: '',
-                                investmentType: '',
-                                returnType: 'variable',
-                                minimumReturn: 0,
-                                maximumReturn: 0,
-                                duration: 0,
-                                tenure: 'months',
-                            });
-                            setReload(true);
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
+                    // Proceed with the API request
+                    const res = await fetch(API_URL + 'api/investments/create', postRequestOptions(formData));
 
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Investment setup successful!',
+                        });
+                        // Reset form and reload the investment list
+                        setFormData({
+                            nameOfThePlan: '',
+                            investmentType: '',
+                            returnType: 'variable',
+                            minimumReturn: 0,
+                            maximumReturn: 0,
+                            duration: 0,
+                            tenure: 'months',
+                        });
+                        setReload(true);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: 'Something went wrong!',
                     });
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         });
     }
+
 
     useEffect(() => {
         const fetchInvestmentSetupList = async () => {
@@ -209,8 +215,9 @@ function Investment() {
                                 <Col sm='4'></Col>
                                 <Col sm='8'>
                                     <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit">
-                                            Submit
+                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
+                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                                            {loading ? 'Submitting...' : 'Submit'}
                                         </Button>
                                     </Row>
                                 </Col>

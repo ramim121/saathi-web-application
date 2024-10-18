@@ -2,6 +2,7 @@
 import { createContext, useState, useEffect } from "react";
 import { getCookie } from "@/utils/GetCookie";
 import { useRouter } from 'next/router';
+import { jwtDecode } from "jwt-decode";
 
 export interface User {
 	idUsers: number,
@@ -26,16 +27,15 @@ function AppContextProvider(props: React.PropsWithChildren<object>) {
 	const router = useRouter(); // Get the router instance
 
 	useEffect(() => {
-		const token = getCookie('saathi-token');;
-		const user = localStorage.getItem('user');
+		const token = getCookie('saathi-token');
 		if (token) {
 			setToken(token);
 		}
 		else {
 			router.push('/login'); // Redirect to login page if no token
 		}
-		if (user) {
-			setCurrentUser(JSON.parse(user));
+		if (token) {
+			setCurrentUser(jwtDecode(token));
 		}
 	}, []);
 
