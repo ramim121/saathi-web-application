@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table } from "react-bootstrap";
+import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/constants';
-import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
-import Image from "next/image";
-import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
     idSkills?: number
@@ -42,6 +39,7 @@ function Skill() {
     const [totalPages, setTotalPages] = useState<number>(1);
     const [skillList, setSkillList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchProjectCategoryList = async () => {
@@ -117,8 +115,9 @@ function Skill() {
         })
     }
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to create this skill!",
@@ -126,42 +125,42 @@ function Skill() {
             showCancelButton: true,
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/skills/create', postRequestOptions(formData));
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: (await res.json()).message,
-                            });
-                            setReload(true);
-                            setFormData({
-                                skillName: '',
-                            });
+                    const res = await fetch(API_URL + 'api/skills/create', postRequestOptions(formData));
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: (await res.json()).message,
+                        });
+                        setReload(true);
+                        setFormData({
+                            skillName: '',
+                        });
 
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
-
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: 'Something went wrong!',
                     });
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         });
-    }
+    };
 
     return (
         <>
@@ -181,8 +180,9 @@ function Skill() {
                                 <Col sm='4'></Col>
                                 <Col sm='8'>
                                     <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit">
-                                            Submit
+                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
+                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                                            {loading ? 'Submitting...' : 'Submit'}
                                         </Button>
                                     </Row>
                                 </Col>

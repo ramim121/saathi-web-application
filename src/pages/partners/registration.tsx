@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
+import { useRouter } from 'next/router';
 
 interface FormDataType {
     name: string,
@@ -31,6 +32,7 @@ interface Skills {
 }
 
 function Registration() {
+    const router = useRouter();
     const [formData, setFormData] = useState<FormDataType>({
         name: '',
         phoneNumber: 0,
@@ -49,7 +51,10 @@ function Registration() {
         partnerType: 'none'
     });
     const bioRef = useRef<any>(null);
+    const profilePicRef = useRef<HTMLInputElement>(null);
+    const featuredImagesRef = useRef<HTMLInputElement>(null);
     const [skills, setSkills] = useState<Skills[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchSkills = async () => {
@@ -132,6 +137,9 @@ function Registration() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        // Set loading to true before the Swal confirmation
+        setLoading(true);
+
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to register this partner!",
@@ -139,7 +147,7 @@ function Registration() {
             showCancelButton: true,
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
                 const newFormData = new FormData();
                 newFormData.append('name', formData.name);
@@ -155,60 +163,45 @@ function Registration() {
                 newFormData.append('disability', formData.disability);
                 newFormData.append('profilePicture', formData.profilePicture);
                 newFormData.append('partnerType', formData.partnerType);
+
                 if (formData.featuredImages) {
                     for (let i = 0; i < formData.featuredImages.length; i++) {
                         newFormData.append('featuredImages', formData.featuredImages[i]);
                     }
                 }
+
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/partners/registration', {
-                            method: 'POST',
-                            headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
-                            body: newFormData,
+                    const res = await fetch(API_URL + 'api/partners/registration', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+                        body: newFormData,
+                    });
+
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Partner successfully registered!',
                         });
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: 'Partner successfully registered!',
-                            });
-                            setFormData({
-                                name: '',
-                                phoneNumber: 0,
-                                age: 0,
-                                location: '',
-                                role: '',
-                                bio: '',
-                                interestedIn: '',
-                                joiningDate: '',
-                                multiSkills: [],
-                                education: '',
-                                skills: '',
-                                profilePicture: '',
-                                featuredImages: '',
-                                disability: 'no',
-                                partnerType: 'none'
-                            });
-                            bioRef.current.setContent('');
-
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
-
+                        router.push('/partners/details/' + (await res.json()).data.idUsers);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: 'Something went wrong!',
                     });
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         });
     };
@@ -326,13 +319,13 @@ function Registration() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Profile Picture </Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="file" onChange={handleFileUpload} />
+                                    <Form.Control type="file" onChange={handleFileUpload} ref={profilePicRef} />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Featured Images</Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
+                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} />
                                 </Col>
                             </Form.Group>
                         </Col>
@@ -405,8 +398,9 @@ function Registration() {
                         {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
                     </Row>
                     <Row className='justify-content-center'>
-                        <Button className='w-50' variant="primary" type="submit">
-                            Submit
+                        <Button className='w-25' variant="primary" type="submit" disabled={loading}>
+                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                            {loading ? 'Submitting...' : 'Submit'}
                         </Button>
                     </Row>
                 </Form>

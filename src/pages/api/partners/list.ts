@@ -49,7 +49,6 @@ export default async function handler(
 		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
 		try {
 			const result = await User.findAndCountAll({
-				where: whereClause,
 				attributes: [
 					'idUsers',
 					'fullName',
@@ -63,14 +62,16 @@ export default async function handler(
 					'partnerType'
 				],
 				include: [{
-					model: ProjectPartner, as: 'Partnerships',
+					model: ProjectPartner, as: 'Partnerships', required: false,
 					include: [
-						{ model: Project, as: 'Project', attributes: ['projectName', 'location'] }
+						{ model: Project, as: 'Project', required: false, attributes: ['projectName', 'location'] }
 					]
 
 				}],
+				where: whereClause,
 				limit,
 				offset,
+				distinct: true,
 				order: [[orderBy as string, orderType === 'DESC' ? 'DESC' : 'ASC']],
 			})
 

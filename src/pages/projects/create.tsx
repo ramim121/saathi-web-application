@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { Button, Col, Container, Form, Row, Card } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Card, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
@@ -7,6 +7,7 @@ import { Editor } from '@tinymce/tinymce-react';
 import { AppContext } from '@/context/AppContext';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
+import { useRouter } from 'next/router';
 
 interface FormDataType {
 	projectName: string,
@@ -50,6 +51,7 @@ interface ProjectCategory {
 
 function Projects() {
 	const { token, currentUser } = useContext(AppContext);
+	const router = useRouter();
 	const [formData, setFormData] = useState<FormDataType>({
 		projectName: '',
 		unitInvestmentValue: 0,
@@ -76,6 +78,9 @@ function Projects() {
 	const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
 	const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>([]);
 	const editorRef = useRef<any>(null);
+	const mainImageRef = useRef<HTMLInputElement>(null);
+	const featuredImagesRef = useRef<HTMLInputElement>(null);
+	const [loading, setLoading] = useState<boolean>(false);
 
 	const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -209,6 +214,7 @@ function Projects() {
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+		setLoading(true);
 		Swal.fire({
 			title: 'Are you sure?',
 			text: "You want to create this project!",
@@ -216,7 +222,7 @@ function Projects() {
 			showCancelButton: true,
 			cancelButtonText: 'No',
 			confirmButtonText: 'Yes'
-		}).then((result) => {
+		}).then(async (result) => {
 			if (result.value) {
 				try {
 					formData.createdBy = currentUser?.idUsers || null;
@@ -241,52 +247,26 @@ function Projects() {
 						}
 					}
 
-					const fetchData = async () => {
-						const res = await fetch(API_URL + 'api/projects/create', {
-							method: 'POST',
-							headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
-							body: newFormData,
+					const res = await fetch(API_URL + 'api/projects/create', {
+						method: 'POST',
+						headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+						body: newFormData,
+					});
+					if (res.status === 200) {
+						Swal.fire({
+							icon: 'success',
+							title: 'Success',
+							text: 'Projects creation successfull!',
 						});
-						if (res.status === 200) {
-							Swal.fire({
-								icon: 'success',
-								title: 'Success',
-								text: 'Projects creation successfull!',
-							});
-							setFormData({
-								projectName: '',
-								unitInvestmentValue: 0,
-								investment: {
-									label: 'Select Investment Plan',
-									value: 0
-								},
-								summary: '',
-								location: '',
-								createdBy: currentUser?.idUsers || null,
-								totalReturnMin: 0,
-								totalReturnMax: 0,
-								collectionStarts: '',
-								collectionEnds: '',
-								otherLocations: '',
-								mainImage: '',
-								featuredImages: '',
-								showInUpcoming: 'no',
-								projectCategory: {
-									label: 'Select project category',
-									value: 0
-								}
-							});
-							editorRef.current.setContent('');
+						router.push('/projects/details/' + (await res.json()).data.idProjects);
 
-						} else {
-							Swal.fire({
-								icon: 'error',
-								title: 'Error',
-								html: (await res.json()).message,
-							});
-						}
-					};
-					fetchData();
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							html: (await res.json()).message,
+						});
+					}
 
 				} catch (err) {
 					Swal.fire({
@@ -294,11 +274,14 @@ function Projects() {
 						title: 'Error',
 						text: 'Something went wrong!',
 					});
+				} finally {
+					setLoading(false);
 				}
+			} else {
+				setLoading(false);
 			}
 		});
-	}
-
+	};
 	return (
 		<>
 			<Container>
@@ -405,7 +388,7 @@ function Projects() {
 							<Form.Group as={Row} className='mb-3'>
 								<Form.Label column sm='4'>Main Image </Form.Label>
 								<Col sm='8'>
-									<Form.Control type="file" onChange={handleFileUpload} />
+									<Form.Control type="file" onChange={handleFileUpload} ref={mainImageRef} />
 								</Col>
 							</Form.Group>
 						</Col>
@@ -454,7 +437,7 @@ function Projects() {
 							<Form.Group as={Row} className='mb-3'>
 								<Form.Label column sm='4'>Featured Images</Form.Label>
 								<Col sm='8'>
-									<Form.Control type="file" multiple onChange={handleFeatureImageUpload} />
+									<Form.Control type="file" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} />
 								</Col>
 							</Form.Group>
 							<Form.Group as={Row} className='mb-3'>
@@ -475,8 +458,9 @@ function Projects() {
 						</Col>
 					</Row>
 					<Row className='justify-content-center'>
-						<Button className='w-50' variant="primary" type="submit">
-							Submit
+						<Button className='w-25' variant="primary" type="submit" disabled={loading}>
+							{loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+							{loading ? 'Submitting...' : 'Submit'}
 						</Button>
 					</Row>
 				</Form>

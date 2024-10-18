@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table } from "react-bootstrap";
+import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/constants';
 import { getCookie } from '@/utils/GetCookie';
@@ -50,6 +50,8 @@ function StatPanel() {
     const [totalPages, setTotalPages] = useState<number>(1);
     const [statPanelList, setStatPanelList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchAppStatPanelList = async () => {
@@ -146,8 +148,10 @@ function StatPanel() {
         }
     }
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true); // Set loading to true before the Swal confirmation
+
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to create this stat!",
@@ -155,61 +159,65 @@ function StatPanel() {
             showCancelButton: true,
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
                 const newFormData = new FormData();
                 newFormData.append('statType', formData.statType);
                 newFormData.append('statLabel', formData.statLabel);
+
+                // Append statValue based on statType
                 if (formData.statType === 'number') {
-                    newFormData.append('statValue', formData.statValue as string);
-                }
-                else if (formData.statType === 'image') {
+                    newFormData.append('statValue', formData.statValue.toString());
+                } else if (formData.statType === 'image') {
                     newFormData.append('statValue', formData.statValue as File);
-                }
-                else {
+                } else {
                     newFormData.append('statValue', formData.statValue as string);
                 }
 
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/stat-panels/create', {
-                            method: 'POST',
-                            headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
-                            body: newFormData,
+                    const res = await fetch(API_URL + 'api/stat-panels/create', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+                        body: newFormData,
+                    });
+
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: (await res.json()).message,
                         });
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: (await res.json()).message,
-                            });
-                            setReload(true);
-                            setFormData({
-                                statType: 'text',
-                                statLabel: '',
-                                statValue: ''
-                            });
-
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
+                        setReload(true);
+                        setFormData({
+                            statType: 'text',
+                            statLabel: '',
+                            statValue: ''
+                        });
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';  // Clear file input
                         }
-                    };
-                    fetchData();
-
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: 'Something went wrong!',
                     });
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         });
-    }
+    };
+
 
     return (
         <>
@@ -248,7 +256,7 @@ function StatPanel() {
                                 <Form.Group as={Row}>
                                     <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
                                     <Col sm='8'>
-                                        <Form.Control type="file" name="statValue" onChange={handleFileUpload} />
+                                        <Form.Control type="file" name="statValue" onChange={handleFileUpload} ref={fileInputRef} />
                                     </Col>
                                 </Form.Group>
                             )}
@@ -264,8 +272,9 @@ function StatPanel() {
                                 <Col sm='4'></Col>
                                 <Col sm='8'>
                                     <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit">
-                                            Submit
+                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
+                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                                            {loading ? 'Submitting...' : 'Submit'}
                                         </Button>
                                     </Row>
                                 </Col>

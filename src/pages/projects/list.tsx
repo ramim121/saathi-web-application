@@ -244,9 +244,12 @@ function List() {
 									))}
 								</ul>
 							</td>
-							<td>
+							<td style={{ whiteSpace: 'nowrap' }}>
 								<Link href={`/projects/details/${project.idProjects}`}>
-									<Button variant="primary">Details</Button>
+									<Button variant="primary" className="me-2">Details</Button>
+								</Link>
+								<Link href={`/projects/edit/${project.idProjects}`}>
+									<Button variant="info">Edit</Button>
 								</Link>
 							</td>
 						</tr>
