@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef, useContext } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Button, Col, Container, Form, Row, Card, Spinner, Tab, Tabs, Table } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import { Editor } from '@tinymce/tinymce-react';
-import { AppContext } from '@/context/AppContext';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from "@/utils/Fetch";
@@ -47,7 +46,6 @@ interface ProjectCategory {
 function Projects() {
 	const router = useRouter();
 	const { id } = router.query;
-	const { token, currentUser } = useContext(AppContext);
 	const [formData, setFormData] = useState<FormDataType>({
 		projectName: '',
 		unitInvestmentValue: 0,
@@ -115,12 +113,6 @@ function Projects() {
 						mainImage: project.MainImage,
 						featuredImages: project.FeaturedImages
 					});
-					if (project.summary !== null) {
-						editorRef.current.setContent(project.summary);
-					}
-					else {
-						editorRef.current.setContent(null);
-					}
 				} else {
 					Swal.fire({
 						icon: 'error',
@@ -141,6 +133,9 @@ function Projects() {
 		}
 	}, [id]);
 
+	useEffect(() => {
+		editorRef.current?.setContent(formData.summary);
+	}, [formData.summary]);
 
 	useEffect(() => {
 		const fetchProjectCategories = async () => {

@@ -101,6 +101,7 @@ const schema = Joi.object({
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
 
         const form = new formidable.IncomingForm();
@@ -151,6 +152,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     errorMessage.push(e.message);
                 });
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+            }
+
+            const projectExists = await Project.findOne({
+                where: {
+                    projectName: data.projectName
+                }
+            });
+
+            if (projectExists) {
+                return res.status(400).json({ message: 'Project already exists' });
             }
 
             if (mainImage !== null) {

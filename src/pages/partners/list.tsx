@@ -196,9 +196,12 @@ function List() {
 							<td>{partner.skills}</td>
 							<td>{partner.disability.charAt(0).toUpperCase() + partner.disability.slice(1)}</td>
 							<td>{partner.partnerType.charAt(0).toUpperCase() + partner.partnerType.slice(1)}</td>
-							<td>
+							<td style={{ whiteSpace: 'nowrap' }}>
 								<Link href={`/partners/details/${partner.idUsers}`}>
-									<Button variant="primary">Details</Button>
+									<Button variant="primary" className="me-2">Details</Button>
+								</Link>
+								<Link href={`/partners/edit/${partner.idUsers}`}>
+									<Button variant="info">Edit</Button>
 								</Link>
 							</td>
 						</tr>
