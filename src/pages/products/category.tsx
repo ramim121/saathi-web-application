@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Col, Container, Form, Row, Table, Pagination } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Col, Container, Form, Row, Table, Pagination, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions } from '@/utils/Fetch';
@@ -49,6 +49,8 @@ function Category() {
 
     const [productCategoryList, setProductCategoryList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleOnChange = (e: React.ChangeEvent<any>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -157,6 +159,7 @@ function Category() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to create this category!",
@@ -164,7 +167,7 @@ function Category() {
             showCancelButton: true,
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
                 const newFormData = new FormData();
                 newFormData.append('productCategoryName', formData.productCategoryName);
@@ -182,34 +185,34 @@ function Category() {
                     url = API_URL + 'api/product-categories/create';
                 }
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
-                            body: newFormData,
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+                        body: newFormData,
+                    });
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: (await res.json()).message,
                         });
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: (await res.json()).message,
-                            });
-                            setFormData({
-                                productCategoryName: '',
-                                categoryImage: '',
-                                status: 'active',
-                            });
-                            setReload(true);
-
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
+                        setFormData({
+                            productCategoryName: '',
+                            categoryImage: '',
+                            status: 'active',
+                        });
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';  // Clear file input
                         }
-                    };
-                    fetchData();
+                        setReload(true);
+
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
 
                 } catch (err) {
                     Swal.fire({
@@ -217,10 +220,14 @@ function Category() {
                         title: 'Error',
                         text: 'Something went wrong!',
                     });
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         });
-    };
+    }
 
 
     return (
@@ -251,7 +258,7 @@ function Category() {
                                     <Form.Group as={Row}>
                                         <Form.Label column sm='4' className='mb-3'>Category Image<span className='text-danger'>*</span></Form.Label>
                                         <Col sm='8'>
-                                            <Form.Control type="file" name="categoryImage" onChange={handleFileUpload} />
+                                            <Form.Control type="file" name="categoryImage" onChange={handleFileUpload} ref={fileInputRef} />
                                         </Col>
                                     </Form.Group>
                                     <Form.Group as={Row}>
@@ -267,8 +274,9 @@ function Category() {
                                         <Col sm='4'></Col>
                                         <Col sm='8'>
                                             <Row className='justify-content-center'>
-                                                <Button className='w-50' variant="primary" type="submit">
-                                                    Submit
+                                                <Button className='w-50' variant="primary" type="submit" disabled={loading}>
+                                                    {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                                                    {loading ? 'Submitting...' : 'Submit'}
                                                 </Button>
                                             </Row>
                                         </Col>

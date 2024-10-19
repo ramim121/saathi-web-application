@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { User, File } from '@/models/__associations';
+import { Op } from 'sequelize';
 import Joi from 'joi';
 import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
 import { generateHash } from '@/utils/GenerateHash';
@@ -71,8 +72,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(500).json({ success: false, message: err.message });
             }
 
-            const profilePicture = files['profilePicture'] ? files['profilePicture'][0] as formidable.File : null;
-            const featuredImages = files['featuredImages'] ? files['featuredImages'] as formidable.File[] : [];
             const data = {
                 name: fields.name ? fields.name[0] : null,
                 phoneNumber: fields.phoneNumber ? fields.phoneNumber[0] : null,
@@ -85,8 +84,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 skills: fields.skills ? fields.skills[0] : null,
                 education: fields.education ? fields.education[0] : null,
                 disability: fields.disability ? fields.disability[0] : null,
-                partnerType: fields.partnerType ? fields.partnerType[0] : null
-            }
+                partnerType: fields.partnerType ? fields.partnerType[0] : null,
+                prevFeaturedImages: fields.prevFeaturedImages ? fields.prevFeaturedImages : []
+
+            };
 
             const options = {
                 abortEarly: false,
@@ -102,16 +103,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
             }
 
-            const existingUser = await User.findOne({ where: { phoneNumber: data.phoneNumber } });
+            const existingUser = await User.findOne({
+                where: {
+                    phoneNumber: data.phoneNumber,
+                    idUsers: {
+                        [Op.not]: req.query.id
+                    }
+                }
+            });
+
             if (existingUser) {
                 return res.status(400).json({ success: false, message: 'Partner with this phone number already exists' });
             }
 
-            if (profilePicture !== null) {
-                if (profilePicture.mimetype !== 'image/jpeg' && profilePicture.mimetype !== 'image/png' && profilePicture.mimetype !== 'image/jpg') {
-                    res.status(400).json({ message: `Invalid file type: ${profilePicture.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
-                    return;
-                }
+            const profilePicture = files['profilePicture'] ? files['profilePicture'][0] as formidable.File : null;
+            const featuredImages = files['featuredImages'] ? files['featuredImages'] as formidable.File[] : [];
+
+            if (profilePicture && profilePicture.mimetype && !['image/jpeg', 'image/png', 'image/jpg'].includes(profilePicture.mimetype)) {
+                return res.status(400).json({ message: `Invalid file type: ${profilePicture.mimetype}. Only JPEG, JPG, and PNG files are allowed.` });
             }
 
             if (featuredImages.length > 0) {
@@ -120,7 +129,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         res.status(400).json({ message: `Invalid file type: ${file.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
                         return;
                     }
-                });
+                }
+                )
             }
 
             const params = {
@@ -131,8 +141,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const transaction = await sequelize.transaction();
 
             try {
-                const partner = await User.create({
-                    fullName: data.name,
+                const partner = await User.update({
+                    name: data.name,
                     phoneNumber: data.phoneNumber,
                     age: data.age,
                     location: data.location,
@@ -141,33 +151,85 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     interestedIn: data.interestedIn,
                     joiningDate: data.joiningDate,
                     skills: data.skills,
-                    userType: 'partner',
                     education: data.education,
                     disability: data.disability,
                     partnerType: data.partnerType
-                }, { transaction });
+                }, {
+                    where: {
+                        idUsers: req.query.id
+                    },
+                    transaction
+                });
 
                 if (profilePicture !== null) {
-                    let profilePicFileName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
+
+                    let previousProfilePicture = await File.findOne({
+                        where: {
+                            refType: 'profile-picture',
+                            refId: req.query.id
+                        }
+                    });
+
+                    if (previousProfilePicture) {
+                        await File.destroy({
+                            where: {
+                                refType: 'profile-picture',
+                                refId: req.query.id
+                            }
+                        });
+                    }
+
+                    let profilePictureName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
                     await File.create({
                         originalFileName: profilePicture.originalFilename!,
-                        fileName: profilePicFileName,
+                        fileName: profilePictureName,
                         refType: 'profile-picture',
-                        refId: partner.idUsers
+                        refId: req.query.id
                     }, { transaction });
 
                     const upload = new Upload({
                         client: s3Client,
-                        params: { ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + partner.idUsers + '/' + profilePicFileName } as any
+                        params: { ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + req.query.id + '/' + profilePictureName } as any
                     });
 
                     upload.on('httpUploadProgress', (progress: any) => {
                         console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
                     });
-                    let [err1] = await _(upload.done());
+                    let [err1, result1] = await _(upload.done());
+
                     if (err1) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: "profile picture upload error. " + err1.message });
+                        return res.status(500).json({ success: false, message: err1.message });
+                    }
+                }
+
+                if (data.prevFeaturedImages.length > 0) {
+                    const [err, file] = await _(
+                        File.destroy({
+                            where: {
+                                refType: 'featured-image',
+                                refId: req.query.id,
+                                idFiles: {
+                                    [Op.notIn]: Array.isArray(data.prevFeaturedImages) ? data.prevFeaturedImages : [data.prevFeaturedImages]
+                                }
+                            },
+                            transaction
+                        })
+                    );
+                    if (err) {
+                        return { success: false, message: err.message };
+                    }
+                } else {
+                    const [err, file] = await _(File.destroy({
+                        where: {
+                            refType: 'featured-image',
+                            refId: req.query.id,
+                        },
+                        transaction
+                    }))
+
+                    if (err) {
+                        return { success: false, message: err.message };
                     }
                 }
 
@@ -178,26 +240,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             originalFileName: file.originalFilename!,
                             fileName: featuredImageFileName,
                             refType: 'featured-image',
-                            refId: partner.idUsers
+                            refId: req.query.id
                         }, { transaction });
+
                         const upload = new Upload({
                             client: s3Client,
-                            params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + partner.idUsers + '/' + featuredImageFileName } as any
+                            params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + req.query.id + '/' + featuredImageFileName } as any
                         });
 
                         upload.on('httpUploadProgress', (progress: any) => {
                             console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
                         });
-                        let [err2] = await _(upload.done());
+                        let [err2, result1] = await _(upload.done());
                         if (err2) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: "Featured image upload error. " + err2.message });
+                            return res.status(500).json({ success: false, message: err2.message });
                         }
                     }
                 }
 
                 await transaction.commit();
-                return res.status(200).json({ success: true, message: 'Partner registered successfully', data: partner });
+                return res.status(200).json({ success: true, message: 'Partner updated successfully', data: partner });
             } catch (err) {
                 await transaction.rollback();
                 return res.status(500).json({ success: false, message: (err as Error).message });

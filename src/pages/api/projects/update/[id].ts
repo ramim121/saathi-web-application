@@ -55,6 +55,7 @@ const schema = Joi.object({
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
 
         const form = new formidable.IncomingForm();
@@ -87,6 +88,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     errorMessage.push(e.message);
                 });
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+            }
+
+            const projectExists = await Project.findOne({
+                where: {
+                    projectName: data.projectName,
+                    idProjects: {
+                        [Op.not]: req.query.id
+                    }
+                }
+            });
+
+            if (projectExists) {
+                return res.status(400).json({ message: 'Project already exists' });
             }
 
             const mainImage = files['mainImage'] ? files['mainImage'][0] as formidable.File : null;
@@ -168,6 +182,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         return res.status(500).json({ success: false, message: err1.message });
                     }
                 }
+
                 if (data.prevFeaturedImages.length > 0) {
                     const [err, file] = await _(
                         File.destroy({
