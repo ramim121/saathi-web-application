@@ -1,6 +1,7 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
 import { UserAttributes } from '@/types/User';
+import google from '@/pages/api/auth/google';
 
 interface UserModel extends UserAttributes, Model { }
 
@@ -20,7 +21,7 @@ const User = sequelize.define<UserModel>('User', {
     },
     phoneNumber: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     password: {
         type: DataTypes.STRING,
@@ -73,6 +74,15 @@ const User = sequelize.define<UserModel>('User', {
     status: {
         type: DataTypes.ENUM('active', 'inactive'),
         defaultValue: 'active',
+        allowNull: false
+    },
+    googleId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    googleLogin: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
         allowNull: false
     },
     dateOfBirth: {

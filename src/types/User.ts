@@ -36,6 +36,8 @@ export default interface User {
     Partnerships?: ProjectPartner[];
     disability: 'yes' | 'no';
     partnerType: 'none' | 'project' | 'product' | 'both';
+    googleId: string | null;
+    googleLogin: 'yes' | 'no';
     UserBank?: UserBank[];
 }
 

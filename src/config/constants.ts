@@ -1,5 +1,5 @@
-export const API_URL = process.env.API_URL ? process.env.API_URL : 'https://digigramventures.com/';
-// export const API_URL = 'http://192.168.91.207:3000/';
+// export const API_URL = process.env.API_URL ? process.env.API_URL : 'https://digigramventures.com/';
+export const API_URL = 'http://localhost:3000/';
 
 export const JWT_SECRET = process.env.JWT_SECRET ? process.env.JWT_SECRET : '778^%009jjnuybbuhuh009*^&^';
 
@@ -13,3 +13,5 @@ export const S3_BUCKET_ACCESS_KEY = process.env.S3_BUCKET_ACCESS_KEY ? process.e
 export const S3_BUCKET_SECRET_KEY = process.env.S3_BUCKET_SECRET_KEY ? process.env.S3_BUCKET_SECRET_KEY : 'WHQlfXAfn/Hd7d0pk6Jkn7IsTNvA+5LyskO7rAb8';
 export const S3_URL = process.env.S3_URL ? process.env.S3_URL : 'https://saathi-files.s3.ap-southeast-1.amazonaws.com/';
 export const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'saathi_db';
+
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID : '1055024852778-23tb7da8pka2vnatqiej8emuv2t01qem.apps.googleusercontent.com';

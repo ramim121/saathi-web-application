@@ -1,8 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Project } from '@/models/__associations';
-import { File, ProjectCategory, InvestmentSetup } from '@/models/__associations';
+import { File, ProjectCategory } from '@/models/__associations';
+import Cors from 'micro-cors';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
+
+async function handler(req: NextApiRequest, res: NextApiResponse): Promise<any> {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
         try {
             const result = await Project.findOne({
@@ -33,3 +41,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default cors(handler as any);
