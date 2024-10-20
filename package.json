@@ -11,6 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",
     "@aws-sdk/lib-storage": "^3.670.0",
+    "@react-native-google-signin/google-signin": "^13.1.0",
     "@tinymce/tinymce-react": "^5.0.1",
     "await-to-js": "^3.0.0",
     "bcrypt": "^5.1.1",
