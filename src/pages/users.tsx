@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button, Pagination, Tab, Modal, Row, Col } from "react-bootstrap";
-import { getRequestOptions } from "@/utils/Fetch";
+import { postRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
 import { User } from "@/models/__associations";
@@ -9,6 +9,7 @@ import UserType from "@/types/User";
 import { S3_URL } from '@/config/constants';
 import Image from "next/image";
 import { NextPage } from "next";
+import { API_URL } from "@/config/constants";
 
 interface UserListProps {
     users: UserType[]
@@ -18,6 +19,33 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     const [usersList, setUsersList] = useState<UserType[]>(users);
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
     const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const verifyUserInformation = async (idUsers: number, verificationType: string) => {
+        try {
+            setIsLoading(true);
+            let response = await fetch(API_URL + "api/verify", postRequestOptions({ idUsers, verificationType }));
+            let data = await response.json();
+            setIsLoading(false);
+            if (data.success) {
+                Swal.fire("Success", data.message, "success");
+                setSelectedUser(data.userData);
+                let updatedUsers = usersList.map(user => {
+                    if (user.idUsers === idUsers) {
+                        return { ...user, ...data.userData };
+                    }
+                    return user;
+                });
+                setUsersList(updatedUsers);
+            } else {
+                Swal.fire("Error", data.message, "error");
+            }
+        } catch (error) {
+            setIsLoading(false);
+            console.error(error);
+            Swal.fire("Error", "Something went wrong", "error");
+        }
+    }
 
     return (
         <Container>
@@ -29,8 +57,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         <th>#</th>
                         <th></th>
                         <th>Name</th>
-                        <th>Phone</th>
-                        <th>email</th>
+                        <th>Phone / email</th>
                         <th>Type</th>
                         <th>Age</th>
                         <th>Joining</th>
@@ -51,24 +78,23 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                 }
                             </td>
                             <td>
-                                <Button type="button" variant="link" className="p-0" onClick={() => {
+                                <Button style={{ whiteSpace: "nowrap" }} type="button" variant="link" className="p-0" onClick={() => {
                                     setSelectedUser(user);
                                     setShowUserDetailsModal(true);
                                 }}>
                                     {user.fullName}
                                 </Button>
                             </td>
-                            <td>{user.phoneNumber}</td>
-                            <td>{user.email}</td>
+                            <td>{user.phoneNumber}<br />{user.email}</td>
                             <td className="text-capitalize">{user.userType}</td>
                             <td>{user.age}</td>
                             <td>{new Date(user.createdAt).toLocaleDateString('en-In')}</td>
                             <td>{user.disability}</td>
                             <td className="text-capitalize">{user.status}</td>
                             <td style={{ whiteSpace: "nowrap" }}>
-                                NID Verified: {user.nidVerified ? "Yes" : "No"}<br />
-                                Phone Verified: {user.phoneVerified ? "Yes" : "No"}<br />
-                                Email Verified: {user.emailVerified ? "Yes" : "No"}
+                                NID Verified: {user.nidVerified == 'yes' ? "Yes" : "No"}<br />
+                                Phone Verified: {user.phoneVerified == 'yes' ? "Yes" : "No"}<br />
+                                Email Verified: {user.emailVerified == 'yes' ? "Yes" : "No"}
                             </td>
                         </tr>
                     )) : (
@@ -106,22 +132,22 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                     <p className="my-1">
                                         Email: {selectedUser!.email}
                                         {
-                                            selectedUser!.emailVerified ?
+                                            selectedUser!.emailVerified == 'yes' ?
                                                 <span className="text-success"> (Verified)</span> :
                                                 <>
                                                     <span className="text-danger"> (Not Verified)</span>
-                                                    <Button variant="primary" size="sm" onClick={() => { }}>Mark as verified</Button>
+                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "email") }}>Mark as verified</Button>
                                                 </>
                                         }
                                     </p>
                                     <p className="my-1">
                                         Phone: {selectedUser!.phoneNumber}
                                         {
-                                            selectedUser!.phoneVerified ?
+                                            selectedUser!.phoneVerified == 'yes' ?
                                                 <span className="text-success"> (Verified)</span> :
                                                 <>
                                                     <span className="text-danger"> (Not Verified)</span>
-                                                    <Button variant="primary" size="sm" onClick={() => { }}>Mark as verified</Button>
+                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "phone") }}>Mark as verified</Button>
                                                 </>
                                         }
                                     </p>
@@ -138,11 +164,11 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                     <p className="my-1">
                                         NID number: {new Date(selectedUser!.createdAt).toLocaleDateString()}
                                         {
-                                            selectedUser!.nidVerified ?
+                                            selectedUser!.nidVerified == 'yes' ?
                                                 <span className="text-success"> (Verified)</span> :
                                                 <>
                                                     <span className="text-danger"> (Not Verified)</span>
-                                                    <Button variant="primary" size="sm" onClick={() => { }}>Mark as verified</Button>
+                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid") }}>Mark as verified</Button>
                                                 </>
                                         }
                                     </p>

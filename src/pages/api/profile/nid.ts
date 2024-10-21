@@ -78,7 +78,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             ACL: 'public-read',
             ContentType: nidBackFile.mimetype!,
             Body: fs.createReadStream(nidBackFile.filepath),
-            Key: 'nid/' + nidBackFile
+            Key: 'nid/' + nidBackfileName
         };
 
         let upload = new Upload({
@@ -103,6 +103,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let [err2, result2] = await _(upload.done());
         if (err2) { return res.status(500).json({ success: false, message: err2.message }); }
+        console.log(result2);
 
         user.nidImageFront = nidFrontfileName;
         user.nidImageBack = nidBackfileName;
