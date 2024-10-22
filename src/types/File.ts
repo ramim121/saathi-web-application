@@ -4,6 +4,7 @@ export default interface File {
     idFiles: number;
     originalFileName: string;
     fileName: string;
+    thumbnail: string;
     refType: string;
     refId: number;
     createdAt: Date;

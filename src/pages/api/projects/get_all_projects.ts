@@ -7,9 +7,21 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { projectName, projectStatus, showInUpcoming, projectCategory, investmentType } = req.query;
+		const { projectName, projectStatus, showInUpcoming, projectCategory, investmentType, investmentRangeFrom, investmentRangeTo, returnRangeFrom, returnRangeTo, location } = req.query;
 
-		const whereClause: { projectName?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string }; investmentType?: { [Op.like]: string } } = {};
+		const whereClause:
+			{
+				projectName?: { [Op.like]: string };
+				projectStatus?: { [Op.like]: string };
+				showInUpcoming?: { [Op.like]: string };
+				investmentType?: { [Op.like]: string };
+				unitInvestmentValue?: { [Op.between]?: [string, string];[Op.gte]?: string;[Op.lte]?: string };
+				location?: { [Op.like]: string };
+				returnRangeMin?: { [Op.gte]?: string };
+				returnRangeMax?: { [Op.lte]?: string };
+				[Op.and]?: { returnRangeMin?: { [Op.gte]: string }; returnRangeMax?: { [Op.lte]: string } }[]
+			} = {};
+
 		const projectCategoryClause: { category_name?: { [Op.like]: string } } = {};
 
 		if (projectName) {
@@ -30,6 +42,28 @@ export default async function handler(
 
 		if (projectCategory) {
 			projectCategoryClause.category_name = { [Op.like]: `%${projectCategory}%` }
+		}
+
+		if (investmentRangeFrom && investmentRangeTo) {
+			whereClause.unitInvestmentValue = { [Op.between]: [investmentRangeFrom.toString(), investmentRangeTo.toString()] };
+		} else if (investmentRangeFrom) {
+			whereClause.unitInvestmentValue = { [Op.gte]: investmentRangeFrom.toString() };
+		} else if (investmentRangeTo) {
+			whereClause.unitInvestmentValue = { [Op.lte]: investmentRangeTo.toString() };
+		}
+		if (location) {
+			whereClause.location = { [Op.like]: `%${location}%` }
+		}
+
+		if (returnRangeFrom && returnRangeTo) {
+			whereClause[Op.and] = [
+				{ returnRangeMin: { [Op.gte]: returnRangeFrom.toString() } },
+				{ returnRangeMax: { [Op.lte]: returnRangeTo.toString() } }
+			];
+		} else if (returnRangeFrom) {
+			whereClause.returnRangeMin = { [Op.gte]: returnRangeFrom.toString() };
+		} else if (returnRangeTo) {
+			whereClause.returnRangeMax = { [Op.lte]: returnRangeTo.toString() };
 		}
 
 		try {

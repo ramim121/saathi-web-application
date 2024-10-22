@@ -18,6 +18,10 @@ const File = sequelize.define<FileModel>('File', {
         type: DataTypes.STRING(100),
         allowNull: false
     },
+    thumbnail: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
     refType: {
         type: DataTypes.STRING(45),
         allowNull: true
