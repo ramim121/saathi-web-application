@@ -10,6 +10,10 @@ import _ from 'await-to-js';
 import sequelize from '@/config/db';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import sharp from 'sharp';
+import path from 'path';
+import os from 'os';
+
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -179,30 +183,54 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         });
                     }
 
-                    let profilePictureName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
-                    await File.create({
-                        originalFileName: profilePicture.originalFilename!,
-                        fileName: profilePictureName,
-                        refType: 'profile-picture',
-                        refId: req.query.id
-                    }, { transaction });
+                    const profilePictureName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '.' + profilePicture.originalFilename!.split('.').pop();
+                    const profilePicThumbFileName = generateHash(Date.now() + profilePicture.originalFilename!.toString()) + '-thumb.' + profilePicture.originalFilename!.split('.').pop();
+                    const profilePicThumbPath = path.join(os.tmpdir(), profilePicThumbFileName);
+
+                    await sharp(profilePicture.filepath)
+                        .resize(400, 400, {
+                            fit: 'inside'
+                        })
+                        .toFile(profilePicThumbPath)
+                        .catch(err => console.log('Thumbnail generation error:', err));
 
                     const upload = new Upload({
                         client: s3Client,
                         params: { ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicture.filepath), Key: 'profile-picture/' + req.query.id + '/' + profilePictureName } as any
                     });
 
+                    const thumbUpload = new Upload({
+                        client: s3Client,
+                        params: { ...params, ContentType: profilePicture.mimetype!, Body: fs.createReadStream(profilePicThumbPath), Key: 'profile-picture/' + req.query.id + '/' + profilePicThumbFileName } as any
+                    });
+
                     upload.on('httpUploadProgress', (progress: any) => {
                         console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
                     });
-                    let [err1, result1] = await _(upload.done());
-
+                    let [err1] = await _(upload.done());
                     if (err1) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: err1.message });
+                        return res.status(500).json({ success: false, message: "profile picture upload error. " + err1.message });
                     }
-                }
 
+                    thumbUpload.on('httpUploadProgress', (progress: any) => {
+                        console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                    });
+                    let [err2, result2] = await _(thumbUpload.done());
+
+                    if (err2) {
+                        await transaction.rollback();
+                        return res.status(500).json({ success: false, message: err2.message });
+                    }
+
+                    await File.create({
+                        originalFileName: profilePicture.originalFilename!,
+                        fileName: profilePictureName,
+                        thumbnail: profilePicThumbFileName,
+                        refType: 'profile-picture',
+                        refId: req.query.id
+                    }, { transaction });
+                }
                 if (data.prevFeaturedImages.length > 0) {
                     const [err, file] = await _(
                         File.destroy({
@@ -235,29 +263,57 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 if (featuredImages.length > 0) {
                     for (const file of featuredImages) {
-                        let featuredImageFileName = generateHash(Date.now() + file.originalFilename!.toString()) + '.' + file.originalFilename!.split('.').pop();
-                        await File.create({
-                            originalFileName: file.originalFilename!,
-                            fileName: featuredImageFileName,
-                            refType: 'featured-image',
-                            refId: req.query.id
-                        }, { transaction });
+                        const featuredImageFileName = generateHash(Date.now() + file.originalFilename!.toString()) + '.' + file.originalFilename!.split('.').pop();
+                        const featuredImageThumbFileName = generateHash(Date.now() + file.originalFilename!.toString()) + '-thumb.' + file.originalFilename!.split('.').pop();
+                        const featuredImageThumbPath = path.join(os.tmpdir(), featuredImageThumbFileName);
+
+                        await sharp(file.filepath)
+                            .resize(400, 400, {
+                                fit: 'inside'
+                            })
+                            .toFile(featuredImageThumbPath)
+                            .catch(err => console.log('Thumbnail generation error:', err));
 
                         const upload = new Upload({
                             client: s3Client,
                             params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(file.filepath), Key: 'featured-image/' + req.query.id + '/' + featuredImageFileName } as any
                         });
 
+                        const thumbUpload = new Upload({
+                            client: s3Client,
+                            params: { ...params, ContentType: file.mimetype!, Body: fs.createReadStream(featuredImageThumbPath), Key: 'featured-image/' + req.query.id + '/' + featuredImageThumbFileName } as any
+                        });
+
                         upload.on('httpUploadProgress', (progress: any) => {
                             console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
                         });
-                        let [err2, result1] = await _(upload.done());
+
+                        let [err2] = await _(upload.done());
                         if (err2) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: err2.message });
+                            return res.status(500).json({ success: false, message: "Featured image upload error. " + err2.message });
                         }
+
+                        thumbUpload.on('httpUploadProgress', (progress: any) => {
+                            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
+                        });
+
+                        let [err3] = await _(thumbUpload.done());
+                        if (err3) {
+                            await transaction.rollback();
+                            return res.status(500).json({ success: false, message: "Featured image thumbnail upload error. " + err3.message });
+                        }
+
+                        await File.create({
+                            originalFileName: file.originalFilename!,
+                            fileName: featuredImageFileName,
+                            thumbnail: featuredImageThumbFileName,
+                            refType: 'featured-image',
+                            refId: req.query.id
+                        }, { transaction });
                     }
                 }
+
 
                 await transaction.commit();
                 return res.status(200).json({ success: true, message: 'Partner updated successfully', data: partner });
