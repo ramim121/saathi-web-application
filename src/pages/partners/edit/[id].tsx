@@ -247,7 +247,7 @@ function PartnerEdit() {
                             title: 'Success',
                             text: 'Partner successfully updated!',
                         });
-                        // router.push('/partners/details/' + id);
+                        router.push('/partners/details/' + id);
                     } else {
                         Swal.fire({
                             icon: 'error',

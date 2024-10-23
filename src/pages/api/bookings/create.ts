@@ -1,7 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank, User } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
+import Cors from 'micro-cors';
+
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
+
 
 const schema = Joi.object({
     idUsers: Joi.number().required().messages({
@@ -57,7 +65,8 @@ const schema = Joi.object({
     ).required(),
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
         const { idUsers, investmentDate, projects, idBanks, branchName, accountHolderName, accountNumber } = req.body
         const options = {
@@ -72,6 +81,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
+
+        const userVerification = await User.findOne({
+            where: {
+                idUsers,
+            }
+        });
+
+        if (!userVerification) {
+            return res.status(404).json({ success: false, message: 'Investor not found' });
+        }
+
+        if (userVerification.emailVerified === 'no') {
+            return res.status(400).json({ success: false, message: 'Please verify your email before making any investment' });
+        }
+
+        if (userVerification.phoneVerified === 'no') {
+            return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
+        }
+
+        if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
+            return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
+        }
+
         const transaction = await sequelize.transaction();
 
         try {
@@ -141,3 +173,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default cors(handler as any);
