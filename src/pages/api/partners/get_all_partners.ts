@@ -7,7 +7,7 @@ export default async function handler(
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { name, disabilty, fromJoiningDate, toJoiningDate, skills, partnerType, projectCategory } = req.query
+		const { name, disability, fromJoiningDate, toJoiningDate, skills, partnerType, projectCategory } = req.query
 
 		// Constructing the whereClause for the User model
 		const whereClause: {
@@ -26,8 +26,8 @@ export default async function handler(
 		if (name) {
 			whereClause.fullName = { [Op.like]: `%${name}%` };
 		}
-		if (disabilty) {
-			whereClause.disability = { [Op.like]: `%${disabilty}%` };
+		if (disability) {
+			whereClause.disability = { [Op.like]: `%${disability}%` };
 		}
 		if (fromJoiningDate && toJoiningDate) {
 			whereClause.joiningDate = { [Op.between]: [fromJoiningDate.toString(), toJoiningDate.toString()] };
@@ -54,27 +54,30 @@ export default async function handler(
 					{
 						model: ProjectPartner,
 						as: 'Partnerships',
+						required: true,
 						include: [
 							{
 								model: Project,
 								as: 'Project',
 								attributes: ['projectName', 'location'],
+								required: true,
 								include: [
 									{
 										model: ProjectCategory,
 										as: 'ProjectCategory',
-										where: projectCategoryClause,
+										where: projectCategoryClause, // Apply the clause only if projectCategory is provided
 										required: true
 									}
 								]
 							}
-						]
+						],
 					},
 					{
 						model: File,
 						as: 'ProfilePicture'
 					}
 				],
+				order: [['idUsers', 'DESC']],
 				where: whereClause
 			});
 
