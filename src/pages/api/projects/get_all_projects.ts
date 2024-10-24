@@ -70,7 +70,7 @@ export default async function handler(
 			const result = await Project.findAll({
 				include: [
 					{
-						model: ProjectPartner, as: 'ProjectPartners', required: false
+						model: ProjectPartner, as: 'ProjectPartners', required: true
 					},
 					{
 						model: File, as: 'MainImage', required: false
