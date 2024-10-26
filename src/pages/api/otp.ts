@@ -3,6 +3,15 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
 import SendSms from '@/utils/SendSms';
+import Cors from 'micro-cors';
+import JWTPayload from '@/types/JWTPayload';
+import _ from 'await-to-js';
+
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
 
 interface OTP {
     [key: string]: {
@@ -17,7 +26,8 @@ const generateOTP = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
         const { phone } = req.body;
         if (!phone) {
@@ -40,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const message = `Welcome to SAATHI. Your OTP is ${otps[phone].otp}`;
         await SendSms(message, phone);
 
-        return res.status(200).json({ success: false, message: 'OTP sent successfully' });
+        return res.status(200).json({ success: true, message: 'OTP sent successfully' });
     } else if (req.method === 'PUT') {
         const { phone, otp } = req.body;
 
@@ -48,13 +58,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ success: false, message: 'Phone number and OTP is required' });
         }
 
-        if(phone=="01966662633" && otp == "7910"){
+        if (phone == "01966662633" && otp == "7910") {
             console.log("default user logged in");
         } else {
             if (!otps[phone] || otps[phone].otp !== otp) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
-    
+
             if (otps[phone].expiry < Date.now()) {
                 return res.status(400).json({ success: false, message: 'OTP expired. try again' });
             }
@@ -62,28 +72,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             delete otps[phone];
         }
 
-        let user = await User.findOne({
-            where: {
-                phoneNumber: phone
-            },
-            include: [
-                { model: ProjectInvestor, as: 'Investments', include: [Project] },
-                { model: ProjectPartner, as: 'Partnerships', include: [Project] }
-            ],
-        });
+        if (!req.headers.authorization) {
+            let user = await User.findOne({
+                where: {
+                    phoneNumber: phone
+                },
+                include: [
+                    { model: ProjectInvestor, as: 'Investments', include: [Project] },
+                    { model: ProjectPartner, as: 'Partnerships', include: [Project] }
+                ],
+            });
 
-        if (!user) {
-            user = new User();
+            if (!user) {
+                user = new User();
+                user.phoneNumber = phone;
+                user.phoneVerified = 'yes';
+                await user.save();
+            }
+
+            const jwtToken = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
+                expiresIn: '30d'
+            });
+
+            return res.status(200).json({ success: true, token: jwtToken, user });
+        } else {
+            let tokenData = req.headers.authorization;
+            let token = tokenData?.split(' ')[1];
+            if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+            let userInfo = jwt.decode(token) as JWTPayload;
+
+            let user = await User.findOne({ where: { idUsers: userInfo!.idUsers } });
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
             user.phoneNumber = phone;
             user.phoneVerified = 'yes';
-            await user.save();
+            let [err1] = await _(user.save());
+            if (err1) {
+                return res.status(500).json({ success: false, message: 'Error updating user' });
+            }
+            const jwtToken = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
+                expiresIn: '30d'
+            });
+            return res.status(200).json({ success: true, token: jwtToken, user });
         }
-
-        const token = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
-            expiresIn: '30d'
-        });
-
-        return res.status(200).json({ success: true, token, user });
     }
 }
 
+export default cors(handler as any);
