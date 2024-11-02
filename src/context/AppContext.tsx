@@ -5,61 +5,69 @@ import { useRouter } from 'next/router';
 import { jwtDecode } from "jwt-decode";
 
 export interface User {
-	idUsers: number,
-	fullName: string,
-	email: string,
-	phoneNumber: string,
-	profileImage: string,
-	userType: string
+	idUsers: number;
+	fullName: string;
+	email: string;
+	phoneNumber: string;
+	profileImage: string;
+	userType: string;
 }
 
-const defaultValue = {
-	token: null as string | null,
-	currentUser: undefined as User | undefined,
-	updateUserInfo: (user: User | undefined) => { }
+interface AppContextType {
+	token: string | null;
+	currentUser: User | undefined;
+	updateUserInfo: (user: User | undefined) => void;
 }
 
-export const AppContext = createContext(defaultValue);
+const defaultValue: AppContextType = {
+	token: null,
+	currentUser: undefined,
+	updateUserInfo: () => { }, // Provide an empty function by default
+};
 
-function AppContextProvider(props: React.PropsWithChildren<object>) {
+export const AppContext = createContext<AppContextType>(defaultValue);
+
+const AppContextProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
 	const [token, setToken] = useState<string | null>(null);
 	const [currentUser, setCurrentUser] = useState<User | undefined>(undefined);
-	const router = useRouter(); // Get the router instance
+	const router = useRouter();
 
 	useEffect(() => {
-		const token = getCookie('saathi-token');
-		if (token) {
-			setToken(token);
+		const tokenFromCookie = getCookie('saathi-token'); // Renamed to avoid shadowing the 'token' variable
+		if (tokenFromCookie) {
+			setToken(tokenFromCookie);
+			try {
+				const decodedUser = jwtDecode<User>(tokenFromCookie);
+				setCurrentUser(decodedUser); // Ensure jwtDecode returns the User object correctly.
+			} catch (error) {
+				console.error("Invalid token format", error);
+			}
+		} else {
+			router.push('/login'); // Redirect if no token
 		}
-		else {
-			router.push('/login'); // Redirect to login page if no token
-		}
-		if (token) {
-			setCurrentUser(jwtDecode(token));
-		}
-	}, []);
+	}, [router]);
 
 	const updateUserInfo = (user: User | undefined) => {
-		if (user !== undefined) {
-			setCurrentUser(user as User); // Update the type of user to User
+		if (user) {
+			setCurrentUser(user);
 			localStorage.setItem('user', JSON.stringify(user));
-		}
-		else {
+		} else {
 			setCurrentUser(undefined);
 			localStorage.removeItem('user');
 		}
-	}
+	};
 
 	const value = {
-		token: token,
+		token,
 		currentUser,
-		updateUserInfo
-	}
+		updateUserInfo,
+	};
+
 	return (
 		<AppContext.Provider value={value}>
-			{props.children}
+			{children}
 		</AppContext.Provider>
 	);
-}
+};
 
 export default AppContextProvider;
