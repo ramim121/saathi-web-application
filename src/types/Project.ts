@@ -9,7 +9,7 @@ export default interface Project {
     summary?: string;
     returnRangeMin: number;
     returnRangeMax: number;
-    investmentType: 'high_return' | 'low_return' | 'short_duration' | 'long_duration' | 'shariah';
+    investmentType: 'sustainable_return' | 'fast_return';
     returnType: 'variable' | 'fixed';
     duration: number;
     tenure: string;

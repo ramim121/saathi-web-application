@@ -54,7 +54,7 @@ const schema = Joi.object({
         maximumReturn: Joi.number().optional().messages({
             "number.base": "Maximum return must be a number",
         }),
-        investmentType: Joi.string().valid('high_return', 'low_return', 'short_duration', 'long_duration', 'shariah').required().empty().messages({
+        investmentType: Joi.string().valid('sustainable_return', 'fast_return').required().empty().messages({
             "any.required": "Investment type is required",
             "any.only": "Invalid investment type",
             "string.empty": "Investment type can not be empty",
