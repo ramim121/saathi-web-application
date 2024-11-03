@@ -3,7 +3,7 @@ import { Optional } from 'sequelize';
 export default interface InvestmentSetup {
     idInvestmentSetup: number;
     planName: string;
-    investmentType: 'high_return' | 'low_return' | 'short_duration' | 'long_duration' | 'shariah';
+    investmentType: 'sustainable_return' | 'fast_return';
     returnType: 'variable' | 'fixed';
     minimumReturn: number;
     maximumReturn: number;

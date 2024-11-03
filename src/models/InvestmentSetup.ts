@@ -15,8 +15,9 @@ const InvestmentSetup = sequelize.define<InvestmentSetupModel>('InvestmentSetup'
         allowNull: false
     },
     investmentType: {
-        type: DataTypes.ENUM('high_return', 'low_return', 'short_duration', 'long_duration', 'shariah'),
-        allowNull: false
+        type: DataTypes.ENUM('sustainable_return', 'fast_return'),
+        allowNull: false,
+        defaultValue: 'sustainable_return'
     },
     returnType: {
         type: DataTypes.ENUM('variable', 'fixed'),
