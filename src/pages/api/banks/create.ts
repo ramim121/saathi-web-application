@@ -3,7 +3,6 @@ import { UserBank } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 import Cors from 'micro-cors';
-import { Op } from 'sequelize';
 
 const cors = Cors({
     origin: '*',
@@ -13,6 +12,10 @@ const cors = Cors({
 
 
 const schema = Joi.object({
+    idUsers: Joi.number().required().messages({
+        "any.required": "Investor must be selected",
+        "number.base": "Investor must be selected",
+    }),
     idBanks: Joi.number().required().messages({
         "any.required": "Bank must be selected",
         "number.base": "Bank must be selected",
@@ -34,11 +37,11 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
-        const { idBanks, branchName, accountHolderName, accountNumber } = req.body
+        const { idUsers, idBanks, branchName, accountHolderName, accountNumber } = req.body
         const options = {
             abortEarly: false,
         };
-        const { error } = schema.validate({ idBanks, branchName, accountHolderName, accountNumber }, options);
+        const { error } = schema.validate({ idUsers, idBanks, branchName, accountHolderName, accountNumber }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -51,9 +54,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const userBankExist = await UserBank.findOne({
             where: {
                 accountNumber,
-                [Op.not]: {
-                    idUserBanks: req.query.id
-                }
+                idUsers
             }
         });
 
@@ -64,17 +65,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const transaction = await sequelize.transaction();
 
         try {
-            const userBank = await UserBank.update({
-                idBanks, branchName, accountHolderName, accountNumber
-            }, {
-                where: {
-                    idUserBanks: req.query.id
-                },
-                transaction
-            });
+            const userBank = await UserBank.create({
+                idUsers,
+                idBanks: req.body.idBanks,
+                branchName: req.body.branchName,
+                accountNumber: req.body.accountNumber,
+                accountHolderName: req.body.accountHolderName,
+            }, { transaction });
 
             await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Bank information updated successfully', data: userBank })
+            return res.status(200).json({ success: true, message: 'User bank created successfully', data: userBank })
         } catch (err) {
             await transaction.rollback();
             return res.status(500).json({ success: false, message: (err as Error).message })
