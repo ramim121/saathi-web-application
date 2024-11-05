@@ -18,6 +18,7 @@ import ProductImage from "./ProductImage";
 import ProductStock from "./ProductStock";
 import ProductPacking from "./ProductPacking";
 import AppStatPanel from "./AppStatPanel";
+import ManualNotification from "./ManualNotification";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -73,4 +74,6 @@ UserBank.belongsTo(Bank, { foreignKey: 'idBanks' });
 
 File.belongsTo(User, { foreignKey: 'refId' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel };
+ManualNotification.belongsTo(User, { foreignKey: 'createdBy' });
+
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification };
