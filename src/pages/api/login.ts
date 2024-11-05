@@ -3,12 +3,14 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import bcrypt from 'bcrypt';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
+import {sendNotificationToTopic} from '../../config/fcm';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if(req.method === 'OPTIONS') {
+    if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
     if (req.method === 'POST') {
+        await sendNotificationToTopic('SAATHI_APP_IOS_TEST', 'Test', 'Test', { test: 'test' });
         const { email, password } = req.body
 
         // Check if username and password are provided
@@ -28,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // If the user is not found, return a 404 Not Found response
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' })
+                return res.status(404).json({ success: false, message: 'User not found 2' })
             }
 
             // Verify the password
