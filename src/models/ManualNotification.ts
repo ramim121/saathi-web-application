@@ -55,12 +55,12 @@ const ManualNotification = sequelize.define<ManualNotificationModel>('ManualNoti
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
 	},
-	createDate: {
+	createdAt: {
 		type: DataTypes.DATE,
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
 	},
-	updateDate: {
+	updatedAt: {
 		type: DataTypes.DATE,
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
@@ -76,3 +76,7 @@ const ManualNotification = sequelize.define<ManualNotificationModel>('ManualNoti
 });
 
 export default ManualNotification;
+
+function moment(arg0: any) {
+	throw new Error('Function not implemented.');
+}

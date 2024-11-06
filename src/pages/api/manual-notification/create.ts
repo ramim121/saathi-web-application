@@ -24,6 +24,12 @@ const cors = Cors({
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
+export const config = {
+    api: {
+        bodyParser: false, // Disable Next.js's default body parser
+    },
+};
+
 const schema = Joi.object({
     sendViaSms: Joi.string().required().valid('yes', 'no').messages({
         "any.required": "Send Via Sms is required",
@@ -100,7 +106,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 emailBody: fields.emailBody ? fields.emailBody[0] : null,
                 sendViaPush: fields.sendViaPush ? fields.sendViaPush[0] : null,
                 pushNotificationBody: fields.pushNotificationBody ? fields.pushNotificationBody[0] : null,
-                pushNotificationTitle: fields.pushNotificationTitle ? fields.pushNotificationTitle[0] : null
+                pushNotificationTitle: fields.pushNotificationTitle ? fields.pushNotificationTitle[0] : null,
+                createdBy: fields.createdBy ? fields.createdBy[0] : null
             };
 
             const options = {
@@ -116,6 +123,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 });
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
             }
+
+
+            if (pushNotificationImage !== null) {
+                if (pushNotificationImage.mimetype !== 'image/jpeg' && pushNotificationImage.mimetype !== 'image/png' && pushNotificationImage.mimetype !== 'image/jpg') {
+                    res.status(400).json({ message: `Invalid file type: ${pushNotificationImage.mimetype}. Only JPEG, JPG and PNG files are allowed.` });
+                    return;
+                }
+            }
+
             const params = {
                 Bucket: S3_BUCKET_NAME,
                 ACL: 'public-read'
@@ -150,7 +166,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     sendViaPush: data.sendViaPush,
                     pushNotificationBody: data.sendViaPush === 'yes' ? data.pushNotificationBody : null,
                     pushNotificationTitle: data.sendViaPush === 'yes' ? data.pushNotificationTitle : null,
-                    pushNotificationImage: (data.sendViaPush === 'yes' && pushNotificationImage !== null) ? pushNotificationImageName : null
+                    pushNotificationImage: (data.sendViaPush === 'yes' && pushNotificationImage !== null) ? pushNotificationImageName : null,
+                    createdBy: data.createdBy
                 }, { transaction });
 
                 await transaction.commit();

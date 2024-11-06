@@ -47,7 +47,6 @@ function ManualNotification() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to create this manual notification!",
@@ -56,10 +55,11 @@ function ManualNotification() {
             cancelButtonText: 'No',
             confirmButtonText: 'Yes'
         }).then(async (result) => {
-            if (result.isConfirmed) {
+            if (result.value) {
                 try {
                     formData.createdBy = currentUser?.idUsers || undefined;
                     const newFormData = new FormData();
+                    newFormData.append('createdBy', formData.createdBy?.toString() || '');
                     newFormData.append('sendViaSms', formData.sendViaSms);
                     newFormData.append('smsBody', formData.smsBody);
                     newFormData.append('sendViaEmail', formData.sendViaEmail);
@@ -78,27 +78,25 @@ function ManualNotification() {
                     if (formData.pushNotificationImage) {
                         newFormData.append('pushNotificationImage', formData.pushNotificationImage);
                     }
-
-                    const res = await fetch(`${API_URL}api/manual-notification/create`, {
+                    const res = await fetch(API_URL + 'api/manual-notification/create', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: newFormData,
                     });
-
-                    if (res.ok) {
+                    if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
                             text: 'Manual notification created successfully!',
                         });
                     } else {
-                        const errorData = await res.json();
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            html: errorData.message,
+                            html: (await res.json()).message,
                         });
                     }
+
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
