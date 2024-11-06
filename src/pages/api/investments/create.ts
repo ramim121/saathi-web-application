@@ -8,7 +8,7 @@ const schema = Joi.object({
         "any.required": "Name of the plan is required",
         "string.empty": "Name of the plan can not be empty",
     }),
-    investmentType: Joi.string().valid('high_return', 'low_return', 'short_duration', 'long_duration', 'shariah').required().empty().messages({
+    investmentType: Joi.string().valid('sustainable_return', 'fast_return').required().empty().messages({
         "any.required": "Investment type is required",
         "any.only": "Invalid investment type",
         "string.empty": "Investment type can not be empty",

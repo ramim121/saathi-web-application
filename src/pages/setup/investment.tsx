@@ -161,11 +161,8 @@ function Investment() {
                                 <Col sm='8'>
                                     <Form.Select name='investmentType' onChange={handleInvestmentTypeChange} value={formData.investmentType}>
                                         <option>Select investment type</option>
-                                        <option value="high_return">High Return</option>
-                                        <option value="low_return">Low Return</option>
-                                        <option value="short_duration">Short Duration</option>
-                                        <option value="long_duration">Long Duration</option>
-                                        <option value="shariah">Shariah</option>
+                                        <option value="sustainable_return">Sustainable Return</option>
+                                        <option value="fast_return">Fast Return</option>
                                     </Form.Select>
                                 </Col>
                             </Form.Group>

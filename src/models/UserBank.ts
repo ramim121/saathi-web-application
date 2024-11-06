@@ -18,6 +18,10 @@ const UserBank = sequelize.define<UserBankModel>('UserBank', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    branchName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     accountHolderName: {
         type: DataTypes.STRING,
         allowNull: false

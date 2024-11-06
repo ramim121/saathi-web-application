@@ -6,6 +6,7 @@ export default interface UserBank {
     idUserBanks: number;
     idUsers: number;
     idBanks: number;
+    branchName: string;
     accountHolderName: string;
     accountNumber: string;
     User?: User;
