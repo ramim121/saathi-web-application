@@ -1,13 +1,23 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Skill } from '@/models/__associations'
 import { Op } from 'sequelize'
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ): Promise<void> {
     if (req.method === 'GET') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
         const { idSkills, skillName, orderBy, orderType, page, pageSize } = req.query;
 
         let whereClause: { idSkills?: { [key: string]: any }; skillName?: { [key: string]: any }; } = {};

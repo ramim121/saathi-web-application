@@ -1,7 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project } from '@/models/__associations'
 import { Op } from 'sequelize'
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse

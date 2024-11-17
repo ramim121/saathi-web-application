@@ -30,6 +30,8 @@ interface FormDataType {
 	collectionEnds: string,
 	otherLocations: string,
 	showInUpcoming?: 'yes' | 'no',
+	totalAvailableUnits: number,
+	investorUnitCapacity: number,
 	mainImage?: any,
 	featuredImages?: any,
 	projectCategory: {
@@ -67,6 +69,8 @@ function Projects() {
 		mainImage: null,
 		featuredImages: [],
 		showInUpcoming: 'no',
+		totalAvailableUnits: 0,
+		investorUnitCapacity: 0,
 		projectCategory: {
 			label: 'Select project category',
 			value: 0
@@ -98,6 +102,8 @@ function Projects() {
 						location: project.location,
 						otherLocations: project.otherLocations,
 						showInUpcoming: project.showInUpcoming,
+						totalAvailableUnits: project.totalAvailableUnits,
+						investorUnitCapacity: project.investorUnitCapacity,
 						investment: {
 							duration: project.duration,
 							tenure: project.tenure,
@@ -243,6 +249,8 @@ function Projects() {
 					newFormData.append('otherLocations', formData.otherLocations);
 					newFormData.append('showInUpcoming', formData.showInUpcoming || 'no');
 					newFormData.append('projectCategory', formData.projectCategory.value.toString());
+					newFormData.append('totalAvailableUnits', formData.totalAvailableUnits.toString());
+					newFormData.append('investorUnitCapacity', formData.investorUnitCapacity.toString());
 					if (formData.featuredImages) {
 						for (let i = 0; i < formData.featuredImages.length; i++) {
 							if (formData.featuredImages[i] instanceof File) {
@@ -385,6 +393,12 @@ function Projects() {
 											<Form.Control type="date" placeholder="Enter collection start date" name="collectionStarts" onChange={handleOnChange} value={formData.collectionStarts} />
 										</Col>
 									</Form.Group>
+									<Form.Group as={Row} className='mb-3'>
+										<Form.Label column sm='4'>Total Available Units <span className='text-danger'>*</span></Form.Label>
+										<Col sm='8'>
+											<Form.Control type="number" placeholder="Enter total available units" name="totalAvailableUnits" onChange={handleOnChange} value={formData.totalAvailableUnits} />
+										</Col>
+									</Form.Group>
 								</Col>
 								<Col md={6}>
 									<Form.Group as={Row} className='mb-3'>
@@ -441,6 +455,12 @@ function Projects() {
 												value={{ value: formData.showInUpcoming, label: formData.showInUpcoming === 'yes' ? 'Yes' : 'No' }}
 												onChange={(selectedOption: any) => setFormData({ ...formData, showInUpcoming: selectedOption.value })}
 											/>
+										</Col>
+									</Form.Group>
+									<Form.Group as={Row} className='mb-3'>
+										<Form.Label column sm='4'>Investor Unit Capacity </Form.Label>
+										<Col sm='8'>
+											<Form.Control type="number" placeholder="Enter investor unit capacity" name="investorUnitCapacity" onChange={handleOnChange} value={formData.investorUnitCapacity} />
 										</Col>
 									</Form.Group>
 								</Col>

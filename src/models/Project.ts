@@ -105,6 +105,16 @@ const Project = sequelize.define<ProjectModel>('Project', {
     updatedAt: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    totalAvailableUnits: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    investorUnitCapacity: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
     }
 }, {
     tableName: 'projects',

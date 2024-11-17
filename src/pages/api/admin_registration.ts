@@ -2,6 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { User } from '@/models/__associations';
 import Joi from 'joi';
 import sequelize from '@/config/db';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 
 const schema = Joi.object({
     name: Joi.string().required().messages({
@@ -21,6 +24,14 @@ const schema = Joi.object({
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
         const { name, email, phoneNumber } = req.body
         const options = {
             abortEarly: false,

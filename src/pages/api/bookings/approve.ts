@@ -1,7 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ProjectInvestmentBooking } from '@/models/__associations';
 import Joi from 'joi';
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -36,6 +38,14 @@ export default async function handler(
     res: NextApiResponse
 ): Promise<void> {
     if (req.method === 'PUT') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
         const { bookingId, paymentMethod, paymentDate, paymentAmount, transactionId } = req.body;
 
         const options = {

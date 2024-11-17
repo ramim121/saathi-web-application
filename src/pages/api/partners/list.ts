@@ -1,12 +1,23 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project } from '@/models/__associations'
 import { Op } from 'sequelize'
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
+		let tokenData = req.headers.authorization;
+		let token = tokenData?.split(' ')[1];
+
+		if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+		let userInfo = jwt.decode(token) as JWTPayload;
+		if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
 		const { fullName, phoneNumber, age, location, role, joiningDate, skills, idUsers, disability, partnerType, orderBy, orderType, page, pageSize } = req.query
 
 		let whereClause: { userType: string; fullName?: { [Op.like]: string }; phoneNumber?: { [Op.like]: string }; age?: { [Op.like]: string }; location?: { [Op.like]: string }; idUsers?: { [Op.like]: string }; skills?: { [Op.like]: string }; role?: { [Op.like]: string }; joiningDate?: { [Op.like]: string }; disability?: { [Op.like]: string }; partnerType?: { [Op.like]: string } } = { userType: 'partner' };

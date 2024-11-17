@@ -1,16 +1,26 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project, ProjectCategory } from '@/models/__associations'
 import { Op } from 'sequelize'
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
 ): Promise<void> {
 	if (req.method === 'GET') {
-		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, showInUpcoming, categoryName, orderBy, orderType, page, pageSize } = req.query;
+		let tokenData = req.headers.authorization;
+		let token = tokenData?.split(' ')[1];
 
-		let whereClause: { idProjects?: { [Op.like]: string }; projectName?: { [Op.like]: string }; returnRangeMin?: { [Op.like]: string }; returnRangeMax?: { [Op.like]: string }; investmentType?: { [Op.like]: string }; returnType?: { [Op.like]: string }; duration?: { [Op.like]: string }; location?: { [Op.like]: string }; unitInvestmentValue?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string } } = {};
+		if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+		let userInfo = jwt.decode(token) as JWTPayload;
+		if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
+		const { idProjects, projectName, returnRangeMin, returnRangeMax, investmentType, returnType, duration, location, unitInvestmentValue, projectStatus, partnersName, createdBy, showInUpcoming, categoryName, totalAvailableUnits, investorUnitCapacity, orderBy, orderType, page, pageSize } = req.query;
+
+		let whereClause: { idProjects?: { [Op.like]: string }; projectName?: { [Op.like]: string }; returnRangeMin?: { [Op.like]: string }; returnRangeMax?: { [Op.like]: string }; investmentType?: { [Op.like]: string }; returnType?: { [Op.like]: string }; duration?: { [Op.like]: string }; location?: { [Op.like]: string }; unitInvestmentValue?: { [Op.like]: string }; projectStatus?: { [Op.like]: string }; showInUpcoming?: { [Op.like]: string }; totalAvailableUnits?: { [Op.like]: string }; investorUnitCapacity?: { [Op.like]: string } } = {};
 
 		if (idProjects) {
 			whereClause = { ...whereClause, idProjects: { [Op.like]: `%${idProjects}%` } };
@@ -56,6 +66,14 @@ export default async function handler(
 			whereClause = { ...whereClause, showInUpcoming: { [Op.like]: `%${showInUpcoming}%` } };
 		}
 
+		if (totalAvailableUnits) {
+			whereClause = { ...whereClause, totalAvailableUnits: { [Op.like]: `%${totalAvailableUnits}%` } };
+		}
+
+		if (investorUnitCapacity) {
+			whereClause = { ...whereClause, investorUnitCapacity: { [Op.like]: `%${investorUnitCapacity}%` } };
+		}
+
 		const limit = pageSize ? parseInt(pageSize as string) : 10;
 		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
 
@@ -75,7 +93,9 @@ export default async function handler(
 					'location',
 					'unitInvestmentValue',
 					'projectStatus',
-					'showInUpcoming'
+					'showInUpcoming',
+					'totalAvailableUnits',
+					'investorUnitCapacity'
 				],
 				include: [
 					{

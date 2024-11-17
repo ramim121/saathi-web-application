@@ -2,7 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Project } from '@/models/__associations';
 import { File, ProjectCategory } from '@/models/__associations';
 import Cors from 'micro-cors';
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -12,6 +14,14 @@ const cors = Cors({
 async function handler(req: NextApiRequest, res: NextApiResponse): Promise<any> {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
         try {
             const result = await Project.findOne({
                 include: [
