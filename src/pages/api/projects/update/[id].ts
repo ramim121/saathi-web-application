@@ -13,6 +13,9 @@ import { Upload } from '@aws-sdk/lib-storage';
 import sharp from 'sharp';
 import path from 'path';
 import os from 'os';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
@@ -56,11 +59,23 @@ const schema = Joi.object({
         "number.base": "Project Category must be selected",
         "number.min": "Project Category must be selected",
     }),
+    totalAvailableUnits: Joi.number().min(1).required().messages({
+        "any.required": "Total available units is required",
+        "number.base": "Total available units must be a number",
+        "number.min": "Total available units must be greater than 0",
+    }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
@@ -77,7 +92,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 summary: fields.summary ? fields.summary[0] : null,
                 showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
                 projectCategory: fields.projectCategory ? fields.projectCategory[0] : null,
-                prevFeaturedImages: fields.prevFeaturedImages ? fields.prevFeaturedImages : []
+                prevFeaturedImages: fields.prevFeaturedImages ? fields.prevFeaturedImages : [],
+                totalAvailableUnits: fields.totalAvailableUnits ? fields.totalAvailableUnits[0] : null,
+                investorUnitCapacity: fields.investorUnitCapacity ? fields.investorUnitCapacity[0] : null,
             }
 
             const options = {
@@ -139,7 +156,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     otherLocations: data.otherLocations,
                     summary: data.summary,
                     showInUpcoming: data.showInUpcoming,
-                    projectCategory: data.projectCategory
+                    projectCategory: data.projectCategory,
+                    totalAvailableUnits: data.totalAvailableUnits,
+                    investorUnitCapacity: data.investorUnitCapacity
                 }, {
                     where: { idProjects: req.query.id },
                     transaction

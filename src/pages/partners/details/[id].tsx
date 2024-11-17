@@ -26,7 +26,8 @@ interface DetailsProps {
         Project: {
             projectName: string,
             location: string
-        }
+        },
+        partnerUnitCapacity: number
     }[],
     ProfilePicture?: {
         idFiles: number,
@@ -109,7 +110,7 @@ function Details() {
                                 <td>
                                     <ul>
                                         {details.Partnerships && details.Partnerships.map((project, index) => (
-                                            <li key={index}>{project.Project?.projectName} - {project.Project?.location}</li>
+                                            <li key={index}>{project.Project?.projectName} - {project.Project?.location} (Unit Capacity {project.partnerUnitCapacity})</li>
                                         ))}
                                     </ul>
                                 </td>

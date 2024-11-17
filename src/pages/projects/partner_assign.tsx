@@ -61,6 +61,7 @@ const CustomOptionProject = ({ data, ...props }: { data: ProjectProps, [key: str
 function PartnerAssign() {
 	const [partnersList, setPartnersList] = useState<PartnerProps[]>([]);
 	const [selectedPartner, setSelectedPartner] = useState<PartnerProps | null>(null);
+	const [partnerUnitCapacity, setPartnerUnitCapacity] = useState<number>(0);
 	const [projectList, setProjectList] = useState<ProjectProps[]>([]);
 	const [selectedProject, setSelectedProject] = useState<ProjectProps | null>(null);
 	const [reload, setReload] = useState<boolean>(true);
@@ -141,7 +142,8 @@ function PartnerAssign() {
 				try {
 					const formData = {
 						partner: selectedPartner?.value,
-						project: selectedProject?.value
+						project: selectedProject?.value,
+						partnerUnitCapacity: partnerUnitCapacity
 					};
 
 					const fetchData = async () => {
@@ -154,6 +156,7 @@ function PartnerAssign() {
 							});
 							setSelectedPartner(null);
 							setSelectedProject(null);
+							setPartnerUnitCapacity(0);
 							setReload(true);
 						} else {
 							Swal.fire({
@@ -210,6 +213,12 @@ function PartnerAssign() {
 									value={selectedProject}
 									isDisabled={selectedPartner === null}
 								/>
+							</Col>
+						</Form.Group>
+						<Form.Group as={Row} className='mb-3'>
+							<Form.Label column sm='4' >Unit Capacity</Form.Label>
+							<Col sm='8'>
+								<Form.Control type='number' value={partnerUnitCapacity} onChange={(e) => setPartnerUnitCapacity(parseInt(e.target.value))} />
 							</Col>
 						</Form.Group>
 						<Row>

@@ -26,6 +26,12 @@ const ProjectPartner = sequelize.define<ProjectPartnerModel>('ProjectPartner', {
     updatedAt: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    partnerUnitCapacity:
+    {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
     }
 }, {
     tableName: 'project_partners',

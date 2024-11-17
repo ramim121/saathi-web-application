@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project, ProjectPartner } from '@/models/__associations'
+import { Project } from '@/models/__associations'
 import { Op, Sequelize } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';

@@ -2,7 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { ProjectInvestor, Project, ProjectPartnerInvestor, User, ProjectPartner, ProjectInvestmentBooking } from '@/models/__associations'
 import { Op } from 'sequelize'
 import Cors from 'micro-cors';
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 const cors = Cors({
 	origin: '*',
 	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -15,6 +17,14 @@ async function handler(
 ) {
 	if (req.method === 'OPTIONS') { return res.status(200).end(); }
 	if (req.method === 'GET') {
+		let tokenData = req.headers.authorization;
+		let token = tokenData?.split(' ')[1];
+
+		if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+		let userInfo = jwt.decode(token) as JWTPayload;
+		if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
 		const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
 		let whereClause: { idProjectInvestmentBookings?: { [Op.like]: string }; bookingId?: { [Op.like]: string }; paymentConfirmationStatus?: { [Op.like]: string } } = {};
 

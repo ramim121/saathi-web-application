@@ -28,7 +28,9 @@ interface ListProps {
 	},
 	ProjectCategory: {
 		categoryName: string
-	}
+	},
+	totalAvailableUnits: number,
+	investorUnitCapacity: number
 
 }
 
@@ -47,6 +49,8 @@ interface FilterProps {
 	partnersName: string,
 	createdBy: string,
 	categoryName: string,
+	totalAvailableUnits: string,
+	investorUnitCapacity: string,
 	orderBy: string,
 	orderType: string,
 	page: number,
@@ -70,6 +74,8 @@ function List() {
 		partnersName: '',
 		createdBy: '',
 		categoryName: '',
+		totalAvailableUnits: '',
+		investorUnitCapacity: '',
 		orderBy: 'idProjects',
 		orderType: 'DESC',
 		page: 1,
@@ -171,6 +177,8 @@ function List() {
 						<th>Tenure</th>
 						<th>Location</th>
 						<th>Upcoming</th>
+						<th>Total Available Units</th>
+						<th>Investor Unit Capacity</th>
 						<th>Status</th>
 						<th>Created By</th>
 						<th>Partner</th>
@@ -208,6 +216,12 @@ function List() {
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="showInUpcoming" onChange={handleInputOnChange} value={filter.showInUpcoming} />
 						</td>
 						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="totalAvailableUnits" onChange={handleInputOnChange} value={filter.totalAvailableUnits} />
+						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="investorUnitCapacity" onChange={handleInputOnChange} value={filter.investorUnitCapacity} />
+						</td>
+						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="projectStatus" onChange={handleInputOnChange} value={filter.projectStatus} />
 						</td>
 						<td>
@@ -235,6 +249,8 @@ function List() {
 							<td>{project.duration} {project.tenure}</td>
 							<td>{project.location}</td>
 							<td>{project.showInUpcoming.charAt(0).toUpperCase() + project.showInUpcoming.slice(1)}</td>
+							<td>{project.totalAvailableUnits}</td>
+							<td>{project.investorUnitCapacity}</td>
 							<td>{project.projectStatus.charAt(0).toUpperCase() + project.projectStatus.slice(1)}</td>
 							<td>{project.CreatedBy?.fullName}</td>
 							<td>
@@ -255,7 +271,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={14} className="text-center">No projects found</td>
+							<td colSpan={16} className="text-center">No projects found</td>
 						</tr>
 					)}
 

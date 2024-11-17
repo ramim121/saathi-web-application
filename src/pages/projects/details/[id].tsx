@@ -30,6 +30,8 @@ interface DetailsProps {
     collectionEnds: string,
     summary: string,
     showInUpcoming: string,
+    totalAvailableUnits: number,
+    investorUnitCapacity: number,
     ProjectCategory: {
         categoryName: string
     }
@@ -44,7 +46,8 @@ interface DetailsProps {
                 originalFileName: string,
                 fileName: string
             }
-        }
+        },
+        partnerUnitCapacity: number
     }[],
     ProjectInvestors: {
         ProjectInvestmentBooking: {
@@ -205,6 +208,14 @@ function Details() {
                                         <td>{details.duration} {details.tenure}</td>
                                     </tr>
                                     <tr>
+                                        <td>Total Available Units</td>
+                                        <td>{details.totalAvailableUnits}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Investor Unit Capacity</td>
+                                        <td>{details.investorUnitCapacity}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Main Image</td>
                                         <td className="text-center">
                                             {details.MainImage && <Image src={`${S3_URL}project-main-image/${id}/${details.MainImage?.fileName}`} alt={details.MainImage?.originalFileName} width={100} height={100} />}
@@ -259,6 +270,7 @@ function Details() {
                                     <th>Name</th>
                                     <th>Phone Number</th>
                                     <th>Joining Date</th>
+                                    <th>Unit Capacity</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -271,8 +283,9 @@ function Details() {
                                         <td>{partner.User.fullName}</td>
                                         <td>{partner.User.phoneNumber}</td>
                                         <td>{partner.User.joiningDate}</td>
+                                        <td>{partner.partnerUnitCapacity}</td>
                                     </tr>
-                                )) : <tr><td colSpan={5} className="text-center">No Partners Found</td></tr>}
+                                )) : <tr><td colSpan={6} className="text-center">No Partners Found</td></tr>}
                             </tbody>
                         </Table>
                     </Row>

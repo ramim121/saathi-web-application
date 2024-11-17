@@ -9,6 +9,9 @@ import _ from 'await-to-js';
 import sequelize from '@/config/db';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -66,6 +69,14 @@ const schema = Joi.object({
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+
 
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {

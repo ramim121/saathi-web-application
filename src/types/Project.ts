@@ -1,8 +1,7 @@
 import { Optional } from 'sequelize';
-
-
 import ProjectCategory from './ProjectCategory';
 import User from './User';
+
 export default interface Project {
     idProjects: number;
     projectName: string;
@@ -31,6 +30,8 @@ export default interface Project {
     CreatedBy?: User;
     showInUpcoming: 'yes' | 'no';
     projectStatus: 'created' | 'collection_started' | 'collection_done' | 'project_started' | 'project_finished' | 'fund_disbursed' | 'closed' | 'completed';
+    totalAvailableUnits: number;
+    investorUnitCapacity: number;
 };
 
 

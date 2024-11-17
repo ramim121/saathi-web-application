@@ -7,7 +7,9 @@ import * as formidable from 'formidable';
 import fs from 'fs';
 import _ from 'await-to-js';
 import sequelize from '@/config/db';
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 const s3Client = new S3Client({
@@ -40,6 +42,13 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
@@ -90,16 +99,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 let categoryImageFileName = '';
                 if (categoryImage !== null) {
                     categoryImageFileName = generateHash(Date.now() + categoryImage.originalFilename!.toString()) + '.' + categoryImage.originalFilename!.split('.').pop();
-                    
+
                     const upload = new Upload({
                         client: s3Client,
                         params: { ...params, ContentType: categoryImage.mimetype!, Body: fs.createReadStream(categoryImage.filepath), Key: 'project-category-image/' + categoryImageFileName } as any
                     });
-            
+
                     upload.on('httpUploadProgress', (progress: any) => {
                         console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
                     });
-                    let [err1, result1] = await _(upload.done());                    
+                    let [err1, result1] = await _(upload.done());
                     if (err1) {
                         await transaction.rollback();
                         return res.status(500).json({ success: false, message: err1.message });

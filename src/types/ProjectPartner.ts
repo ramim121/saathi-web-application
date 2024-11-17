@@ -1,6 +1,4 @@
 import { Optional } from 'sequelize';
-
-
 import Project from "./Project";
 import User from "./User";
 
@@ -10,6 +8,7 @@ export default interface ProjectPartner {
     idUsers: number;
     createdAt?: Date | null;
     updatedAt?: Date | null;
+    partnerUnitCapacity: number;
     Project?: Project;
     User?: User;
 }
