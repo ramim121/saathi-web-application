@@ -10,7 +10,8 @@ const sequelize = new Sequelize({
     port: 3306,
     username: 'saathi_admin',
     password: 'w607kTcCngWiq8U',
-    database: DB_NAME
+    database: DB_NAME,
+    logging: true
 });// Example for postgres
 
 export default sequelize;

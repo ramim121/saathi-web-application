@@ -3,14 +3,12 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import bcrypt from 'bcrypt';
 import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
-import {sendNotificationToTopic} from '../../config/fcm';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
     if (req.method === 'POST') {
-        await sendNotificationToTopic('SAATHI_APP_IOS_TEST', 'Test', 'Test', { test: 'test' });
         const { email, password } = req.body
 
         // Check if username and password are provided
