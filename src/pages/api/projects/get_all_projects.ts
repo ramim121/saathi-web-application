@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Project, ProjectPartner, File, ProjectCategory } from '@/models/__associations'
 import { Op } from 'sequelize'
+import sequelize from '@/config/db';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -84,6 +85,21 @@ export default async function handler(
 						where: projectCategoryClause
 					},
 				],
+				attributes: {
+					include: [
+						[
+							sequelize.literal(`(
+								SELECT COUNT(*)
+								FROM project_investors AS ppi
+								WHERE ppi.id_projects = Project.id_projects
+							)`),
+							'investorCount'
+						]
+					]
+				},
+				having: sequelize.literal(`
+					(totalAvailableUnits = 0 OR investorCount < totalAvailableUnits)
+				`),
 				where: whereClause
 			})
 

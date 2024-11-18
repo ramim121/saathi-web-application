@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Project, File, ProjectInvestor } from '@/models/__associations';
+import { Project, File } from '@/models/__associations';
 import sequelize from '@/config/db';
 import { Op } from 'sequelize';
 
@@ -12,10 +12,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     include: [
                         {
                             model: File, as: 'MainImage', required: false
-                        },
-                        {
-                            model: ProjectInvestor,
-                            as: 'ProjectInvestors'
                         }
                     ],
                     attributes: {
@@ -34,6 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         showInUpcoming: 'no',
                         projectStatus: { [Op.ne]: 'completed' }
                     },
+                    having: sequelize.literal(`
+                        (totalAvailableUnits = 0 OR investorCount < totalAvailableUnits)
+                    `),
                     order: [[sequelize.literal('investorCount'), 'DESC']],
                     limit: 5
                 }
