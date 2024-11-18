@@ -14,14 +14,6 @@ import JWTPayload from '@/types/JWTPayload';
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
-        let tokenData = req.headers.authorization;
-        let token = tokenData?.split(' ')[1];
-
-        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
-
-        let userInfo = jwt.decode(token) as JWTPayload;
-        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
-
         try {
             const { q } = req.query;
 
