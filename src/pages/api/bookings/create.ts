@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank, User } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank, User, Project } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 import Cors from 'micro-cors';
@@ -9,6 +9,12 @@ const cors = Cors({
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
+
+// export const config = {
+//     api: {
+//         bodyParser: false,
+//     },
+// };
 
 
 const schema = Joi.object({
@@ -68,6 +74,7 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
+
         const { idUsers, investmentDate, projects, idBanks, branchName, accountHolderName, accountNumber } = req.body
         const options = {
             abortEarly: false,
@@ -88,21 +95,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
         });
 
-        if (!userVerification) {
-            return res.status(404).json({ success: false, message: 'Investor not found' });
-        }
+        // if (!userVerification) {
+        //     return res.status(404).json({ success: false, message: 'Investor not found' });
+        // }
 
-        if (userVerification.emailVerified === 'no') {
-            return res.status(400).json({ success: false, message: 'Please verify your email before making any investment' });
-        }
+        // if (userVerification.emailVerified === 'no') {
+        //     return res.status(400).json({ success: false, message: 'Please verify your email before making any investment' });
+        // }
 
-        if (userVerification.phoneVerified === 'no') {
-            return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
-        }
+        // if (userVerification.phoneVerified === 'no') {
+        //     return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
+        // }
 
-        if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
-            return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
-        }
+        // if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
+        //     return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
+        // }
 
         const transaction = await sequelize.transaction();
 
@@ -145,6 +152,41 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 
             for (const project of projects) {
+                const projectInfo = await Project.findOne({
+                    where: {
+                        idProjects: project.idProjects,
+                    },
+                    attributes: ['totalAvailableUnits', 'investorUnitCapacity',],
+                });
+
+                const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
+                    where: {
+                        idProjects: project.idProjects,
+                    }
+                });
+
+                if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
+                    if (Number(alreadyPurchased) + Number(project.unitPurchased) > projectInfo.totalAvailableUnits) {
+                        await transaction.rollback();
+                        return res.status(400).json({ success: false, message: 'Total available units excedded' });
+                    }
+                }
+
+                const userBooking = await ProjectInvestor.sum('unitPurchased', {
+                    where: {
+                        idUsers,
+                        idProjects: project.idProjects,
+                    }
+                });
+
+                if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
+                    if (Number(userBooking) + Number(project.unitPurchased) > projectInfo.investorUnitCapacity) {
+                        await transaction.rollback();
+                        return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
+                    }
+                }
+
+
                 const projectInvestor = await ProjectInvestor.create({
                     idUsers,
                     idProjects: project.idProjects,

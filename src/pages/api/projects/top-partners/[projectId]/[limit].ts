@@ -19,9 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         include: [
                             { model: File, as: 'ProfilePicture' }
                         ]
-                    },
-                    {
-                        model: ProjectPartnerInvestor,
                     }
                 ],
                 attributes: {
@@ -36,6 +33,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         ]
                     ]
                 },
+                having: sequelize.literal(`
+					(partnerUnitCapacity = 0 OR investorCount < partnerUnitCapacity)
+				`),
                 order: [[sequelize.literal('investorCount'), 'ASC']]
             });
 
