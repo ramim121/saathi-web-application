@@ -89,16 +89,29 @@ export default async function handler(
 					include: [
 						[
 							sequelize.literal(`(
-								SELECT COUNT(*)
+								SELECT SUM(unit_purchased)
 								FROM project_investors AS ppi
 								WHERE ppi.id_projects = Project.id_projects
 							)`),
-							'investorCount'
+							'totalInvestedUnits'
+						],
+						[
+							sequelize.literal(`
+                                CASE
+                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
+                                        SELECT SUM(unit_purchased)
+                                        FROM project_investors AS ppi
+                                        WHERE ppi.id_projects = Project.id_projects
+                                    )
+                                    ELSE NULL
+                                END
+                            `),
+							'totalRemainingUnits'
 						]
 					]
 				},
 				having: sequelize.literal(`
-					(totalAvailableUnits = 0 OR investorCount < totalAvailableUnits)
+					(totalAvailableUnits = 0 OR totalInvestedUnits < totalAvailableUnits)
 				`),
 				where: whereClause
 			})

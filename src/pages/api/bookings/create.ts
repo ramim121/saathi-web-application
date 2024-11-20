@@ -95,21 +95,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
         });
 
-        // if (!userVerification) {
-        //     return res.status(404).json({ success: false, message: 'Investor not found' });
-        // }
+        if (!userVerification) {
+            return res.status(404).json({ success: false, message: 'Investor not found' });
+        }
 
-        // if (userVerification.emailVerified === 'no') {
-        //     return res.status(400).json({ success: false, message: 'Please verify your email before making any investment' });
-        // }
+        if (userVerification.emailVerified === 'no') {
+            return res.status(400).json({ success: false, message: 'Please verify your email before making any investment' });
+        }
 
-        // if (userVerification.phoneVerified === 'no') {
-        //     return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
-        // }
+        if (userVerification.phoneVerified === 'no') {
+            return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
+        }
 
-        // if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
-        //     return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
-        // }
+        if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
+            return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
+        }
 
         const transaction = await sequelize.transaction();
 
