@@ -72,6 +72,7 @@ ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartner
 
 UserBank.belongsTo(User, { foreignKey: 'idUsers' });
 UserBank.belongsTo(Bank, { foreignKey: 'idBanks' });
+UserBank.belongsTo(BankBranch, { foreignKey: 'idBankBranches' });
 
 File.belongsTo(User, { foreignKey: 'refId' });
 

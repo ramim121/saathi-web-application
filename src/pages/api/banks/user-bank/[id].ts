@@ -1,18 +1,23 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Bank, UserBank } from '@/models/__associations';
+import { Bank, UserBank, BankBranch } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         try {
 
-            const result = await UserBank.findAll({
+            const result = await UserBank.findOne({
                 where: { idUsers: req.query.id },
                 include: [
                     {
                         model: Bank,
-                        required: true
+                        required: true,
+                    },
+                    {
+                        model: BankBranch,
+                        required: true,
                     }
-                ]
+                ],
+                order: [['idUserBanks', 'DESC']]
             });
             return res.status(200).json({ success: true, data: result });
         } catch (error) {

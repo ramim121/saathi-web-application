@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Bank, UserBank } from '@/models/__associations';
+import { Bank, UserBank, BankBranch } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -10,6 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 include: [
                     {
                         model: Bank,
+                        required: true
+                    },
+                    {
+                        model: BankBranch,
                         required: true
                     }
                 ]
