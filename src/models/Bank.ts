@@ -18,6 +18,10 @@ const Bank = sequelize.define<BankModel>('Bank', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    bankCode: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false
