@@ -10,6 +10,7 @@ import Blog from "./Blog";
 import ProjectPartnerInvestor from "./ProjectPartnerInvestor";
 import UserBank from "./UserBank";
 import Bank from "./Bank";
+import BankBranch from "./BankBranch";
 import ProjectInvestmentBooking from "./ProjectInvestmentBooking";
 import DigigramBank from "./DigigramBank";
 import Product from "./Product";
@@ -76,4 +77,6 @@ File.belongsTo(User, { foreignKey: 'refId' });
 
 ManualNotification.belongsTo(User, { foreignKey: 'createdBy' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification };
+Bank.hasMany(BankBranch, { foreignKey: 'idBanks' });
+
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, BankBranch, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification };
