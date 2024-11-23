@@ -100722,6 +100722,7 @@ export async function saveBranchData() {
                 newBranchData.address = bankData[i].districts[j].branches[k].address || "";
                 newBranchData.telephone = bankData[i].districts[j].branches[k].telephone || "";
                 newBranchData.email = bankData[i].districts[j].branches[k].email || "";
+                //@ts-ignore
                 newBranchData.fax = bankData[i].districts[j].branches[k].fax || "";
                 try {
                     await newBranchData.save();
