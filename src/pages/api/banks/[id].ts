@@ -1,11 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Bank, BankBranch } from '@/models/__associations';
+import { BankBranch, Bank } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         try {
-            const bankData = await Bank.findByPk(req.query.id as string, {
-                include: BankBranch
+            const bankData = await BankBranch.findAll({
+                where: { idBanks: req.query.id }
             });
 
             if (!bankData) {

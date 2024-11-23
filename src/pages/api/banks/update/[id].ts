@@ -17,9 +17,9 @@ const schema = Joi.object({
         "any.required": "Bank must be selected",
         "number.base": "Bank must be selected",
     }),
-    branchName: Joi.string().required().messages({
-        "any.required": "Branch name is required",
-        "string.base": "Branch name can not be empty",
+    idBankBranches: Joi.number().required().messages({
+        "any.required": "Branch must be selected",
+        "number.base": "Branch must be selected",
     }),
     accountNumber: Joi.string().required().messages({
         "any.required": "Account number is required",
@@ -34,11 +34,11 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
-        const { idBanks, branchName, accountHolderName, accountNumber } = req.body
+        const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
         const options = {
             abortEarly: false,
         };
-        const { error } = schema.validate({ idBanks, branchName, accountHolderName, accountNumber }, options);
+        const { error } = schema.validate({ idBanks, idBankBranches, accountHolderName, accountNumber }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -65,7 +65,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
             const userBank = await UserBank.update({
-                idBanks, branchName, accountHolderName, accountNumber
+                idBanks, idBankBranches, accountHolderName, accountNumber
             }, {
                 where: {
                     idUserBanks: req.query.id

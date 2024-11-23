@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch } from '@/models/__associations';
 // import jwt from 'jsonwebtoken';
 // import { JWT_SECRET } from '@/config/constants';
 // import JWTPayload from '@/types/JWTPayload';
@@ -50,6 +50,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         include: [
                             {
                                 model: Bank
+                            },
+                            {
+                                model: BankBranch
                             }
                         ]
                     }
