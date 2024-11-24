@@ -40,10 +40,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!user) { res.status(400).json({ success: false, message: 'User not found' }); return; }
 
 
-    const form = new formidable.IncomingForm({ maxFileSize: 2 * 1024 * 1024 });
+    const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
 
     form.parse(req, async (error, fields, files) => {
-        if (error) { res.status(500).json({ message: error.message }); return; }
+        if (error) { res.status(413).json({ message: error.message }); return; }
 
         if (!files['profile-picture']) { return res.status(400).json({ success: false, message: 'Profile picture is required' }); }
 
