@@ -149,7 +149,7 @@ function Details() {
                             </tr>
                             <tr>
                                 <td>Bio</td>
-                                <td dangerouslySetInnerHTML={{ __html: details.bio }}></td>
+                                <td>{details.bio}</td>
                             </tr>
                         </tbody>
                     </Table>
