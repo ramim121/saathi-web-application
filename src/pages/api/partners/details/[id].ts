@@ -25,7 +25,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     {
                         model: ProjectPartner, as: 'Partnerships',
                         include: [
-                            { model: Project, as: 'Project' }
+                            {
+                                model: Project, as: 'Project',
+                                include: [
+                                    {
+                                        model: File, as: 'MainImage'
+                                    }
+                                ]
+                            }
                         ]
 
                     }],
