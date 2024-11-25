@@ -71,7 +71,7 @@ export default async function handler(
 			const result = await Project.findAll({
 				include: [
 					{
-						model: ProjectPartner, as: 'ProjectPartners', required: true
+						model: ProjectPartner, as: 'ProjectPartners', required: true,
 					},
 					{
 						model: File, as: 'MainImage', required: false
@@ -89,23 +89,23 @@ export default async function handler(
 					include: [
 						[
 							sequelize.literal(`(
-								SELECT SUM(unit_purchased)
-								FROM project_investors AS ppi
-								WHERE ppi.id_projects = Project.id_projects
-							)`),
+                                SELECT COALESCE(SUM(unit_purchased), 0)
+                                FROM project_investors AS ppi
+                                WHERE ppi.id_projects = Project.id_projects
+                            )`),
 							'totalInvestedUnits'
 						],
 						[
 							sequelize.literal(`
-                                CASE
-                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-                                        SELECT SUM(unit_purchased)
-                                        FROM project_investors AS ppi
-                                        WHERE ppi.id_projects = Project.id_projects
-                                    )
-                                    ELSE NULL
-                                END
-                            `),
+				                CASE
+				                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
+				                        SELECT SUM(unit_purchased)
+				                        FROM project_investors AS ppi
+				                        WHERE ppi.id_projects = Project.id_projects
+				                    )
+				                    ELSE NULL
+				                END
+				            `),
 							'totalRemainingUnits'
 						]
 					]
