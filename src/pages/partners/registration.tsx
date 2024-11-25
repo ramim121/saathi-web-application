@@ -155,7 +155,7 @@ function Registration() {
                 newFormData.append('age', formData.age.toString());
                 newFormData.append('location', formData.location);
                 newFormData.append('role', formData.role);
-                newFormData.append('bio', bioRef.current.getContent());
+                newFormData.append('bio', formData.bio);
                 newFormData.append('interestedIn', formData.interestedIn);
                 newFormData.append('joiningDate', formData.joiningDate);
                 newFormData.append('skills', formData.skills);
@@ -357,7 +357,7 @@ function Registration() {
                             <Form.Group as={Row} className='mb-3'>
                                 <Form.Label column sm='4'>Bio</Form.Label>
                                 <Col sm='8' style={{ zIndex: '0' }}>
-                                    <Editor
+                                    {/* <Editor
                                         apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
                                         onInit={(evt, editor) => bioRef.current = editor}
                                         id='painPoints'
@@ -374,6 +374,13 @@ function Registration() {
                                                 'removeformat | help',
                                             content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
                                         }}
+                                    /> */}
+                                    <Form.Control
+                                        as="textarea"
+                                        placeholder="Enter partners bio"
+                                        name="bio"
+                                        onChange={handleOnChange}
+                                        value={formData.bio}
                                     />
                                 </Col>
                             </Form.Group>
