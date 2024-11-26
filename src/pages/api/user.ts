@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import { JWT_SECRET } from '@/config/constants';
-import { User, Project, ProjectInvestor, ProjectPartner } from '@/models/__associations';
+import { User, Project, ProjectInvestor, ProjectPartner, UserBank, Bank, BankBranch } from '@/models/__associations';
 import Joi from 'joi';
 import Cors from 'micro-cors';
 const cors = Cors({
@@ -31,14 +31,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     let tokenData = req.headers.authorization;
     let token = tokenData?.split(' ')[1];
 
-    if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+    if (!token) { res.status(401).json({ success: false, message: 'Token not found' }); return; }
+    try { jwt.verify(token, JWT_SECRET) } catch (e: any) { res.status(401).json({ success: false, message: e.message }); return; }
 
     let userInfo = jwt.decode(token) as JWTPayload;
     const user = await User.findByPk(userInfo!.idUsers,
         {
             include: [
                 { model: ProjectInvestor, as: 'Investments', include: [Project] },
-                { model: ProjectPartner, as: 'Partnerships', include: [Project] }
+                { model: ProjectPartner, as: 'Partnerships', include: [Project] },
+                { model: UserBank, include: [Bank, BankBranch] },
             ],
         })
 
