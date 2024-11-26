@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project } from '@/models/__associations'
+import { User, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor } from '@/models/__associations'
 import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -25,7 +25,8 @@ export default async function handler(
                     {
                         model: ProjectPartner, as: 'Partnerships',
                         include: [
-                            { model: Project, as: 'Project', attributes: ['projectName', 'location'] }
+                            { model: Project, as: 'Project', attributes: ['projectName', 'location'] },
+                            { model: ProjectPartnerInvestor, include: [{ model: ProjectInvestor, include: [User] }] }
                         ]
 
                     }],

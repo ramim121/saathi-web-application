@@ -67,6 +67,7 @@ ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
 ProjectInvestor.belongsTo(ProjectInvestmentBooking, { foreignKey: 'idProjectInvestmentBookings' });
 
 ProjectInvestor.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectInvestors' });
+
 ProjectPartnerInvestor.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, Row, Col, Button, Card } from "react-bootstrap";
+import { Container, Form, Row, Col, Button, Card, Table } from "react-bootstrap";
 import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { API_URL } from '@/config/constants';
 import Swal from 'sweetalert2';
 import Select, { components } from "react-select";
 import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill } from 'react-bootstrap-icons';
+import ProjectPartner from "@/types/ProjectPartner";
 
 interface PartnerProps {
 	idUsers: number,
@@ -15,12 +16,7 @@ interface PartnerProps {
 	joiningDate: string,
 	label: string,
 	value: number,
-	Partnerships: {
-		Project: {
-			projectName: string,
-			location: string
-		}
-	}[]
+	Partnerships: ProjectPartner[]
 }
 
 interface ProjectProps {
@@ -185,7 +181,7 @@ function PartnerAssign() {
 			<hr />
 			<Form onSubmit={handleSubmit}>
 				<Row>
-					<Col md={6}>
+					<Col md={8}>
 						<Form.Group as={Row} className='mb-3'>
 							<Form.Label column sm='4' >Select Partner <span className='text-danger'>*</span></Form.Label>
 							<Col sm='8'>
@@ -232,17 +228,44 @@ function PartnerAssign() {
 							</Col>
 						</Row>
 					</Col>
-					<Col md={6}>
+				</Row>
+				<Row>
+					<Col className="pt-4" md={12}>
 						<Card>
 							<Card.Header>Existing Projects of Partner</Card.Header>
 							<Card.Body>
-								{(selectedPartner && selectedPartner.value) && (
-									<ul>
-										{selectedPartner.Partnerships && selectedPartner.Partnerships.map((project, index: number) => (
-											<li key={index}>{project.Project?.projectName}  ({project.Project?.location})</li>
+								<Table size="sm">
+									<thead>
+										<tr>
+											<th>Project name</th>
+											<th>Location</th>
+											<th>Available Units</th>
+											<th className="text-center">Investor info</th>
+										</tr>
+									</thead>
+									<tbody>
+										{selectedPartner && selectedPartner.Partnerships.map((project, index: number) => (
+											<tr key={index}>
+												<td>{project.Project?.projectName}</td>
+												<td>{project.Project?.location}</td>
+												<td>{project.partnerUnitCapacity}</td>
+												<td className="p-0">
+													<Table size="sm" className="m-0">
+														<tbody>
+															{project.ProjectPartnerInvestors!.map((investor, index: number) => (
+																<tr key={index}>
+																	<td>{investor.ProjectInvestor?.User?.fullName}</td>
+																	<td className="text-center">{investor.ProjectInvestor.investmentStatus}</td>
+																	<td className="text-end">{Number(investor.amountInvested).toLocaleString()}</td>
+																</tr>
+															))}
+														</tbody>
+													</Table>
+												</td>
+											</tr>
 										))}
-									</ul>
-								)}
+									</tbody>
+								</Table>
 							</Card.Body>
 						</Card>
 					</Col>
