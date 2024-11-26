@@ -124,7 +124,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             include: [
                                 {
                                     model: User,
-                                    attributes: ['fullName'],
+                                    attributes: ['fullName','role','location','interestedIn','disability','joiningDate'],
                                     include: [
                                         { model: File, as: 'ProfilePicture' }
                                     ]
