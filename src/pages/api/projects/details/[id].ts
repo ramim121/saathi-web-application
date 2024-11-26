@@ -8,14 +8,6 @@ import sequelize from '@/config/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
-        // let tokenData = req.headers.authorization;
-        // let token = tokenData?.split(' ')[1];
-
-        // if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
-
-        // let userInfo = jwt.decode(token) as JWTPayload;
-        // if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
-
         try {
 
             const result = await Project.findOne({
@@ -59,9 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     include: [
                         [
                             sequelize.literal(`(
-								SELECT SUM(unit_purchased)
+								SELECT IFNULL(SUM(unit_purchased),0)
 								FROM project_investors AS ppi
-								WHERE ppi.id_projects = Project.id_projects
+								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
 							)`),
                             'totalInvestedUnits'
                         ],
@@ -69,9 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             sequelize.literal(`
                                 CASE
                                     WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-                                        SELECT SUM(unit_purchased)
+                                        SELECT IFNULL(SUM(unit_purchased),0)
                                         FROM project_investors AS ppi
-                                        WHERE ppi.id_projects = Project.id_projects
+                                        WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
                                     )
                                     ELSE NULL
                                 END
