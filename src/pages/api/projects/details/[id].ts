@@ -2,63 +2,82 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Project } from '@/models/__associations';
 import { User, ProjectPartner, File, ProjectInvestor, ProjectInvestmentBooking, ProjectCategory } from '@/models/__associations';
 import sequelize from '@/config/db';
-// import jwt from 'jsonwebtoken';
-// import { JWT_SECRET } from '@/config/constants';
-// import JWTPayload from '@/types/JWTPayload';
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
+import Cors from 'micro-cors';
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
         try {
+            let userType = '';
+            try {
+                let tokenData = req.headers.authorization;
+                let token = tokenData?.split(' ')[1];
+                if (token) {
+                    jwt.verify(token, JWT_SECRET);
+                    let userInfo = jwt.decode(token) as JWTPayload;
+                    userType = userInfo.userType;
+                }
 
-            const result = await Project.findOne({
-                include: [
-                    { model: User, as: 'CreatedBy', attributes: ['fullName'] },
-                    {
-                        model: ProjectPartner, as: 'ProjectPartners',
-                        include: [
-                            {
-                                model: User,
-                                include: [
-                                    { model: File, as: 'ProfilePicture' }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        model: ProjectInvestor, as: 'ProjectInvestors',
-                        include: [
-                            {
-                                model: User,
-                            },
-                            {
-                                model: ProjectInvestmentBooking,
-                            }
-                        ]
-                    },
-                    {
-                        model: File, as: 'MainImage'
-                    },
-                    {
-                        model: File, as: 'FeaturedImages'
-                    },
-                    {
-                        model: ProjectCategory,
-                        as: 'ProjectCategory'
-                    },
+            } catch (error) { }
 
-                ],
-                attributes: {
+            if (userType && userType == 'admin') {
+
+                const result = await Project.findOne({
                     include: [
-                        [
-                            sequelize.literal(`(
+                        { model: User, as: 'CreatedBy', attributes: ['fullName'] },
+                        {
+                            model: ProjectPartner, as: 'ProjectPartners',
+                            include: [
+                                {
+                                    model: User,
+                                    include: [
+                                        { model: File, as: 'ProfilePicture' }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: ProjectInvestor, as: 'ProjectInvestors',
+                            include: [
+                                {
+                                    model: User,
+                                },
+                                {
+                                    model: ProjectInvestmentBooking,
+                                }
+                            ]
+                        },
+                        {
+                            model: File, as: 'MainImage'
+                        },
+                        {
+                            model: File, as: 'FeaturedImages'
+                        },
+                        {
+                            model: ProjectCategory,
+                            as: 'ProjectCategory'
+                        },
+
+                    ],
+                    attributes: {
+                        include: [
+                            [
+                                sequelize.literal(`(
 								SELECT IFNULL(SUM(unit_purchased),0)
 								FROM project_investors AS ppi
 								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
 							)`),
-                            'totalInvestedUnits'
-                        ],
-                        [
-                            sequelize.literal(`
+                                'totalInvestedUnits'
+                            ],
+                            [
+                                sequelize.literal(`
                                 CASE
                                     WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
                                         SELECT IFNULL(SUM(unit_purchased),0)
@@ -68,16 +87,93 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                     ELSE NULL
                                 END
                             `),
-                            'totalRemainingUnits'
+                                'totalRemainingUnits'
+                            ]
                         ]
-                    ]
-                },
-                where: {
-                    idProjects: req.query.id
-                },
-            });
+                    },
+                    where: {
+                        idProjects: req.query.id
+                    },
+                });
 
-            return res.status(200).json({ success: true, data: result });
+                return res.status(200).json({ success: true, data: result });
+            }
+            else {
+                const result = await Project.findOne({
+                    include: [
+                        { model: User, as: 'CreatedBy', attributes: ['fullName'] },
+                        {
+                            model: ProjectPartner, as: 'ProjectPartners',
+                            attributes: {
+                                exclude: [
+                                    'createdAt',
+                                    'updatedAt',
+                                ],
+                                include: [
+                                    [
+                                        sequelize.literal(`(
+                                        SELECT IFNULL(SUM(invested_unit),0)
+                                        FROM project_partner_investors AS ppi
+                                        LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                                        WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status != 'cancelled'
+                                    )`),
+                                        'alreadyInvestedUnits'
+                                    ],
+                                ]
+                            },
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['fullName'],
+                                    include: [
+                                        { model: File, as: 'ProfilePicture' }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: File, as: 'MainImage'
+                        },
+                        {
+                            model: File, as: 'FeaturedImages'
+                        },
+                        {
+                            model: ProjectCategory,
+                            as: 'ProjectCategory'
+                        },
+                    ],
+                    attributes: {
+                        include: [
+                            [
+                                sequelize.literal(`(
+								SELECT IFNULL(SUM(unit_purchased),0)
+								FROM project_investors AS ppi
+								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
+							)`),
+                                'totalInvestedUnits'
+                            ],
+                            [
+                                sequelize.literal(`
+                                CASE
+                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
+                                        SELECT IFNULL(SUM(unit_purchased),0)
+                                        FROM project_investors AS ppi
+                                        WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
+                                    )
+                                    ELSE NULL
+                                END
+                            `),
+                                'totalRemainingUnits'
+                            ]
+                        ]
+                    },
+                    where: {
+                        idProjects: req.query.id
+                    },
+                });
+                return res.status(200).json({ success: true, data: result });
+
+            }
         } catch (error) {
             return res.status(500).json({ success: false, message: (error as Error).message })
         }
@@ -85,3 +181,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default cors(handler as any);

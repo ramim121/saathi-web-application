@@ -82,7 +82,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await user.save();
         }
 
-        const token = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
+        const token = jwt.sign({ idUsers: user.idUsers, userType: user.userType }, JWT_SECRET, {
             expiresIn: '30d'
         });
 
@@ -102,7 +102,7 @@ async function uploadProfilePictureToS3(imageUrl: string, userId: string): Promi
         const buffer = Buffer.from(response.data, 'binary');
 
         const fileName = generateHash(Date.now() + userId.toString() + imageUrl) + '.jpeg';
-        const key = `profile/`+fileName;
+        const key = `profile/` + fileName;
 
         await s3Client.send(new PutObjectCommand({
             Bucket: S3_BUCKET_NAME,

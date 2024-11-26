@@ -91,7 +91,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 await user.save();
             }
 
-            const jwtToken = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
+            const jwtToken = jwt.sign({ idUsers: user.idUsers, userType: user.userType }, JWT_SECRET, {
                 expiresIn: '30d'
             });
 
@@ -113,7 +113,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             if (err1) {
                 return res.status(500).json({ success: false, message: 'Error updating user' });
             }
-            const jwtToken = jwt.sign({ idUsers: user.idUsers }, JWT_SECRET, {
+            const jwtToken = jwt.sign({ idUsers: user.idUsers, userType: user.userType }, JWT_SECRET, {
                 expiresIn: '30d'
             });
             return res.status(200).json({ success: true, token: jwtToken, user });

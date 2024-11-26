@@ -23,6 +23,10 @@ const ProjectPartnerInvestor = sequelize.define<ProjectPartnerInvestorModel>('Pr
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false
     },
+    investedUnit: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false

@@ -63,6 +63,11 @@ const schema = Joi.object({
                         "number.base": "Amount invested can not be empty",
                         "number.min": "Amount invested can not be less than 0",
                     }),
+                    investedUnit: Joi.number().min(1).required().messages({
+                        "any.required": "Invested units is required",
+                        "number.base": "Invested units can not be empty",
+                        "number.min": "Invested units can not be less than 0",
+                    }),
                 })
             ).required().messages({
                 "any.required": "Project partner must be selected",
@@ -200,6 +205,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         idProjectInvestors: projectInvestor.idProjectInvestors,
                         idProjectPartners: partner.idProjectPartners,
                         amountInvested: partner.amountInvested,
+                        investedUnit: partner.investedUnit,
                     }, { transaction });
                 }
             }

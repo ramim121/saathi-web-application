@@ -9,6 +9,7 @@ export default interface ProjectPartnerInvestor {
     amountInvested: number;
     createdAt: Date;
     updatedAt: Date;
+    investedUnit: number;
     ProjectPartner: ProjectPartner;
     ProjectInvestor: ProjectInvestor;
 }
