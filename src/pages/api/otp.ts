@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, OTP_EXPIRY } from '@/config/constants';
-import { User, ProjectInvestor, ProjectPartner, Project } from '@/models/__associations';
+import { User, ProjectInvestor, ProjectPartner, Project, UserBank, Bank, BankBranch } from '@/models/__associations';
 import SendSms from '@/utils/SendSms';
 import Cors from 'micro-cors';
 import JWTPayload from '@/types/JWTPayload';
@@ -78,6 +78,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     phoneNumber: phone
                 },
                 include: [
+                    { model: UserBank, include: [Bank, BankBranch] },
                     { model: ProjectInvestor, as: 'Investments', include: [Project] },
                     { model: ProjectPartner, as: 'Partnerships', include: [Project] }
                 ],
