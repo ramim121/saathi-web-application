@@ -164,7 +164,7 @@ function List() {
 		<Container>
 			<h4 className="text-start">Projects List</h4>
 			<hr />
-			<Table responsive striped bordered hover>
+			<Table responsive striped bordered hover size="sm">
 				<thead>
 					<tr>
 						<th>#</th>
@@ -177,11 +177,9 @@ function List() {
 						<th>Tenure</th>
 						<th>Location</th>
 						<th>Upcoming</th>
-						<th>Total Available Units</th>
-						<th>Investor Unit Capacity</th>
+						<th>Total Units</th>
+						<th>Investor Capacity</th>
 						<th>Status</th>
-						<th>Created By</th>
-						<th>Partner</th>
 						<th>Actions</th>
 					</tr>
 					<tr>
@@ -224,14 +222,7 @@ function List() {
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="projectStatus" onChange={handleInputOnChange} value={filter.projectStatus} />
 						</td>
-						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
-						</td>
-						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnersName" onChange={handleInputOnChange} value={filter.partnersName} />
-						</td>
 						<td></td>
-
 					</tr>
 				</thead>
 				<tbody>
@@ -252,20 +243,12 @@ function List() {
 							<td>{project.totalAvailableUnits}</td>
 							<td>{project.investorUnitCapacity}</td>
 							<td>{project.projectStatus.charAt(0).toUpperCase() + project.projectStatus.slice(1)}</td>
-							<td>{project.CreatedBy?.fullName}</td>
-							<td>
-								<ul>
-									{project.ProjectPartners && project.ProjectPartners.map((partner, index) => (
-										<li key={index}>{partner.User.fullName}</li>
-									))}
-								</ul>
-							</td>
 							<td style={{ whiteSpace: 'nowrap' }}>
 								<Link href={`/projects/details/${project.idProjects}`}>
-									<Button variant="primary" className="me-2">Details</Button>
+									<Button size="sm" variant="primary" className="me-2">Details</Button>
 								</Link>
 								<Link href={`/projects/edit/${project.idProjects}`}>
-									<Button variant="info">Edit</Button>
+									<Button size="sm" variant="info">Edit</Button>
 								</Link>
 							</td>
 						</tr>
@@ -276,14 +259,22 @@ function List() {
 					)}
 
 				</tbody>
+				<tfoot>
+					<tr>
+						<td className="pt-2 border-0" colSpan={15}>
+							<div className="d-flex w-100 justify-content-center">
+								<Pagination>
+									<Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
+									<Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
+									{pageList()}
+									<Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
+									<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
+								</Pagination>
+							</div>
+						</td>
+					</tr>
+				</tfoot>
 			</Table>
-			<Pagination>
-				<Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-				<Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-				{pageList()}
-				<Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-				<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-			</Pagination>
 		</Container>
 	)
 

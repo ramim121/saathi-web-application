@@ -3,6 +3,12 @@ import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, User
 import sequelize from '@/config/db';
 import Joi from 'joi';
 import Cors from 'micro-cors';
+import { JWT_SECRET } from '@/config/constants';
+import jwt from 'jsonwebtoken';
+import JWTPayload from '@/types/JWTPayload';
+import UserBankType from '@/types/UserBank';
+import { createBank } from '../banks/user-bank';
+import user from '../user';
 
 const cors = Cors({
     origin: '*',
@@ -10,38 +16,12 @@ const cors = Cors({
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
-// export const config = {
-//     api: {
-//         bodyParser: false,
-//     },
-// };
-
-
 const schema = Joi.object({
-    idUsers: Joi.number().required().messages({
-        "any.required": "Investor must be selected",
-        "number.base": "Investor must be selected",
-    }),
     investmentDate: Joi.date().required().messages({
         "any.required": "Investment date is required",
         "date.base": "Invalid date",
     }),
-    idBanks: Joi.number().required().messages({
-        "any.required": "Bank must be selected",
-        "number.base": "Bank must be selected",
-    }),
-    idBankBranches: Joi.number().required().messages({
-        "any.required": "Branch must be selected",
-        "number.base": "Branch must be selected",
-    }),
-    accountNumber: Joi.string().required().messages({
-        "any.required": "Account number is required",
-        "string.base": "Account number can not be empty",
-    }),
-    accountHolderName: Joi.string().required().messages({
-        "any.required": "Account holder name is required",
-        "string.base": "Account holder name can not be empty",
-    }),
+    idUserbanks: Joi.number().optional(),
     projects: Joi.array().items(
         Joi.object({
             idProjects: Joi.number().required().messages({
@@ -79,11 +59,20 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
-        const { idUsers, investmentDate, projects, idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
+
+        let tokenData = req.headers.authorization;
+        let token = tokenData?.split(' ')[1];
+
+        if (!token) { res.status(401).json({ success: false, message: 'Token not found' }); return; }
+        try { jwt.verify(token, JWT_SECRET); } catch (error: any) { return res.status(401).json({ success: false, message: error.message }); }
+
+        let userInfo = jwt.decode(token) as JWTPayload;
+
+        const { investmentDate, projects, userBank, idUserBanks } = req.body
         const options = {
             abortEarly: false,
         };
-        const { error } = schema.validate({ idUsers, investmentDate, projects, idBanks, idBankBranches, accountHolderName, accountNumber }, options);
+        const { error } = schema.validate({ investmentDate, projects, idUserBanks }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -95,21 +84,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const userVerification = await User.findOne({
             where: {
-                idUsers,
+                idUsers: userInfo.idUsers,
             }
         });
 
         if (!userVerification) {
-            return res.status(404).json({ success: false, message: 'Investor not found' });
+            return res.status(400).json({ success: false, message: 'Investor not found' });
         }
 
         if (userVerification.emailVerified === 'no' && userVerification.phoneVerified === 'no') {
             return res.status(400).json({ success: false, message: 'Please verify your email or phone number before making any investment' });
         }
-
-        // if () {
-        //     return res.status(400).json({ success: false, message: 'Please verify your phone number before making any investment' });
-        // }
 
         if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
             return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
@@ -119,39 +104,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
 
-            const userBankExist = await UserBank.findOne({
-                where: {
-                    idUsers,
-                    accountNumber
+            let userBankData: any;
+
+            if (idUserBanks) {
+                userBankData = await UserBank.findOne({ where: { idUserBanks: idUserBanks, idUsers: userInfo.idUsers } });
+                if (!userBankData) {
+                    await transaction.rollback();
+                    return res.status(400).json({ success: false, message: 'User bank not found' });
                 }
-            });
+            } else {
+                userBankData = await createBank({ body: req.body.userBanks } as NextApiRequest, res, userInfo, transaction, false);
 
-            let userBankId = null;
-
-            if (userBankExist) {
-                userBankId = userBankExist.idUserBanks;
-            }
-            else {
-                const userBank = await UserBank.create({
-                    idUsers,
-                    idBanks: req.body.idBanks,
-                    idBankBranches: req.body.idBankBranches,
-                    accountNumber: req.body.accountNumber,
-                    accountHolderName: req.body.accountHolderName,
-                }, { transaction });
-
-                userBankId = userBank.idUserBanks;
+                if (typeof userBankData == 'string') {
+                    return res.status(400).json({ success: false, message: userBankData });
+                }
             }
 
             const maximumBookingId = await ProjectInvestmentBooking.max('bookingId');
             const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
             const projectInvestmentBooking = await ProjectInvestmentBooking.create({
-                idUsers,
+                idUsers: userInfo.idUsers,
                 paymentMethod: 'bank',
                 bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
-                idUserBanks: userBankId,
+                idUserBanks: userBankData.idUserBanks,
             }, { transaction });
 
 
@@ -178,7 +155,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 const userBooking = await ProjectInvestor.sum('unitPurchased', {
                     where: {
-                        idUsers,
+                        idUsers: userInfo.idUsers,
                         idProjects: project.idProjects,
                     }
                 });
@@ -192,7 +169,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 
                 const projectInvestor = await ProjectInvestor.create({
-                    idUsers,
+                    idUsers: userInfo.idUsers,
                     idProjects: project.idProjects,
                     unitPurchased: project.unitPurchased,
                     investmentStatus: 'booked',

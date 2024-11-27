@@ -6,8 +6,9 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import Joi from 'joi';
 import sequelize from '@/config/db';
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import _ from 'await-to-js';
+import userBankType from '@/types/UserBank';
 
 const cors = Cors({
     origin: '*',
@@ -68,7 +69,6 @@ const updateSchema = Joi.object({
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
-    console.log(req.body);
 
     let tokenData = req.headers.authorization;
     let token = tokenData?.split(' ')[1];
@@ -98,49 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(500).json({ success: false, message: (error as Error).message })
         }
     } else if (req.method === 'POST') {
-        const idUsers = userInfo.idUsers;
-        const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
-        const options = {
-            abortEarly: false,
-        };
-        const { error } = createSchema.validate({ idUsers, idBanks, idBankBranches, accountHolderName, accountNumber }, options);
-        if (error) {
-            let errorMessage: string[] = [];
-
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
-            });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
-        }
-
-        const userBankExist = await UserBank.findOne({
-            where: {
-                accountNumber,
-                idUsers
-            }
-        });
-
-        if (userBankExist) {
-            return res.status(400).json({ success: false, message: 'Account number already exist' });
-        }
-
-        const transaction = await sequelize.transaction();
-
-        try {
-            const userBank = await UserBank.create({
-                idUsers,
-                idBanks: req.body.idBanks,
-                idBankBranches: req.body.idBankBranches,
-                accountNumber: req.body.accountNumber,
-                accountHolderName: req.body.accountHolderName,
-            }, { transaction });
-
-            await transaction.commit();
-            return res.status(200).json({ success: true, message: 'User bank created successfully', data: userBank })
-        } catch (err) {
-            await transaction.rollback();
-            return res.status(500).json({ success: false, message: (err as Error).message })
-        }
+        createBank(req, res, userInfo);
     } else if (req.method === 'PUT') {
         {
             const { idUserBanks, idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
@@ -193,7 +151,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
 
             await transaction.commit();
-            return res.status(200).json({ success: true, message: 'User bank updated successfully', userBank })
+            return res.status(200).json({ success: true, message: 'User bank updated successfully', userBank });
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })
@@ -201,3 +159,57 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 export default cors(handler as any);
+
+
+export async function createBank(req: NextApiRequest, res: NextApiResponse, userInfo: JWTPayload, transactionMain?: Transaction, sendResponse = true): Promise<userBankType | string | undefined> {
+    const idUsers = userInfo.idUsers;
+    const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
+    const options = {
+        abortEarly: false,
+    };
+    const { error } = createSchema.validate({ idUsers, idBanks, idBankBranches, accountHolderName, accountNumber }, options);
+    if (error) {
+        let errorMessage: string[] = [];
+
+        error.details.forEach((e) => {
+            errorMessage.push(e.message);
+        });
+        if (sendResponse) { res.status(400).json({ success: false, message: errorMessage.join(". <br>") }); return; }
+        return errorMessage.join(". <br>");
+    }
+
+    const userBankExist = await UserBank.findOne({
+        where: {
+            accountNumber,
+            idUsers
+        }
+    });
+
+    if (userBankExist) {
+        if (sendResponse) { res.status(400).json({ success: false, message: 'Account number already exist' }); return; }
+        return 'Account number already exist';
+    }
+
+    const previousUserBank = await UserBank.findAll({ where: { idUsers } });
+
+    const transaction = transactionMain || await sequelize.transaction();
+
+    try {
+        const userBank = await UserBank.create({
+            idUsers,
+            idBanks: req.body.idBanks,
+            idBankBranches: req.body.idBankBranches,
+            accountNumber: req.body.accountNumber,
+            accountHolderName: req.body.accountHolderName,
+            default: previousUserBank.length === 0 ? 'yes' : 'no'
+        }, { transaction });
+
+        if (!transactionMain) await transaction.commit();
+        if (sendResponse) { res.status(200).json({ success: true, message: 'User bank created successfully', data: userBank }); return; }
+        return userBank as userBankType;
+    } catch (err) {
+        await transaction.rollback();
+        if (sendResponse) { res.status(500).json({ success: false, message: (err as Error).message }); return; }
+        return (err as Error).message;
+    }
+}
