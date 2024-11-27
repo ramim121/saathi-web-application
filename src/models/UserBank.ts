@@ -22,6 +22,11 @@ const UserBank = sequelize.define<UserBankModel>('UserBank', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    default: {
+        type: DataTypes.ENUM('yes', 'no'),
+        allowNull: false,
+        defaultValue: 'no'
+    },
     accountHolderName: {
         type: DataTypes.STRING,
         allowNull: false

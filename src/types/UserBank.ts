@@ -9,6 +9,7 @@ export default interface UserBank {
     idBankBranches: string;
     accountHolderName: string;
     accountNumber: string;
+    default: 'yes' | 'no';
     User?: User;
     Bank?: Bank;
 }
