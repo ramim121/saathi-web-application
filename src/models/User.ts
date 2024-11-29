@@ -3,7 +3,7 @@ import sequelize from '../config/db';
 import { UserAttributes } from '@/types/User';
 import google from '@/pages/api/auth/google';
 
-interface UserModel extends UserAttributes, Model { }
+export interface UserModel extends UserAttributes, Model { }
 
 const User = sequelize.define<UserModel>('User', {
     idUsers: {

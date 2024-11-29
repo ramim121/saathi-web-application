@@ -1,11 +1,13 @@
-import React, { useState, useRef, useContext } from 'react';
+import React, { useState, useRef, useContext, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { Container, Row, Col, Form, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Spinner, Pagination, Table } from 'react-bootstrap';
 import { Editor } from '@tinymce/tinymce-react';
 import { API_URL } from '@/config/constants';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { AppContext } from '@/context/AppContext';
+import { getRequestOptions } from '@/utils/Fetch';
+import Link from 'next/link';
 
 interface FormDataType {
     createdBy?: number;
@@ -18,6 +20,30 @@ interface FormDataType {
     pushNotificationTitle: string;
     pushNotificationBody: string;
     pushNotificationImage: File | null;
+}
+
+interface ListProps {
+    idManualNotifications: string,
+    sendViaSms: string,
+    sendViaEmail: string,
+    sendViaPush: string,
+    formattedSendOn: string,
+    User: {
+        fullName: string
+    },
+}
+
+interface FilterProps {
+    idManualNotifications: string,
+    sendViaSms: string,
+    sendViaEmail: string,
+    sendViaPush: string,
+    sendOn: string,
+    createdBy: string,
+    orderBy: string,
+    orderType: string,
+    page: number,
+    pageSize: number
 }
 
 function ManualNotification() {
@@ -112,11 +138,100 @@ function ManualNotification() {
         });
     };
 
+    const [manualNotificationList, setManualNotificationList] = useState<ListProps[]>([]);
+    const [filter, setFilter] = useState<FilterProps>({
+        idManualNotifications: '',
+        sendViaSms: '',
+        sendViaEmail: '',
+        sendViaPush: '',
+        sendOn: '',
+        createdBy: '',
+        orderBy: 'idManualNotifications',
+        orderType: 'DESC',
+        page: 1,
+        pageSize: 10
+
+    });
+    const [total, setTotal] = useState<number>(0);
+    const [totalPages, setTotalPages] = useState<number>(1);
+    useEffect(() => {
+        const fetchManualNotificationList = async () => {
+            const query = new URLSearchParams(filter as any).toString();
+            try {
+                const res = await fetch(`/api/manual-notification/list?${query}`, getRequestOptions());
+                const data = await res.json();
+                if (res.status === 200) {
+                    setManualNotificationList(data.data);
+                    setTotal(data.total);
+                    setTotalPages(data.totalPages);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
+                }
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.message,
+                });
+            }
+        }
+        fetchManualNotificationList();
+    }, [filter]);
+
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilter({
+            ...filter,
+            [name]: value
+        });
+    }
+
+    const pagesNumber = () => {
+        if (total === 0) {
+            return [];
+        }
+        let from = Number(filter.page) - 4;
+        if (from < 1) {
+            from = 1;
+        }
+        let to = from + 4 * 2
+        if (to >= Math.ceil(total / 10)) {
+            to = Math.ceil(total / 10)
+        }
+        let pagesArray = []
+
+        for (let page = from; page <= to; page++) {
+            pagesArray.push(page)
+        }
+        return pagesArray
+    }
+
+    const pageList = () => {
+        return pagesNumber().map((pageNumber) => {
+            return (
+                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
+                    {pageNumber}
+                </Pagination.Item>
+            )
+        })
+    }
+
+    const handlePageChange = (page: number) => {
+        setFilter({
+            ...filter,
+            page: page
+        })
+    }
+
     return (
         <>
             <Container>
                 <Row className="justify-content-center">
-                    <Col md={6}>
+                    <Col md={12}>
                         <h4 className="text-start">Manual Notification Create</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
@@ -138,7 +253,7 @@ function ManualNotification() {
                                     </Col>
                                 </Form.Group>
                             }
-                            <Form.Group as={Row} className='mt-2'>
+                            <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Send Via Email<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <Form.Select name='sendViaEmail' onChange={handleTextChange} value={formData.sendViaEmail}>
@@ -225,17 +340,94 @@ function ManualNotification() {
                                 <Col sm='4'></Col>
                                 <Col sm='8'>
                                     <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : 'Submit'}
-                                        </Button>
+                                        <Col>
+                                            <Button className='w-100' variant="primary" type="submit" disabled={loading}>
+                                                {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
+                                                {loading ? 'Submitting...' : 'Submit'}
+                                            </Button>
+                                        </Col>
                                     </Row>
                                 </Col>
                             </Row>
                         </Form>
                     </Col>
                 </Row>
-                {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
+                <Row className='mt-3'>
+                    <Col>
+                        <Table size='sm' responsive striped bordered hover>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Send Via Sms</th>
+                                    <th>Send Via Email</th>
+                                    <th>Send Via Push</th>
+                                    <th>Send On</th>
+                                    <th>Created By</th>
+                                    <th>Actions</th>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <input type="number" className="form-control form-control-sm" placeholder="Search" name="idManualNotifications" onChange={handleInputOnChange} value={filter.idManualNotifications} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaSms" onChange={handleInputOnChange} value={filter.sendViaSms} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaEmail" onChange={handleInputOnChange} value={filter.sendViaEmail} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaPush" onChange={handleInputOnChange} value={filter.sendViaPush} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendOn" onChange={handleInputOnChange} value={filter.sendOn} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
+                                    </td>
+                                    <td></td>
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {manualNotificationList.length > 0 ? manualNotificationList.map((notification, index) => (
+                                    <tr key={index}>
+                                        <td>{notification.idManualNotifications}</td>
+                                        <td>{notification.sendViaSms.charAt(0).toUpperCase() + notification.sendViaSms.slice(1)}</td>
+                                        <td>{notification.sendViaEmail.charAt(0).toUpperCase() + notification.sendViaEmail.slice(1)}</td>
+                                        <td>{notification.sendViaPush.charAt(0).toUpperCase() + notification.sendViaPush.slice(1)}</td>
+                                        <td>{notification.formattedSendOn}</td>
+                                        <td>{notification?.User?.fullName}</td>
+                                        <td style={{ whiteSpace: 'nowrap' }}>
+                                            <Link href={`/manualNotification/details/${notification.idManualNotifications}`}>
+                                                <Button size='sm' variant="primary" className="me-2">Details</Button>
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={7} className="text-center">No Manual Notification found</td>
+                                    </tr>
+                                )}
+
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td className='border-0' colSpan={7}>
+                                        <div className='d-flex justify-content-center'>
+                                            <Pagination>
+                                                <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
+                                                <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
+                                                {pageList()}
+                                                <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
+                                                <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
+                                            </Pagination>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </Table>
+                    </Col>
+                </Row>
             </Container>
         </>
     )

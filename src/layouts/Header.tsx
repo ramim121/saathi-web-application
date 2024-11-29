@@ -55,7 +55,7 @@ function Header() {
                             <img
                                 alt=""
                                 src="/assets/images/logo-header.png"
-                                width="170"
+                                width="auto"
                                 height="50"
                                 className="d-inline-block align-top" />
 
@@ -71,10 +71,7 @@ function Header() {
                                     <NavDropdown.Item href="/setup/project_category">Project Category</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/skill">Skill</NavDropdown.Item>
                                 </NavDropdown>
-                                <NavDropdown title="Manual Notification" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/manualNotification/create">Create</NavDropdown.Item>
-                                    <NavDropdown.Item href="/manualNotification/list">List</NavDropdown.Item>
-                                </NavDropdown>
+                                <Nav.Link href="/notification">Notification</Nav.Link>
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/partners/registration">Registration</NavDropdown.Item>
                                     <NavDropdown.Item href="/partners/list">List</NavDropdown.Item>

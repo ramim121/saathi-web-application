@@ -5,7 +5,7 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
 });
 
-const sendNotif = async (title: string, body: string, to: string) => {
+const sendNotif = async (to: string, title: string, body: string) => {
     const message = {
         token: to,
         notification: {
@@ -68,9 +68,6 @@ export async function sendNotificationToTopic(topic: string, title: string, body
 
         // Send the message
         const response = await admin.messaging().send(message as admin.messaging.Message);
-
-        console.log('Notification sent successfully:', response);
-
         return {
             success: true,
             messageId: response,
