@@ -15,3 +15,7 @@ export const S3_URL = process.env.S3_URL ? process.env.S3_URL : 'https://saathi-
 export const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'saathi_db';
 
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID : '1055024852778-23tb7da8pka2vnatqiej8emuv2t01qem.apps.googleusercontent.com';
+
+export const SES_AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : 'AKIA4MTWJKAAYBQFWJ3L';
+export const SES_AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_SECRET_ACCESS_KEY : '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';
+export const SES_AWS_REGION = process.env.AWS_REGION ? process.env.AWS_REGION : 'ap-northeast-1';

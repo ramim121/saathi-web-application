@@ -4,11 +4,12 @@ import { NotificationQueueModel } from "@/models/NotificationQueue";
 import NotificationTemplate from "@/models/NotificationTemplate";
 import { Op } from "sequelize";
 import { User } from "@/models/__associations";
-import UsertType from "@/types/User";
+import { UserModel } from "@/models/User";
 import AppFcmToken from "@/models/AppFcmToken";
 import fs from 'fs';
 import sendSms from "@/utils/SendSms";
 import sendNotif, { sendNotificationToTopic } from "@/config/fcm";
+import sendEmail from "@/utils/SendEmail";
 
 const runNotifications = async () => {
     const unsentNotifications = await NotificationQueue.findAll({
@@ -42,16 +43,8 @@ const runNotifications = async () => {
         } else if (notification.notificationType === 'push') {
             handlePushNotification(notification);
         } else if (notification.notificationType === 'email') {
-
+            handleEmailNotification(notification);
         }
-
-        await NotificationQueue.update({
-            status: 'completed'
-        }, {
-            where: {
-                idNotificationQueue: notification.idNotificationQueue
-            }
-        });
     });
 };
 
@@ -98,14 +91,34 @@ const handlePushNotification = async (notification: NotificationQueueModel) => {
 }
 
 const handleEmailNotification = async (notification: NotificationQueueModel) => {
-    const response: string[] = [];
+    const response: any[] = [];
     if (notification.receiver === null) {
         // Send email to everyone
         const users = await User.findAll({ where: { status: 'active', email: { [Op.not]: null }, emailVerified: "yes" } });
-        for (var i = 0; i < users.length; i++) {
-            // Send email
-        }
+
+        const notificationBody = JSON.parse(notification.notificationBody!);
+        response.push(await sendEmail({
+            from: 'notification@digigramventures.com',
+            to: users.map(user => user.email!),
+            subject: notificationBody.subject,
+            htmlBody: notificationBody.body
+        }))
     }
+
+    if (typeof notification.receiver === 'string') {
+        const notificationBody = JSON.parse(notification.notificationBody!);
+        response.push(await sendEmail({
+            from: 'notification@digigramventures.com',
+            to: [notification.receiver],
+            subject: notificationBody.subject,
+            htmlBody: notificationBody.body
+        }));
+    }
+
+    notification.response = JSON.stringify(response);
+    notification.status = 'completed';
+    notification.attempt = notification.attempt + 1;
+    await notification.save();
 }
 
 export function generateNotificationBody(template: string, data: any) {
@@ -114,7 +127,7 @@ export function generateNotificationBody(template: string, data: any) {
     return template;
 }
 
-export async function generateNotification(notificationName: string, notificationData: any, receiver: UsertType) {
+export async function generateNotification(notificationName: string, notificationData: any, receiver: UserModel) {
     try {
 
         const notificationTemplate = await NotificationTemplate.findOne({ where: { notificationName } });
