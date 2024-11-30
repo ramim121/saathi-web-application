@@ -9,6 +9,7 @@ import fs from 'fs';
 import sendSms from "@/utils/SendSms";
 import sendNotif, { sendNotificationToTopic } from "@/config/fcm";
 import sendEmail from "@/utils/SendEmail";
+import path from "path";
 
 // Picks notifications from the queue and sends them
 const runNotificationQueue = async () => {
@@ -161,7 +162,8 @@ export async function generateNotification(notificationName: string, notificatio
 
         if (notificationTemplate?.emailTemplate && receiver.email && receiver.emailVerified === 'yes') {
             // Open email template file
-            const emailBody = fs.readFileSync(`./email-templates/${notificationTemplate.emailTemplate}`, 'utf8');
+            const filePath = path.join(process.cwd(), 'src', 'notifications', 'email_templates', notificationTemplate.emailTemplate);
+            const emailBody = fs.readFileSync(filePath, 'utf8');
             await NotificationQueue.create({
                 notificationType: 'email',
                 receiver: receiver.email,
