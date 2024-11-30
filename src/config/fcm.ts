@@ -1,9 +1,12 @@
 import admin from 'firebase-admin';
 import serviceAccount from './firebase.json';
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-});
+// checl if firebase is already initialized
+if (!(admin.apps.length)) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    });
+}
 
 const sendNotif = async (to: string, title: string, body: string) => {
     const message = {

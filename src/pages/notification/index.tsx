@@ -115,6 +115,7 @@ function ManualNotification() {
                             title: 'Success',
                             text: 'Manual notification created successfully!',
                         });
+                        fetchManualNotificationList();
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -154,31 +155,31 @@ function ManualNotification() {
     });
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
-    useEffect(() => {
-        const fetchManualNotificationList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
-            try {
-                const res = await fetch(`/api/manual-notification/list?${query}`, getRequestOptions());
-                const data = await res.json();
-                if (res.status === 200) {
-                    setManualNotificationList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
-                }
-            } catch (err: any) {
+    const fetchManualNotificationList = async () => {
+        const query = new URLSearchParams(filter as any).toString();
+        try {
+            const res = await fetch(`/api/manual-notification/list?${query}`, getRequestOptions());
+            const data = await res.json();
+            if (res.status === 200) {
+                setManualNotificationList(data.data);
+                setTotal(data.total);
+                setTotalPages(data.totalPages);
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: err.message,
+                    text: data.message,
                 });
             }
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message,
+            });
         }
+    }
+    useEffect(() => {
         fetchManualNotificationList();
     }, [filter]);
 

@@ -16,7 +16,7 @@ const NotificationQueue = sequelize.define<NotificationQueueModel>('Notification
     },
     receiver: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     response: {
         type: DataTypes.TEXT,
@@ -32,22 +32,24 @@ const NotificationQueue = sequelize.define<NotificationQueueModel>('Notification
     },
     sendOn: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: true
     },
     attempt: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        defaultValue: 0
     },
     status: {
         type: DataTypes.ENUM('pending', 'started', 'failed', 'completed'),
-        allowNull: true
+        allowNull: false,
+        defaultValue: 'pending'
     },
     notificationBody: {
         type: DataTypes.TEXT,
         allowNull: true
     }
 }, {
-    tableName: 'notification_queues',
+    tableName: 'notification_queue',
     underscored: true,
     timestamps: true,
 });

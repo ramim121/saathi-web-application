@@ -1,4 +1,3 @@
-import ManualNotification from "@/models/ManualNotification";
 import NotificationQueue from "@/models/NotificationQueue";
 import { NotificationQueueModel } from "@/models/NotificationQueue";
 import NotificationTemplate from "@/models/NotificationTemplate";
@@ -11,28 +10,24 @@ import sendSms from "@/utils/SendSms";
 import sendNotif, { sendNotificationToTopic } from "@/config/fcm";
 import sendEmail from "@/utils/SendEmail";
 
-const runNotifications = async () => {
+// Picks notifications from the queue and sends them
+const runNotificationQueue = async () => {
     const unsentNotifications = await NotificationQueue.findAll({
         where: {
             status: ['pending', 'failed'],
             sendOn: {
-                [Op.lte]: new Date()
+                [Op.or]: {
+                    [Op.lte]: new Date(),
+                    [Op.eq]: null
+                }
             },
             attempt: {
                 [Op.lte]: 3 // Try sending the notification 3 times at most
             }
-        },
-        include: [
-            {
-                model: ManualNotification,
-                include: [
-                    {
-                        model: NotificationTemplate
-                    }
-                ]
-            }
-        ]
+        }
     });
+
+    console.log('Queue starts at :' + (new Date()).toLocaleDateString(), "Unsent notification: " + unsentNotifications.length);
 
     unsentNotifications.forEach(async (notification) => {
         // Send the notification
@@ -70,11 +65,16 @@ const handleSmsNotification = async (notification: NotificationQueueModel) => {
     await notification.save();
 }
 
+// Handle push notification sending
+// For manual notifications receiver will be null and message will be sent to everyone via topic
 const handlePushNotification = async (notification: NotificationQueueModel) => {
     const response: any[] = [];
     const notificationBody = JSON.parse(notification.notificationBody!);
     if (notification.receiver === null) {
-        response.push(await sendNotificationToTopic('all', notificationBody.title, notificationBody.body));
+        response.push(await sendNotificationToTopic('SAATHI_APP_IOS_PROD', notificationBody.title, notificationBody.body));
+        response.push(await sendNotificationToTopic('SAATHI_APP_IOS_TEST', notificationBody.title, notificationBody.body));
+        response.push(await sendNotificationToTopic('SAATHI_APP_ANDROID_PROD', notificationBody.title, notificationBody.body));
+        response.push(await sendNotificationToTopic('SAATHI_APP_ANDROID_TEST', notificationBody.title, notificationBody.body));
     }
 
     if (typeof notification.receiver === 'string') {
@@ -98,7 +98,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
 
         const notificationBody = JSON.parse(notification.notificationBody!);
         response.push(await sendEmail({
-            from: 'notification@digigramventures.com',
+            from: 'Shathi Msg <notification@digigramventures.com>',
             to: users.map(user => user.email!),
             subject: notificationBody.subject,
             htmlBody: notificationBody.body
@@ -108,7 +108,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
     if (typeof notification.receiver === 'string') {
         const notificationBody = JSON.parse(notification.notificationBody!);
         response.push(await sendEmail({
-            from: 'notification@digigramventures.com',
+            from: 'Shathi Msg <notification@digigramventures.com>',
             to: [notification.receiver],
             subject: notificationBody.subject,
             htmlBody: notificationBody.body
@@ -127,6 +127,7 @@ export function generateNotificationBody(template: string, data: any) {
     return template;
 }
 
+//Generates the notification data and save it to the notification queue
 export async function generateNotification(notificationName: string, notificationData: any, receiver: UserModel) {
     try {
 
@@ -174,4 +175,13 @@ export async function generateNotification(notificationName: string, notificatio
     }
 }
 
-setInterval(runNotifications, 1000 * 30); // Every 30 seconds
+let notificationQueueRunning = false;
+export default function init() {
+    console.log('Notification service started');
+    if (!notificationQueueRunning) {
+        notificationQueueRunning = true;
+        setInterval(() => { runNotificationQueue() }, 1000 * 30); // Every 30 seconds
+    }
+
+
+}

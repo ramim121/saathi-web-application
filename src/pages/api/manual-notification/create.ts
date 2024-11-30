@@ -13,6 +13,7 @@ import Cors from 'micro-cors';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import NotificationQueue from '@/models/NotificationQueue';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -179,6 +180,38 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     pushNotificationImage: (data.sendViaPush === 'yes' && pushNotificationImage !== null) ? pushNotificationImageName : null,
                     createdBy: data.createdBy
                 }, { transaction });
+
+                if (data.sendViaPush === 'yes') {
+                    await NotificationQueue.create({
+                        notificationType: 'push',
+                        receiver: null,
+                        notificationBody: JSON.stringify({
+                            title: data.pushNotificationTitle,
+                            body: data.pushNotificationBody,
+                            image: pushNotificationImageName ? `https://${S3_BUCKET_NAME}.s3.${S3_BUCKET_REGION}.amazonaws.com/push-notification/${pushNotificationImageName}` : null
+                        })
+                    }, { transaction });
+                }
+
+                if (data.sendViaEmail === 'yes') {
+                    await NotificationQueue.create({
+                        notificationType: 'email',
+                        receiver: null,
+                        notificationBody: JSON.stringify({
+                            subject: data.emailSubject,
+                            body: data.emailBody
+                        })
+                    }, { transaction });
+                }
+
+                if (data.sendViaSms === 'yes') {
+                    console.log('sms here');
+                    await NotificationQueue.create({
+                        notificationType: 'sms',
+                        receiver: null,
+                        notificationBody: data.smsBody
+                    }, { transaction });
+                }
 
                 await transaction.commit();
                 return res.status(200).json({ success: true, message: 'Manual Notification created successfully', data: notification });

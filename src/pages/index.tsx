@@ -3,7 +3,7 @@ import { Montserrat } from 'next/font/google'
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import MainLayout from '@/layouts/MainLayout';
-
+import notification from '@/notifications';
 
 
 const montserrat = Montserrat({ subsets: ['cyrillic-ext'] })
@@ -21,6 +21,14 @@ export default function Home(HomeProps: NextPage) {
 			<h1>WELCOME HOME</h1>
 		</>
 	)
+}
+
+export async function getServerSideProps() {
+	notification();
+	return {
+		props: {
+		}
+	};
 }
 
 

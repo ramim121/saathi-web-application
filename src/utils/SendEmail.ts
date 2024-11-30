@@ -28,7 +28,7 @@ async function sendEmail(options: EmailOptions): Promise<SendEmailCommandOutput>
         const params: SendEmailCommandInput = {
             Source: options.from,
             Destination: {
-                ToAddresses: options.to
+                BccAddresses: options.to
             },
             Message: {
                 Subject: {
