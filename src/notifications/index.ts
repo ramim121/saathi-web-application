@@ -27,7 +27,7 @@ const runNotificationQueue = async () => {
         }
     });
 
-    console.log('Queue starts at :' + (new Date()).toLocaleDateString(), "Unsent notification: " + unsentNotifications.length);
+    console.log('________Queue starts at :' + (new Date()).toLocaleDateString() + " " + (new Date()).toLocaleDateString(), "Unsent notification: " + unsentNotifications.length);
 
     unsentNotifications.forEach(async (notification) => {
         // Send the notification
@@ -90,6 +90,8 @@ const handlePushNotification = async (notification: NotificationQueueModel) => {
     await notification.save();
 }
 
+//handle email notification sending
+// For manual notifications receiver will be null and message will be sent to every email as bcc
 const handleEmailNotification = async (notification: NotificationQueueModel) => {
     const response: any[] = [];
     if (notification.receiver === null) {
