@@ -126,8 +126,9 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
 
 export function generateNotificationBody(template: string, data: any) {
     // Get the template
-    eval(`var template = \`${template}\``);
-    return template;
+    var templateResult = '';
+    eval(`templateResult = \`${template}\``);
+    return templateResult;
 }
 
 //Generates the notification data and save it to the notification queue
@@ -151,7 +152,7 @@ export async function generateNotification(notificationName: string, notificatio
             fcmTokens.forEach(async (token) => {
                 await NotificationQueue.create({
                     notificationType: 'push',
-                    receiver: token.fcmToken,
+                    receiver: receiver.idUsers,
                     notificationBody: JSON.stringify({
                         title: notificationTemplate.pushNotificationTitle,
                         body: generateNotificationBody(notificationTemplate.pushNotificationTemplate!, notificationData)

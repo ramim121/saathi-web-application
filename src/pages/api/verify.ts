@@ -5,6 +5,7 @@ import { JWT_SECRET } from '@/config/constants';
 import { User } from '@/models/__associations';
 import Cors from 'micro-cors';
 import _ from 'await-to-js';
+import { generateNotification } from '@/notifications';
 
 const cors = Cors({
     origin: '*',
@@ -37,6 +38,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             user.emailVerified = 'yes';
             let [err, result] = await _(user.save());
             if (err) { return res.status(500).json({ success: false, message: err.message }); }
+
+            await generateNotification("email_verified_manual", user, user);
             return res.status(200).json({ success: true, message: 'User email verified', userData: user });
         }
 
@@ -48,6 +51,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             user.phoneVerified = 'yes';
             let [err, result] = await _(user.save());
             if (err) { return res.status(500).json({ success: false, message: err.message }); }
+
+            await generateNotification("phone_verified_manual", user, user);
             return res.status(200).json({ success: true, message: 'User phone verified', userData: user });
         }
 
@@ -59,6 +64,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             user.nidVerified = 'yes';
             let [err, result] = await _(user.save());
             if (err) { return res.status(500).json({ success: false, message: err.message }); }
+
+            await generateNotification("nid_verified", user, user);
             return res.status(200).json({ success: true, message: 'User NID verified', userData: user });
         }
         else {
