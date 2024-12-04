@@ -7,7 +7,7 @@ import Cors from 'micro-cors';
 
 const cors = Cors({
     origin: '*',
-    allowMethods: ['GET', 'POST', 'OPTIONS','PUT'],
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
@@ -26,8 +26,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         if (!fcmToken) {
             return res.status(400).json({ success: false, message: 'FCM token are required' });
         }
-        let fcmTokenData = await AppFcmToken.create({ fcmToken, idUsers: userInfo!.idUsers });
-        return res.status(200).json({ success: true, fcmTokenData });
+        let existingFcmToken = await AppFcmToken.findOne({ where: { fcmToken } });
+        if (existingFcmToken) {
+            existingFcmToken.idUsers = userInfo!.idUsers;
+            await existingFcmToken.save();
+        } else {
+            await AppFcmToken.create({ fcmToken, idUsers: userInfo!.idUsers });
+        }
+        return res.status(200).json({ success: true });
     }
     else {
         res.status(405).json({ success: false, message: 'Method not allowed' });

@@ -16,7 +16,8 @@ const AppFcmToken = sequelize.define<AppFcmTokenModel>('AppFcmToken', {
     },
     fcmToken: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true
     },
     publicationStatus: {
         type: DataTypes.ENUM('activated', 'deactivated'),

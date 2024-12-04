@@ -3,7 +3,7 @@ import { Optional } from 'sequelize';
 export default interface AppFcmToken {
     idAppFcmTokens: number;
     fcmToken: string;
-    idusers: number;
+    idUsers: number;
     publicationStatus: 'activated' | 'deactivated';
     createdAt: Date;
     updatedAt: Date;
