@@ -79,19 +79,19 @@ function Blogs() {
     return (
         <Container>
             <Row className="justify-content-center">
-                <Col md={6}>
+                <Col md={10}>
                     <h4 className="text-start">Blog Create</h4>
                     <hr />
                     <Form onSubmit={handleSubmit}>
                         <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Heading<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
+                            <Form.Label column sm='2' className='mb-3'>Heading<span className='text-danger'>*</span></Form.Label>
+                            <Col sm='10'>
                                 <Form.Control type="text" placeholder="Enter heading of the blog" name="heading" onChange={handleOnChange} value={formData.heading} />
                             </Col>
                         </Form.Group>
                         <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Description</Form.Label>
-                            <Col sm='8'>
+                            <Form.Label column sm='2'>Description</Form.Label>
+                            <Col sm='10'>
                                 <Editor
                                     apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
                                     onInit={(evt, editor) => descriptionRef.current = editor}
@@ -113,20 +113,20 @@ function Blogs() {
                             </Col>
                         </Form.Group>
                         <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Written By<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
+                            <Form.Label column sm='2' className='mb-3'>Written By<span className='text-danger'>*</span></Form.Label>
+                            <Col sm='10'>
                                 <Form.Control type="text" placeholder="Enter writter name" name="writtenBy" onChange={handleOnChange} value={formData.writtenBy} />
                             </Col>
                         </Form.Group>
                         <Form.Group as={Row}>
-                            <Form.Label column sm='4' className='mb-3'>Written Date<span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
+                            <Form.Label column sm='2' className='mb-3'>Written Date<span className='text-danger'>*</span></Form.Label>
+                            <Col sm='10'>
                                 <Form.Control type="date" placeholder="Enter written date" name="writtenDate" onChange={handleOnChange} value={formData.writtenDate} />
                             </Col>
                         </Form.Group>
                         <Row>
                             <Col sm='4'></Col>
-                            <Col sm='8'>
+                            <Col sm='10'>
                                 <Row className='justify-content-center'>
                                     <Button className='w-50' variant="primary" type="submit">
                                         Submit
