@@ -25,7 +25,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
         let { idUsers }: { idUsers: number } = req.body;
-        let { verificationType }: { verificationType: string } = req.body;
+        let { verificationType, verificationStatus }: { verificationType: string, verificationStatus: string } = req.body;
 
         if (!idUsers) { return res.status(400).json({ success: false, message: 'User ID is required' }); }
         if (!verificationType) { return res.status(400).json({ success: false, message: 'Verification type is required' }); }
@@ -57,16 +57,34 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         if (verificationType == 'nid') {
-            let user = await User.findOne({ where: { idUsers } });
-            if (!user) { return res.status(404).json({ success: false, message: 'User not found' }); }
-            if (user.nidVerified == 'yes') { return res.status(400).json({ success: false, message: 'User NID already verified' }); }
+            if (!verificationStatus) { return res.status(400).json({ success: false, message: 'Invalid verification status' }); }
 
-            user.nidVerified = 'yes';
-            let [err, result] = await _(user.save());
-            if (err) { return res.status(500).json({ success: false, message: err.message }); }
+            if (verificationStatus == 'approved') {
+                let user = await User.findOne({ where: { idUsers } });
+                if (!user) { return res.status(404).json({ success: false, message: 'User not found' }); }
+                if (user.nidVerified == 'yes') { return res.status(400).json({ success: false, message: 'User NID already verified' }); }
 
-            await generateNotification("nid_verified", user, user);
-            return res.status(200).json({ success: true, message: 'User NID verified', userData: user });
+                user.nidVerified = 'yes';
+                user.nidVerificationStatus = 'approved';
+                let [err, result] = await _(user.save());
+                if (err) { return res.status(500).json({ success: false, message: err.message }); }
+
+                await generateNotification("nid_verified", user, user);
+                return res.status(200).json({ success: true, message: 'User NID verified', userData: user });
+            } else if(verificationStatus == 'rejected') {
+                let user = await User.findOne({ where: { idUsers } });
+                if (!user) { return res.status(404).json({ success: false, message: 'User not found' }); }
+                if (user.nidVerificationStatus != 'pending') { return res.status(400).json({ success: false, message: 'User NID does not require verification' }); }
+
+                user.nidVerified = 'no';
+                user.nidVerificationStatus = 'rejected';
+                let [err, result] = await _(user.save());
+                if (err) { return res.status(500).json({ success: false, message: err.message }); }
+
+                await generateNotification("nid_verification_failed", user, user);
+                return res.status(200).json({ success: true, message: 'User NID rejected', userData: user });
+            }
+
         }
         else {
             res.status(405).json({ success: false, message: 'Method not allowed' });

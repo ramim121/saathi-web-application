@@ -29,7 +29,7 @@ async function sendEmail(options: EmailOptions): Promise<SendEmailCommandOutput>
             Source: options.from,
             Destination: {
                 ToAddresses: [options.to[0]],
-                BccAddresses: options.to.slice(1)
+                // BccAddresses: options.to.slice(1)
             },
             Message: {
                 Subject: {
