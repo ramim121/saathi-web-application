@@ -101,7 +101,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
 
         const notificationBody = JSON.parse(notification.notificationBody!);
         response.push(await sendEmail({
-            from: 'Shathi Msg <notification@digigramventures.com>',
+            from: 'Shathi Msg <notification@n.digigramventures.com>',
             to: users.map(user => user.email!),
             subject: notificationBody.subject,
             htmlBody: notificationBody.body
@@ -111,7 +111,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
     if (typeof notification.receiver === 'string') {
         const notificationBody = JSON.parse(notification.notificationBody!);
         response.push(await sendEmail({
-            from: 'Shathi Msg <notification@digigramventures.com>',
+            from: 'Shathi Msg <notification@n.digigramventures.com>',
             to: [notification.receiver],
             subject: notificationBody.subject,
             htmlBody: notificationBody.body
