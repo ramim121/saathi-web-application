@@ -67,6 +67,11 @@ const User = sequelize.define<UserModel>('User', {
         defaultValue: 'no',
         allowNull: false
     },
+    nidVerificationStatus: {
+        type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
+        defaultValue: 'none',
+        allowNull: false
+    },
     profileImage: {
         type: DataTypes.STRING,
         allowNull: true

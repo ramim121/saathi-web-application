@@ -21,10 +21,10 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const verifyUserInformation = async (idUsers: number, verificationType: string) => {
+    const verifyUserInformation = async (idUsers: number, verificationType: string, verificationStatus: string = "") => {
         try {
             setIsLoading(true);
-            let response = await fetch(API_URL + "api/verify", postRequestOptions({ idUsers, verificationType }));
+            let response = await fetch(API_URL + "api/verify", postRequestOptions({ idUsers, verificationType, verificationStatus }));
             let data = await response.json();
             setIsLoading(false);
             if (data.success) {
@@ -161,26 +161,37 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                     <p className="my-1">Education: {selectedUser!.education}</p>
                                     <p className="my-1">Disability: {selectedUser!.disability}</p>
                                     <p className="my-1">Partner Type: {selectedUser!.partnerType}</p>
-                                    <p className="my-1">
-                                        NID number: {new Date(selectedUser!.createdAt).toLocaleDateString()}
-                                        {
-                                            selectedUser!.nidVerified == 'yes' ?
-                                                <span className="text-success"> (Verified)</span> :
-                                                <>
-                                                    <span className="text-danger"> (Not Verified)</span>
-                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid") }}>Mark as verified</Button>
-                                                </>
-                                        }
-                                    </p>
-                                    <hr />
-                                    <Row>
-                                        <Col>
-                                            <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageFront}`} alt="NID Front"></img>
-                                        </Col>
-                                        <Col>
-                                            <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageBack}`} alt="NID Back"></img>
-                                        </Col>
-                                    </Row>
+                                    {
+                                        selectedUser.nidVerificationStatus != 'none' &&
+                                        <>
+                                            <p className="my-1">
+                                                NID number: {selectedUser!.nidNumber}
+                                                {
+                                                    selectedUser!.nidVerified == 'yes' ?
+                                                        <span className="text-success"> (Verified)</span> :
+                                                        <>
+                                                            <span className="text-danger"> {selectedUser.nidVerificationStatus}</span>
+                                                            {
+                                                                selectedUser.nidVerificationStatus == 'pending' &&
+                                                                <>
+                                                                    <Button className="mx-3" disabled={isLoading} variant="success" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "approved") }}>Approve</Button>
+                                                                    <Button disabled={isLoading} variant="danger" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "rejected") }}>Reject</Button>
+                                                                </>
+                                                            }
+                                                        </>
+                                                }
+                                            </p>
+                                            <hr />
+                                            <Row>
+                                                <Col>
+                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageFront}`} alt="NID Front"></img>
+                                                </Col>
+                                                <Col>
+                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageBack}`} alt="NID Back"></img>
+                                                </Col>
+                                            </Row>
+                                        </>
+                                    }
                                 </Col>
                             </Row>
                         </Modal.Body>

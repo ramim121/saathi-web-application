@@ -107,6 +107,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         user.nidImageFront = nidFrontfileName;
         user.nidImageBack = nidBackfileName;
+        user.nidVerificationStatus = 'pending';
 
         let [err] = await _(user.save());
         if (err) { return res.status(500).json({ success: false, message: err.message }); }

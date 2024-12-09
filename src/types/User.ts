@@ -22,6 +22,7 @@ export default interface User {
     nidImageFront: string | null;
     nidImageBack: string | null;
     nidVerified: 'yes' | 'no';
+    nidVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
     profileImage: string | null;
     status: 'active' | 'inactive';
     age: number | null;
