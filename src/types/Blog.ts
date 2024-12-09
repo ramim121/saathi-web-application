@@ -4,6 +4,7 @@ export default interface Blog {
     idBlogs: number;
     heading: string;
     description: string;
+    featuredImage: string;
     writtenBy: string;
     writtenDate: Date;
     createdAt: Date;
