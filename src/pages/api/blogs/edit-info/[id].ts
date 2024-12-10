@@ -3,11 +3,10 @@ import { Blog } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
+
         try {
 
-            const result = await Blog.findAll({
-                order: [['createdAt', 'DESC']]
-            });
+            const result = await Blog.findByPk(req.query.id as string);
 
             return res.status(200).json({ success: true, data: result });
         } catch (error) {

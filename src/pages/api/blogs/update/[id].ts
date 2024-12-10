@@ -111,6 +111,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             try {
 
+                const prevData = await Blog.findByPk(req.query.id as string)
+
                 let featuredImageFileName = '';
                 let thumbImageFileName = '';
                 if (featuredImage !== null) {
@@ -156,17 +158,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     }
                 }
 
-                const blog = await Blog.create({
+
+                const blog = await Blog.update({
                     heading: data.heading,
                     description: data.description,
                     writtenBy: data.writtenBy,
                     writtenDate: data.writtenDate,
-                    featuredImage: featuredImage !== null ? featuredImageFileName : null,
-                    featuredImageThumb: featuredImage !== null ? thumbImageFileName : null
-                }, { transaction })
+                    featuredImage: featuredImage !== null ? featuredImageFileName : (prevData?.featuredImage !== null ? prevData?.featuredImage : null),
+                    featuredImageThumb: featuredImage !== null ? thumbImageFileName : (prevData?.featuredImageThumb !== null ? prevData?.featuredImageThumb : null)
+                }, { where: { idBlogs: req.query.id }, transaction })
                 await transaction.commit();
 
-                return res.status(200).json({ success: true, message: 'Blog created successfully', data: blog })
+                return res.status(200).json({ success: true, message: 'Blog updated successfully', data: blog })
             } catch (err) {
                 await transaction.rollback();
                 return res.status(500).json({ success: false, message: (err as Error).message })
