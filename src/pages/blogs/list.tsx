@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button } from "react-bootstrap";
-import { getRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
+import { API_URL } from '@/config/constants';
+import Link from "next/link";
 
 interface ListProps {
     idBlogs: number,
@@ -10,10 +14,12 @@ interface ListProps {
     description: string,
     writtenBy: string,
     writtenDate: string,
+    featuredImage: string | null
 }
 
 function List() {
     const [blogsList, setBlogsList] = useState<ListProps[]>([]);
+    const [reload, setReload] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchBlogsList = async () => {
@@ -22,6 +28,7 @@ function List() {
                 const data = await res.json();
                 if (res.status === 200) {
                     setBlogsList(data.data);
+                    setReload(false);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -38,7 +45,46 @@ function List() {
             }
         }
         fetchBlogsList();
-    }, []);
+    }, [reload]);
+
+    const handleDelete = async (id: number) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to delete this blog!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then(async (result) => {
+            if (result.value) {
+                try {
+                    const res = await fetch(API_URL + 'api/blogs/delete/' + id, deleteRequestOptions());
+
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Blog deleted successfully',
+                        });
+                        setReload(true);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                }
+            }
+        });
+    }
+
 
     return (
         <Container>
@@ -52,6 +98,8 @@ function List() {
                         <th>Description</th>
                         <th>Written By</th>
                         <th>Written Date</th>
+                        <th>Featured Image</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,10 +110,19 @@ function List() {
                             <td dangerouslySetInnerHTML={{ __html: blog.description }}></td>
                             <td>{blog.writtenBy}</td>
                             <td>{blog.writtenDate}</td>
+                            <td>
+                                {blog.featuredImage && <Image src={`${S3_URL}blog-featured-images/${blog.featuredImage}`} alt={blog.featuredImage} width={100} height={100} />}
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap' }}>
+                                <Button variant="danger" size="sm" onClick={() => handleDelete(blog.idBlogs)}>Delete</Button>
+                                <Link href={`/blogs/edit/${blog.idBlogs}`}>
+                                    <Button variant="info" size="sm">Edit</Button>
+                                </Link>
+                            </td>
                         </tr>
                     )) : (
                         <tr>
-                            <td colSpan={5} className="text-center">No blogs found</td>
+                            <td colSpan={7} className="text-center">No blogs found</td>
                         </tr>
                     )}
 

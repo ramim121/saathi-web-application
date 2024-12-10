@@ -2,14 +2,14 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Blog } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-    if (req.method === 'GET') {
+    if (req.method === 'DELETE') {
         try {
 
-            const result = await Blog.findAll({
-                order: [['createdAt', 'DESC']]
-            });
+            const result = await Blog.findByPk(req.query.id as string);
 
-            return res.status(200).json({ success: true, data: result });
+            await result?.destroy();
+
+            return res.status(200).json({ success: true, message: 'Blog Deleted Successfully' });
         } catch (error) {
             return res.status(500).json({ success: false, message: (error as Error).message })
         }

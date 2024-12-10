@@ -233,7 +233,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 if (mainImage !== null) {
                     const mainImageFileName = generateHash(Date.now() + mainImage.originalFilename!.toString()) + '.' + mainImage.originalFilename!.split('.').pop();
-                    const thumbImageFileName = generateHash(Date.now() + mainImage.originalFilename!.toString() + '-thumb') + '.' + mainImage.originalFilename!.split('.').pop();
+                    const thumbImageFileName = generateHash(Date.now() + mainImage.originalFilename!.toString()) + '-thumb' + '.' + mainImage.originalFilename!.split('.').pop();
                     const thumbImagePath = path.join(os.tmpdir(), thumbImageFileName);
                     await sharp(mainImage.filepath)
                         .resize(400, 400, {

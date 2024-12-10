@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { Button, Col, Container, Form, Spinner, Row } from 'react-bootstrap';
+import React, { useState, useRef, useEffect } from 'react';
+import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import MainLayout from '@/layouts/MainLayout';
 import Swal from 'sweetalert2';
 import { Editor } from '@tinymce/tinymce-react';
 import { getCookie } from '@/utils/GetCookie';
+import { useRouter } from 'next/router';
+import { getRequestOptions } from "@/utils/Fetch";
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
     heading: string,
@@ -15,6 +19,8 @@ interface FormDataType {
 }
 
 function Blogs() {
+    const router = useRouter();
+    const { id } = router.query;
     const [formData, setFormData] = useState<FormDataType>({
         heading: '',
         description: '',
@@ -26,6 +32,44 @@ function Blogs() {
     const descriptionRef = useRef<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState<boolean>(false);
+
+    useEffect(() => {
+        const fetchBlogs = async () => {
+            try {
+                const res = await fetch(API_URL + 'api/blogs/edit-info/' + id, getRequestOptions());
+                const data = await res.json();
+                if (res.status === 200) {
+                    const blogData = data.data;
+                    setFormData({
+                        heading: blogData.heading,
+                        description: blogData.description,
+                        writtenBy: blogData.writtenBy,
+                        writtenDate: blogData.writtenDate,
+                        featuredImage: blogData.featuredImage
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                    });
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Something went wrong!',
+                });
+            }
+        };
+        if (id) {
+            fetchBlogs();
+        }
+    }, [id]);
+
+    useEffect(() => {
+        descriptionRef.current?.setContent(formData.description);
+    }, [formData.description]);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,10 +95,9 @@ function Blogs() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to create this blog!",
+            text: "You want to update this blog!",
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
@@ -70,7 +113,7 @@ function Blogs() {
                     if (formData.featuredImage !== null)
                         newFormData.append('featuredImage', formData.featuredImage);
 
-                    const res = await fetch(API_URL + 'api/blogs/create', {
+                    const res = await fetch(API_URL + 'api/blogs/update/' + id, {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: newFormData,
@@ -80,19 +123,9 @@ function Blogs() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Blog created successfully!',
+                            text: 'Blog updated successfully!',
                         });
-                        setFormData({
-                            heading: '',
-                            description: '',
-                            writtenBy: '',
-                            writtenDate: '',
-                            featuredImage: null
-                        });
-                        if (fileInputRef.current) {
-                            fileInputRef.current.value = '';  // Clear file input
-                        }
-                        descriptionRef.current.setContent('');
+                        router.push('/blogs/list');
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -170,6 +203,18 @@ function Blogs() {
                                 <Form.Control type="date" placeholder="Enter written date" name="writtenDate" onChange={handleOnChange} value={formData.writtenDate} />
                             </Col>
                         </Form.Group>
+                        <Row>
+                            {(id && typeof (formData.featuredImage) === 'string') ?
+                                <Image src={`${S3_URL}blog-featured-images/${formData.featuredImage}`} alt={formData.featuredImage} width={200} height={200} />
+                                : formData.featuredImage !== null &&
+                                <Image
+                                    src={URL.createObjectURL(formData.featuredImage)}
+                                    alt={formData.featuredImage.name}
+                                    width={200}
+                                    height={150}
+                                />
+                            }
+                        </Row>
                         <Row className='justify-content-center'>
                             <Button className='w-25' variant="primary" type="submit" disabled={loading}>
                                 {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}

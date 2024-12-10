@@ -22,6 +22,10 @@ const Blog = sequelize.define<BlogModel>('Blog', {
         type: DataTypes.STRING(255),
         allowNull: true
     },
+    featuredImageThumb: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
     writtenBy: {
         type: DataTypes.INTEGER,
         allowNull: false
