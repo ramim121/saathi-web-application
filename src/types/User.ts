@@ -2,6 +2,7 @@ import { Optional } from 'sequelize';
 import ProjectInvestor from './ProjectInvestor';
 import ProjectPartner from './ProjectPartner';
 import UserBank from './UserBank';
+import File from './File';
 
 type UserType = 'admin' | 'investor' | 'partner';
 
@@ -40,6 +41,8 @@ export default interface User {
     googleId: string | null;
     googleLogin: 'yes' | 'no';
     UserBank?: UserBank[];
+    ProfilePicture?: File;
+    FeaturedImages?: File[];
 }
 
 

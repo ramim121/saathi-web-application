@@ -237,6 +237,7 @@ function PartnerAssign() {
 								<Table size="sm">
 									<thead>
 										<tr>
+											<th>#</th>
 											<th>Project name</th>
 											<th>Location</th>
 											<th>Available Units</th>
@@ -246,6 +247,7 @@ function PartnerAssign() {
 									<tbody>
 										{selectedPartner && selectedPartner.Partnerships.map((project, index: number) => (
 											<tr key={index}>
+												<td>{project.Project?.idProjects}</td>
 												<td>{project.Project?.projectName}</td>
 												<td>{project.Project?.location}</td>
 												<td>{project.partnerUnitCapacity}</td>
@@ -254,6 +256,7 @@ function PartnerAssign() {
 														<tbody>
 															{project.ProjectPartnerInvestors!.map((investor, index: number) => (
 																<tr key={index}>
+																	<td>{investor.idProjectPartners}</td>
 																	<td>{investor.ProjectInvestor?.User?.fullName}</td>
 																	<td className="text-center">{investor.ProjectInvestor.investmentStatus}</td>
 																	<td className="text-end">{Number(investor.amountInvested).toLocaleString()}</td>

@@ -25,7 +25,7 @@ export default async function handler(
                     {
                         model: ProjectPartner, as: 'Partnerships',
                         include: [
-                            { model: Project, as: 'Project', attributes: ['projectName', 'location'] },
+                            { model: Project, as: 'Project', attributes: ['projectName', 'location', 'idProjects'] },
                             { model: ProjectPartnerInvestor, include: [{ model: ProjectInvestor, include: [User] }] }
                         ]
 

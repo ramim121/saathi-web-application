@@ -2,6 +2,7 @@ import { Optional } from 'sequelize';
 import Project from './Project';
 import User from './User';
 import ProjectPartnerInvestor from './ProjectPartnerInvestor';
+import ProjectInvestmentBooking from './ProjectInvestmentBooking';
 
 export default interface ProjectInvestor {
     idProjectInvestors: number;
@@ -15,6 +16,7 @@ export default interface ProjectInvestor {
     Project: Project;
     User: User;
     ProjectPartnerInvestors: ProjectPartnerInvestor[];
+    ProjectInvestmentBooking: ProjectInvestmentBooking
 }
 
 export interface ProjectInvestorAttributes extends Optional<ProjectInvestor, 'idProjectInvestors'> { }

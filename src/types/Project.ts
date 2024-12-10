@@ -1,6 +1,9 @@
 import { Optional } from 'sequelize';
 import ProjectCategory from './ProjectCategory';
+import ProjectPartner from './ProjectPartner';
+import ProjectInvestor from './ProjectInvestor';
 import User from './User';
+import File from './File';
 
 export default interface Project {
     idProjects: number;
@@ -30,8 +33,12 @@ export default interface Project {
     CreatedBy?: User;
     showInUpcoming: 'yes' | 'no';
     projectStatus: 'created' | 'collection_started' | 'collection_done' | 'project_started' | 'project_finished' | 'fund_disbursed' | 'closed' | 'completed';
+    ProjectPartners?: ProjectPartner[];
+    ProjectInvestors?: ProjectInvestor[];
     totalAvailableUnits: number;
     investorUnitCapacity: number;
+    MainImage?: File;
+    FeaturedImages?: File[];
 };
 
 

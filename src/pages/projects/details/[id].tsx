@@ -10,85 +10,24 @@ import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 import Carousel from 'react-bootstrap/Carousel';
 import { API_URL } from '@/config/constants';
+import { GetServerSidePropsContext } from "next";
+import { Project, ProjectCategory, ProjectPartner, User, File, ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor } from "@/models/__associations";
+import sequelize from "@/config/db";
+import ProjectType from "@/types/Project";
+import { getProjectDetails } from "@/pages/api/projects/details/[id]";
 
-interface DetailsProps {
-    idProjects: number,
-    projectName: string,
-    location: string,
-    unitInvestmentValue: number,
-    otherLocations: string,
-    investmentType: string,
-    returnType: string,
-    duration: number,
-    tenure: string,
-    projectStatus: string,
-    totalReturnMin: number,
-    totalReturnMax: number,
-    returnRangeMin: number,
-    returnRangeMax: number,
-    collectionStarts: string,
-    collectionEnds: string,
-    summary: string,
-    showInUpcoming: string,
-    totalAvailableUnits: number,
-    investorUnitCapacity: number,
-    ProjectCategory: {
-        categoryName: string
-    }
-    ProjectPartners: {
-        User: {
-            idUsers: number,
-            fullName: string,
-            phoneNumber: string,
-            joiningDate: string,
-            ProfilePicture: {
-                idFiles: number,
-                originalFileName: string,
-                fileName: string
-            }
-        },
-        partnerUnitCapacity: number
-    }[],
-    ProjectInvestors: {
-        ProjectInvestmentBooking: {
-            idProjectInvestmentBooking: number,
-            bookingId: string,
-            paymentConfirmationStatus: string,
-        },
-        User: {
-            idUsers: number,
-            fullName: string,
-            phoneNumber: string
-        },
-        investmentDate: string,
-        unitPurchased: number
-    }[],
-    CreatedBy: {
-        fullName: string
-    },
-    MainImage?: {
-        idFiles: number,
-        originalFileName: string,
-        fileName: string,
-    },
-    FeaturedImages: {
-        idFiles: number,
-        originalFileName: string,
-        fileName: string,
-    }[]
+interface ProjectDetailsProps {
+    projectDataMain: ProjectType
 }
 
-function Details() {
+
+const Details = ({ projectDataMain }: ProjectDetailsProps) => {
+
+    const [projectData, setProjectData] = useState<ProjectType>(projectDataMain);
     const router = useRouter();
     const { id } = router.query;
-    const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
     const [reload, setReload] = useState<boolean>(false);
-
-    useEffect(() => {
-        if (id != undefined) {
-            fetchProjectDetails();
-        }
-    }, [id])
+    console.log(projectData);
 
     useEffect(() => {
         if (reload) {
@@ -101,7 +40,7 @@ function Details() {
             const res = await fetch('/api/projects/details/' + id, getRequestOptions());
             const data = await res.json();
             if (res.status === 200) {
-                setDetails(data.data);
+                setProjectData(data.data);
                 setReload(false);
             } else {
                 Swal.fire({
@@ -169,91 +108,91 @@ function Details() {
                 <Tab eventKey="details" title="Details">
                     <Row>
                         <Col md={6}>
-                            <Table bordered>
+                            <Table bordered size="sm">
                                 <tbody>
                                     <tr>
                                         <td>Project Name</td>
-                                        <td>{details.projectName}</td>
+                                        <td>{projectData.projectName}</td>
                                     </tr>
                                     <tr>
                                         <td>Category</td>
-                                        <td>{details.ProjectCategory?.categoryName}</td>
+                                        <td>{projectData.ProjectCategory?.categoryName}</td>
                                     </tr>
                                     <tr>
                                         <td>Location</td>
-                                        <td>{details.location}</td>
+                                        <td>{projectData.location}</td>
                                     </tr>
                                     <tr>
                                         <td>Share / Unit</td>
-                                        <td>{details.unitInvestmentValue}</td>
+                                        <td>{projectData.unitInvestmentValue}</td>
                                     </tr>
                                     <tr>
                                         <td> Investment Type</td>
-                                        <td>{details.investmentType?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
+                                        <td>{projectData.investmentType?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
                                     </tr>
                                     <tr>
                                         <td>Return Type</td>
-                                        <td>{details.returnType}</td>
+                                        <td>{projectData.returnType}</td>
                                     </tr>
                                     <tr>
                                         <td>Return</td>
-                                        <td>{details.returnRangeMin}% - {details.returnRangeMax}%</td>
+                                        <td>{projectData.returnRangeMin}% - {projectData.returnRangeMax}%</td>
                                     </tr>
                                     <tr>
                                         <td>Amount</td>
-                                        <td>{details.totalReturnMin} - {details.totalReturnMax}</td>
+                                        <td>{projectData.totalReturnMin} - {projectData.totalReturnMax}</td>
                                     </tr>
                                     <tr>
                                         <td>Tenure</td>
-                                        <td>{details.duration} {details.tenure}</td>
+                                        <td>{projectData.duration} {projectData.tenure}</td>
                                     </tr>
                                     <tr>
                                         <td>Total Available Units</td>
-                                        <td>{details.totalAvailableUnits}</td>
+                                        <td>{projectData.totalAvailableUnits}</td>
                                     </tr>
                                     <tr>
                                         <td>Investor Unit Capacity</td>
-                                        <td>{details.investorUnitCapacity}</td>
+                                        <td>{projectData.investorUnitCapacity}</td>
                                     </tr>
                                     <tr>
                                         <td>Main Image</td>
                                         <td className="text-center">
-                                            {details.MainImage && <Image src={`${S3_URL}project-main-image/${id}/${details.MainImage?.fileName}`} alt={details.MainImage?.originalFileName} width={100} height={100} />}
+                                            {projectData.MainImage && <img src={`${S3_URL}project-main-image/${id}/${projectData.MainImage?.fileName}`} alt={projectData.MainImage?.originalFileName} width="200" />}
                                         </td>
                                     </tr>
                                 </tbody>
                             </Table>
                         </Col>
                         <Col md={6}>
-                            <Table bordered>
+                            <Table bordered size="sm">
                                 <tbody>
                                     <tr>
-                                        <td>Collection Starts</td>
-                                        <td>{details.collectionStarts}</td>
+                                        <td width={"30%"}>Collection Starts</td>
+                                        <td>{projectData.collectionStarts}</td>
                                     </tr>
                                     <tr>
                                         <td>Collection Ends</td>
-                                        <td>{details.collectionEnds}</td>
+                                        <td>{projectData.collectionEnds}</td>
                                     </tr>
                                     <tr>
                                         <td>Other Locations</td>
-                                        <td>{details.otherLocations}</td>
+                                        <td>{projectData.otherLocations}</td>
                                     </tr>
                                     <tr>
                                         <td>Status</td>
-                                        <td>{details.projectStatus?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
+                                        <td>{projectData.projectStatus?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
                                     </tr>
                                     <tr>
                                         <td>Upcoming</td>
-                                        <td>{details.showInUpcoming?.charAt(0).toUpperCase() + details.showInUpcoming?.slice(1)}</td>
+                                        <td>{projectData.showInUpcoming?.charAt(0).toUpperCase() + projectData.showInUpcoming?.slice(1)}</td>
                                     </tr>
                                     <tr>
                                         <td>Created By</td>
-                                        <td>{details.CreatedBy?.fullName}</td>
+                                        <td>{projectData.CreatedBy?.fullName}</td>
                                     </tr>
                                     <tr>
                                         <td>Summary</td>
-                                        <td dangerouslySetInnerHTML={{ __html: details.summary }}></td>
+                                        <td dangerouslySetInnerHTML={{ __html: projectData.summary || "" }}></td>
                                     </tr>
                                 </tbody>
                             </Table>
@@ -274,15 +213,15 @@ function Details() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {details?.ProjectPartners?.length > 0 ? details.ProjectPartners.map((partner, index) => (
+                                {projectData.ProjectPartners!.length > 0 ? projectData.ProjectPartners!.map((partner, index) => (
                                     <tr key={index}>
                                         <td>{index + 1}</td>
                                         <td className="text-center">
-                                            {partner.User.ProfilePicture !== null && <Image src={`${S3_URL}profile-picture/${partner.User.idUsers}/${partner.User.ProfilePicture?.fileName}`} alt={partner.User.ProfilePicture?.originalFileName} width={100} height={100} />}
+                                            {partner.User!.ProfilePicture !== null && <img src={`${S3_URL}profile-picture/${partner.User!.idUsers}/${partner.User!.ProfilePicture?.fileName}`} alt={partner.User!.ProfilePicture?.originalFileName || ""} width={100} height={100} />}
                                         </td>
-                                        <td>{partner.User.fullName}</td>
-                                        <td>{partner.User.phoneNumber}</td>
-                                        <td>{partner.User.joiningDate}</td>
+                                        <td>{partner.User!.fullName}</td>
+                                        <td>{partner.User!.phoneNumber}</td>
+                                        <td>{(new Date(partner.User!.joiningDate!)).toLocaleDateString()}</td>
                                         <td>{partner.partnerUnitCapacity}</td>
                                     </tr>
                                 )) : <tr><td colSpan={6} className="text-center">No Partners Found</td></tr>}
@@ -290,41 +229,71 @@ function Details() {
                         </Table>
                     </Row>
                 </Tab>
-                <Tab eventKey="Bookings" title="Bookings">
+                <Tab eventKey="Bookings" title="Investors">
                     <Row>
-                        <Table bordered>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Booking ID</th>
-                                    <th>Investor Name</th>
-                                    <th>Phone Number</th>
-                                    <th>Investment Date</th>
-                                    <th>Unit Purchased</th>
-                                    <th>Payment Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {details?.ProjectInvestors?.length > 0 ? details.ProjectInvestors.map((investor, index) => (
-                                    <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{investor.ProjectInvestmentBooking.bookingId}</td>
-                                        <td>{investor.User.fullName}</td>
-                                        <td>{investor.User.phoneNumber}</td>
-                                        <td>{investor.investmentDate}</td>
-                                        <td>{investor.unitPurchased}</td>
-                                        <td>{investor.ProjectInvestmentBooking.paymentConfirmationStatus}</td>
+                        <Col>
+                            <Table size="sm">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Booking ID</th>
+                                        <th>Proof or payment</th>
+                                        <th></th>
+                                        <th>Investor</th>
+                                        <th>Investment Status</th>
+                                        <th>Phone Number</th>
+                                        <th colSpan={3} className="text-center">Partner info</th>
                                     </tr>
-                                )) : <tr><td colSpan={7} className="text-center">No Bookings Found</td></tr>}
-                            </tbody>
-                        </Table>
+                                </thead>
+                                <tbody>
+                                    {
+                                        projectData.ProjectInvestors!.map((investor, index) => {
+                                            return (
+                                                <tr key={index}>
+                                                    <td>{investor.idProjectInvestors}</td>
+                                                    <td>
+                                                        <a href={"/bookings/details/" + investor.ProjectInvestmentBooking.idProjectInvestmentBookings}>
+                                                            {investor.ProjectInvestmentBooking.bookingId}
+                                                        </a>
+                                                    </td>
+                                                    <td>{investor.ProjectInvestmentBooking.paymentConfirmationStatus}</td>
+                                                    <td className="text-center">
+                                                        {investor.User!.profileImage !== null && <img src={`${S3_URL}profile-picture/${investor.User!.profileImage}`} alt={""} width={35} height={35} />}
+                                                    </td>
+                                                    <td>{investor.User!.fullName}</td>
+                                                    <td>{investor.User!.phoneNumber}</td>
+                                                    <td>{investor.investmentStatus}</td>
+                                                    <td className="p-0 m-0">
+                                                        <Table className="m-0 table-borderless">
+                                                            <tbody>
+                                                                {
+                                                                    investor.ProjectPartnerInvestors!.map((partnerInvestor, index) => {
+                                                                        return (
+                                                                            <tr key={index}>
+                                                                                <td>{partnerInvestor.ProjectPartner!.User!.fullName}</td>
+                                                                                <td>{partnerInvestor.investedUnit} unit</td>
+                                                                                <td className="text-end">{Number(partnerInvestor.amountInvested).toLocaleString()}</td>
+                                                                            </tr>
+                                                                        )
+                                                                    })
+                                                                }
+                                                            </tbody>
+                                                        </Table>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })
+                                    }
+                                </tbody>
+                            </Table>
+                        </Col>
                     </Row>
                 </Tab>
                 <Tab eventKey="featured-images" title="Featured Images">
                     <Row>
                         <Col>
                             <Carousel>
-                                {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
+                                {projectData.FeaturedImages && projectData.FeaturedImages.map((image, index) => (
                                     <Carousel.Item key={index}>
                                         <img src={`${S3_URL}project-featured-image/${id}/${image.fileName}`} alt={image.originalFileName} style={{ maxHeight: '50vh', maxWidth: "100%" }} />
                                     </Carousel.Item>
@@ -334,7 +303,7 @@ function Details() {
                     </Row>
                 </Tab>
             </Tabs>
-            {details.projectStatus === 'created' &&
+            {projectData.projectStatus === 'created' &&
                 <Row className='justify-content-center mt-3'>
                     <Button className='w-50' variant="primary" onClick={() => projectStatusChange('completed')}>
                         Complete
@@ -353,4 +322,16 @@ Details.getLayout = function PageLayout(page: any) {
             {page}
         </MainLayout>
     )
+}
+
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+    const projectId = context.params?.id;
+
+    const projectData = await getProjectDetails(projectId as string);
+
+    return {
+        props: {
+            projectDataMain: JSON.parse(JSON.stringify(projectData))
+        }
+    }
 }
