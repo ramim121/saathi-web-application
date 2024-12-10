@@ -114,7 +114,7 @@ function List() {
                                 {blog.featuredImage && <Image src={`${S3_URL}blog-featured-images/${blog.featuredImage}`} alt={blog.featuredImage} width={100} height={100} />}
                             </td>
                             <td style={{ whiteSpace: 'nowrap' }}>
-                                <Button variant="danger" size="sm" onClick={() => handleDelete(blog.idBlogs)}>Delete</Button>
+                                <Button variant="danger" size="sm" onClick={() => handleDelete(blog.idBlogs)} className="me-2">Delete</Button>
                                 <Link href={`/blogs/edit/${blog.idBlogs}`}>
                                     <Button variant="info" size="sm">Edit</Button>
                                 </Link>

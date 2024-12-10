@@ -15,9 +15,10 @@ const schema = Joi.object({
         "any.required": "Project is required",
         "number.base": "Project must be selected",
     }),
-    partnerUnitCapacity: Joi.number().required().messages({
+    partnerUnitCapacity: Joi.number().greater(0).required().messages({
         "any.required": "Partner unit capacity is required",
         "number.base": "Partner unit capacity must be a number",
+        "number.greater": "Partner unit capacity must be greater than 0",
     }),
 }).unknown();
 

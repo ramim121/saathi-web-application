@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Container, Form, Row, Col, Button, Card, Table } from "react-bootstrap";
 import MainLayout from "@/layouts/MainLayout";
-import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, postRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import { API_URL } from '@/config/constants';
 import Swal from 'sweetalert2';
 import Select, { components } from "react-select";
 import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill } from 'react-bootstrap-icons';
-import ProjectPartner from "@/types/ProjectPartner";
+import Link from "next/link";
 
 interface PartnerProps {
 	idUsers: number,
@@ -16,7 +16,28 @@ interface PartnerProps {
 	joiningDate: string,
 	label: string,
 	value: number,
-	Partnerships: ProjectPartner[]
+	Partnerships: [
+		{
+			idProjectPartners: number,
+			Project: {
+				idProjects: number,
+				projectName: string,
+				location: string
+			},
+			partnerUnitCapacity: number,
+			alreadyInvested: number,
+			ProjectPartnerInvestors: [
+				{
+					ProjectInvestor: {
+						ProjectInvestmentBooking: {
+							bookingId: number,
+							idProjectInvestmentBookings: number
+						}
+					}
+				}
+			]
+		}
+	]
 }
 
 interface ProjectProps {
@@ -61,6 +82,7 @@ function PartnerAssign() {
 	const [projectList, setProjectList] = useState<ProjectProps[]>([]);
 	const [selectedProject, setSelectedProject] = useState<ProjectProps | null>(null);
 	const [reload, setReload] = useState<boolean>(true);
+	const [reloadProject, setReloadProject] = useState<boolean>(true);
 
 	useEffect(() => {
 		const fetchPartnersList = async () => {
@@ -122,7 +144,11 @@ function PartnerAssign() {
 		if (selectedPartner !== null) {
 			fetchProjectsList();
 		}
+
+
 	}, [selectedPartner]);
+
+
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -149,6 +175,50 @@ function PartnerAssign() {
 								icon: 'success',
 								title: 'Success',
 								text: 'Partner assigned successfully!',
+							});
+							setSelectedPartner(null);
+							setSelectedProject(null);
+							setPartnerUnitCapacity(0);
+							setReload(true);
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								html: (await res.json()).message,
+							});
+						}
+					};
+					fetchData();
+
+				} catch (err) {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Something went wrong!',
+					});
+				}
+			}
+		});
+	}
+
+	const handleDelete = async (id: number) => {
+		Swal.fire({
+			title: 'Are you sure?',
+			text: "You want to delete this partnership!",
+			icon: 'warning',
+			showCancelButton: true,
+			cancelButtonText: 'No',
+			confirmButtonText: 'Yes'
+		}).then((result) => {
+			if (result.value) {
+				try {
+					const fetchData = async () => {
+						const res = await fetch(API_URL + 'api/projects/delete-partner-assign/' + id, deleteRequestOptions());
+						if (res.status === 200) {
+							Swal.fire({
+								icon: 'success',
+								title: 'Success',
+								text: 'Partnership deleted successfully!',
 							});
 							setSelectedPartner(null);
 							setSelectedProject(null);
@@ -212,7 +282,7 @@ function PartnerAssign() {
 							</Col>
 						</Form.Group>
 						<Form.Group as={Row} className='mb-3'>
-							<Form.Label column sm='4' >Unit Capacity</Form.Label>
+							<Form.Label column sm='4' >Unit Capacity <span className='text-danger'>*</span></Form.Label>
 							<Col sm='8'>
 								<Form.Control type='number' value={partnerUnitCapacity} onChange={(e) => setPartnerUnitCapacity(parseInt(e.target.value))} />
 							</Col>
@@ -240,8 +310,11 @@ function PartnerAssign() {
 											<th>#</th>
 											<th>Project name</th>
 											<th>Location</th>
-											<th>Available Units</th>
-											<th className="text-center">Investor info</th>
+											<th>Unit Capacity</th>
+											<th>Already Invested</th>
+											<th>Remaining Capacity</th>
+											<th>Booking info</th>
+											<th>Action</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -250,21 +323,32 @@ function PartnerAssign() {
 												<td>{project.Project?.idProjects}</td>
 												<td>{project.Project?.projectName}</td>
 												<td>{project.Project?.location}</td>
-												<td>{project.partnerUnitCapacity}</td>
-												<td className="p-0">
-													<Table size="sm" className="m-0">
-														<tbody>
-															{project.ProjectPartnerInvestors!.map((investor, index: number) => (
-																<tr key={index}>
-																	<td>{investor.idProjectPartners}</td>
-																	<td>{investor.ProjectInvestor?.User?.fullName}</td>
-																	<td className="text-center">{investor.ProjectInvestor.investmentStatus}</td>
-																	<td className="text-end">{Number(investor.amountInvested).toLocaleString()}</td>
-																</tr>
-															))}
-														</tbody>
-													</Table>
+												<td className="text-center">{project.partnerUnitCapacity}</td>
+												<td className="text-center">{project.alreadyInvested}</td>
+												<td className="text-center">{project.partnerUnitCapacity - project?.alreadyInvested}</td>
+												<td>
+													{project.ProjectPartnerInvestors!
+														.map((investor, i, array) => {
+															const bookingId = investor?.ProjectInvestor?.ProjectInvestmentBooking?.bookingId;
+															const bookingUrl = `/bookings/details/${investor?.ProjectInvestor?.ProjectInvestmentBooking?.idProjectInvestmentBookings}`;
+															if (bookingId) {
+																return (
+																	<span key={bookingId}>
+																		<Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
+																			{bookingId}
+																		</Link>
+																		{i < array.length - 1 && ', '} {/* Add a comma except after the last item */}
+																	</span>
+																);
+															}
+															return null;
+														})
+														.filter(Boolean)}
 												</td>
+												<td>
+													{project.alreadyInvested === 0 && <Button variant="danger" size="sm" onClick={() => handleDelete(project.idProjectPartners)}>Delete</Button>}
+												</td>
+
 											</tr>
 										))}
 									</tbody>
