@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project, ProjectCategory } from '@/models/__associations'
+import { User, ProjectPartner, Project, ProjectCategory, File } from '@/models/__associations'
+import sequelize from '@/config/db';
 import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -95,7 +96,28 @@ export default async function handler(
 					'projectStatus',
 					'showInUpcoming',
 					'totalAvailableUnits',
-					'investorUnitCapacity'
+					'investorUnitCapacity',
+					[sequelize.literal(`(
+						SELECT COALESCE(SUM(unit_purchased), 0)
+						FROM project_investors AS ppi
+						WHERE ppi.id_projects = Project.id_projects
+						AND ppi.investment_status != 'cancelled'
+					)`),
+						'alreadyInvested'],
+					[
+						sequelize.literal(`
+                                CASE
+                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
+                                        SELECT COALESCE(SUM(unit_purchased), 0)
+                                        FROM project_investors AS ppi
+                                        WHERE ppi.id_projects = Project.id_projects
+                                        AND ppi.investment_status != 'cancelled'
+                                    )
+                                    ELSE 0
+                                END
+                            `),
+						'totalRemainingUnits'
+					]
 				],
 				include: [
 					{
@@ -119,6 +141,9 @@ export default async function handler(
 						model: ProjectCategory,
 						as: 'ProjectCategory',
 						where: categoryName ? { categoryName: { [Op.like]: `%${categoryName}%` } } : undefined
+					},
+					{
+						model: File, as: 'MainImage'
 					}
 				],
 				limit,

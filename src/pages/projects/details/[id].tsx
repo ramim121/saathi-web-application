@@ -11,10 +11,9 @@ import { S3_URL } from '@/config/constants';
 import Carousel from 'react-bootstrap/Carousel';
 import { API_URL } from '@/config/constants';
 import { GetServerSidePropsContext } from "next";
-import { Project, ProjectCategory, ProjectPartner, User, File, ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor } from "@/models/__associations";
-import sequelize from "@/config/db";
 import ProjectType from "@/types/Project";
 import { getProjectDetails } from "@/pages/api/projects/details/[id]";
+import moment from "moment";
 
 interface ProjectDetailsProps {
     projectDataMain: ProjectType
@@ -27,7 +26,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
     const router = useRouter();
     const { id } = router.query;
     const [reload, setReload] = useState<boolean>(false);
-    console.log(projectData);
+    const formatDate = (date: string | Date) => moment(date).format("DD/MM/YYYY");
 
     useEffect(() => {
         if (reload) {
@@ -210,6 +209,8 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                     <th>Phone Number</th>
                                     <th>Joining Date</th>
                                     <th>Unit Capacity</th>
+                                    <th>Already Invested</th>
+                                    <th>Remaining Capacity</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -217,14 +218,16 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                     <tr key={index}>
                                         <td>{index + 1}</td>
                                         <td className="text-center">
-                                            {partner.User!.ProfilePicture !== null && <img src={`${S3_URL}profile-picture/${partner.User!.idUsers}/${partner.User!.ProfilePicture?.fileName}`} alt={partner.User!.ProfilePicture?.originalFileName || ""} width={100} height={100} />}
+                                            {partner.User?.ProfilePicture !== null && <Image src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.User?.ProfilePicture?.fileName}`} alt={partner.User!.ProfilePicture?.originalFileName || ""} width={100} height={100} />}
                                         </td>
                                         <td>{partner.User!.fullName}</td>
                                         <td>{partner.User!.phoneNumber}</td>
-                                        <td>{(new Date(partner.User!.joiningDate!)).toLocaleDateString()}</td>
+                                        <td>{formatDate(partner.User!.joiningDate!)}</td>
                                         <td>{partner.partnerUnitCapacity}</td>
+                                        <td>{partner?.alreadyInvestedUnits}</td>
+                                        <td>{partner.partnerUnitCapacity - (partner.alreadyInvestedUnits ?? 0)}</td>
                                     </tr>
-                                )) : <tr><td colSpan={6} className="text-center">No Partners Found</td></tr>}
+                                )) : <tr><td colSpan={8} className="text-center">No Partners Found</td></tr>}
                             </tbody>
                         </Table>
                     </Row>
@@ -240,8 +243,8 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                         <th>Proof or payment</th>
                                         <th></th>
                                         <th>Investor</th>
-                                        <th>Investment Status</th>
                                         <th>Phone Number</th>
+                                        <th>Investment Status</th>
                                         <th colSpan={3} className="text-center">Partner info</th>
                                     </tr>
                                 </thead>
@@ -258,7 +261,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                                     </td>
                                                     <td>{investor.ProjectInvestmentBooking.paymentConfirmationStatus}</td>
                                                     <td className="text-center">
-                                                        {investor.User!.profileImage !== null && <img src={`${S3_URL}profile-picture/${investor.User!.profileImage}`} alt={""} width={35} height={35} />}
+                                                        {investor.User!.profileImage !== null && <img src={`${S3_URL}profile/${investor.User!.profileImage}`} alt={investor.User!.profileImage} width={100} height={100} />}
                                                     </td>
                                                     <td>{investor.User!.fullName}</td>
                                                     <td>{investor.User!.phoneNumber}</td>

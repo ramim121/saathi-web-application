@@ -4,6 +4,8 @@ import { Container, Table, Button, Pagination } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
 
 interface ListProps {
 	idUsers: string,
@@ -15,7 +17,18 @@ interface ListProps {
 	joiningDate: string,
 	skills: string,
 	disability: string,
-	partnerType: string
+	partnerType: string,
+	ProfilePicture: {
+		fileName: string,
+		originalFileName: string
+	},
+	Partnerships: {
+		partnerUnitCapacity: string,
+		alreadyInvestedUnits: string,
+		Project: {
+			projectName: string
+		}
+	}[]
 }
 
 interface FilterProps {
@@ -137,6 +150,7 @@ function List() {
 				<thead>
 					<tr>
 						<th>#</th>
+						<th>Profile Pic</th>
 						<th>Full Name</th>
 						<th>Phone Number</th>
 						<th>Age</th>
@@ -146,12 +160,16 @@ function List() {
 						<th>Skills</th>
 						<th>Disability</th>
 						<th>Partner Type</th>
+						<th>Affiliated Projects</th>
+						<th>Unit Capacity</th>
+						<th>Already Invested</th>
 						<th>Actions</th>
 					</tr>
 					<tr>
 						<td>
 							<input type="number" className="form-control form-control-sm" placeholder="Search" name="idUsers" onChange={handleInputOnChange} value={filter.idUsers} />
 						</td>
+						<td></td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="fullName" onChange={handleInputOnChange} value={filter.fullName} />
 						</td>
@@ -180,13 +198,19 @@ function List() {
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnerType" onChange={handleInputOnChange} value={filter.partnerType} />
 						</td>
 						<td></td>
-
+						<td></td>
+						<td></td>
+						<td></td>
 					</tr>
 				</thead>
 				<tbody>
 					{partnersList.length > 0 ? partnersList.map((partner, index) => (
 						<tr key={index}>
 							<td>{partner.idUsers}</td>
+							<td>
+								{partner.ProfilePicture && <Image src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.ProfilePicture?.fileName}`} alt={partner.ProfilePicture?.originalFileName} width={100} height={100} loading="lazy" />}
+
+							</td>
 							<td>{partner.fullName}</td>
 							<td>{partner.phoneNumber}</td>
 							<td>{partner.age}</td>
@@ -196,6 +220,27 @@ function List() {
 							<td>{partner.skills}</td>
 							<td>{partner.disability.charAt(0).toUpperCase() + partner.disability.slice(1)}</td>
 							<td>{partner.partnerType.charAt(0).toUpperCase() + partner.partnerType.slice(1)}</td>
+							<td>
+								<ul>
+									{partner.Partnerships.map((project, index) => (
+										<li key={index} style={{ whiteSpace: 'nowrap' }}>{project.Project.projectName}</li>
+									))}
+								</ul>
+							</td>
+							<td>
+								<ul>
+									{partner.Partnerships.map((project, index) => (
+										<li key={index}>{project.partnerUnitCapacity}</li>
+									))}
+								</ul>
+							</td>
+							<td>
+								<ul>
+									{partner.Partnerships.map((project, index) => (
+										<li key={index}>{project.alreadyInvestedUnits}</li>
+									))}
+								</ul>
+							</td>
 							<td style={{ whiteSpace: 'nowrap' }}>
 								<Link href={`/partners/details/${partner.idUsers}`}>
 									<Button variant="primary" className="me-2">Details</Button>
@@ -207,7 +252,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={11} className="text-center">No partners found</td>
+							<td colSpan={15} className="text-center">No partners found</td>
 						</tr>
 					)}
 

@@ -4,6 +4,8 @@ import { Container, Table, Button, Pagination } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
+import Image from "next/image";
+import { S3_URL } from '@/config/constants';
 
 interface ListProps {
 	idProjects: number,
@@ -30,8 +32,13 @@ interface ListProps {
 		categoryName: string
 	},
 	totalAvailableUnits: number,
-	investorUnitCapacity: number
-
+	investorUnitCapacity: number,
+	alreadyInvested: number,
+	totalRemainingUnits: number,
+	MainImage: {
+		fileName: string,
+		originalFileName: string
+	}
 }
 
 interface FilterProps {
@@ -168,6 +175,7 @@ function List() {
 				<thead>
 					<tr>
 						<th>#</th>
+						<th>Main Image</th>
 						<th>Project Name</th>
 						<th>Category</th>
 						<th>Investment Type</th>
@@ -177,7 +185,9 @@ function List() {
 						<th>Tenure</th>
 						<th>Location</th>
 						<th>Upcoming</th>
-						<th>Total Units</th>
+						<th>Total Available Units</th>
+						<th>Already Invested</th>
+						<th>Remaining Units</th>
 						<th>Investor Capacity</th>
 						<th>Status</th>
 						<th>Actions</th>
@@ -186,6 +196,7 @@ function List() {
 						<td>
 							<input type="number" className="form-control form-control-sm" placeholder="Search" name="idProjects" onChange={handleInputOnChange} value={filter.idProjects} />
 						</td>
+						<td></td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="projectName" onChange={handleInputOnChange} value={filter.projectName} />
 						</td>
@@ -216,6 +227,8 @@ function List() {
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="totalAvailableUnits" onChange={handleInputOnChange} value={filter.totalAvailableUnits} />
 						</td>
+						<td></td>
+						<td></td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="investorUnitCapacity" onChange={handleInputOnChange} value={filter.investorUnitCapacity} />
 						</td>
@@ -229,6 +242,10 @@ function List() {
 					{projectsList.length > 0 ? projectsList.map((project, index) => (
 						<tr key={index}>
 							<td>{project.idProjects}</td>
+							<td>
+								{project.MainImage && <Image src={`${S3_URL}project-main-image/${project.idProjects}/${project.MainImage?.fileName}`} alt={project.MainImage?.originalFileName} width={100} height={100} loading="lazy" />}
+
+							</td>
 							<td>{project.projectName}</td>
 							<td>{project.ProjectCategory?.categoryName}</td>
 							<td>{project.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
@@ -241,6 +258,8 @@ function List() {
 							<td>{project.location}</td>
 							<td>{project.showInUpcoming.charAt(0).toUpperCase() + project.showInUpcoming.slice(1)}</td>
 							<td>{project.totalAvailableUnits}</td>
+							<td>{project.alreadyInvested}</td>
+							<td>{project.totalRemainingUnits}</td>
 							<td>{project.investorUnitCapacity}</td>
 							<td>{project.projectStatus.charAt(0).toUpperCase() + project.projectStatus.slice(1)}</td>
 							<td style={{ whiteSpace: 'nowrap' }}>
@@ -254,7 +273,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={16} className="text-center">No projects found</td>
+							<td colSpan={19} className="text-center">No projects found</td>
 						</tr>
 					)}
 

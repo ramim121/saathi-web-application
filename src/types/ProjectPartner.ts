@@ -13,6 +13,7 @@ export default interface ProjectPartner {
     ProjectPartnerInvestors?: ProjectPartnerInvestor[];
     Project?: Project;
     User?: User;
+    alreadyInvestedUnits?: number;
 }
 
 export interface ProjectPartnerAttributes extends Optional<ProjectPartner, 'idProjectPartners'> { }
