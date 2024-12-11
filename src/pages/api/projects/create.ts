@@ -103,11 +103,11 @@ const schema = Joi.object({
         "number.base": "Project Category must be selected",
         "number.min": "Project Category must be selected",
     }),
-    totalAvailableUnits: Joi.number().min(1).required().messages({
-        "any.required": "Total available units is required",
-        "number.base": "Total available units must be a number",
-        "number.min": "Total available units must be at least 1",
-    }),
+    // totalAvailableUnits: Joi.number().min(1).required().messages({
+    //     "any.required": "Total available units is required",
+    //     "number.base": "Total available units must be a number",
+    //     "number.min": "Total available units must be at least 1",
+    // }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {

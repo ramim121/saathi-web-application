@@ -59,11 +59,11 @@ const schema = Joi.object({
         "number.base": "Project Category must be selected",
         "number.min": "Project Category must be selected",
     }),
-    totalAvailableUnits: Joi.number().min(1).required().messages({
-        "any.required": "Total available units is required",
-        "number.base": "Total available units must be a number",
-        "number.min": "Total available units must be greater than 0",
-    }),
+    // totalAvailableUnits: Joi.number().min(1).required().messages({
+    //     "any.required": "Total available units is required",
+    //     "number.base": "Total available units must be a number",
+    //     "number.min": "Total available units must be greater than 0",
+    // }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -93,7 +93,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
                 projectCategory: fields.projectCategory ? fields.projectCategory[0] : null,
                 prevFeaturedImages: fields.prevFeaturedImages ? fields.prevFeaturedImages : [],
-                totalAvailableUnits: fields.totalAvailableUnits ? fields.totalAvailableUnits[0] : null,
+                // totalAvailableUnits: fields.totalAvailableUnits ? fields.totalAvailableUnits[0] : null,
                 investorUnitCapacity: fields.investorUnitCapacity ? fields.investorUnitCapacity[0] : null,
             }
 
@@ -157,7 +157,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     summary: data.summary,
                     showInUpcoming: data.showInUpcoming,
                     projectCategory: data.projectCategory,
-                    totalAvailableUnits: data.totalAvailableUnits,
+                    // totalAvailableUnits: data.totalAvailableUnits,
                     investorUnitCapacity: data.investorUnitCapacity
                 }, {
                     where: { idProjects: req.query.id },
