@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectPartner } from '@/models/__associations';
+import { ProjectPartner, Project } from '@/models/__associations';
 import Joi from 'joi';
 import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
@@ -48,13 +48,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         const transaction = await sequelize.transaction();
         try {
-            const partnerProject = await ProjectPartner.create({
+            const projectPartner = await ProjectPartner.create({
                 idProjects: project,
                 idUsers: partner,
                 partnerUnitCapacity: partnerUnitCapacity
             }, { transaction });
+
+            const projectDetails = await Project.findOne({
+                where: { idProjects: project }
+            });
+            if (!projectDetails) {
+                await transaction.rollback();
+                return res.status(404).json({ success: false, message: 'Project not found' });
+            }
+
+            const updatedTotalUnits = projectDetails.totalAvailableUnits + partnerUnitCapacity;
+
+            const updateUnits = await Project.update(
+                { totalAvailableUnits: updatedTotalUnits }, // Fields to update
+                { where: { idProjects: project }, transaction } // Conditions and transaction
+            );
+
             await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Partner assigned successfully', data: partnerProject })
+            return res.status(200).json({ success: true, message: 'Partner assigned successfully', data: projectPartner })
         } catch (error) {
             await transaction.rollback();
             return res.status(500).json({ success: false, message: (error as Error).message })

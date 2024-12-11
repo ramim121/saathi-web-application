@@ -397,10 +397,16 @@ function Projects() {
 									<Form.Control type="file" onChange={handleFileUpload} ref={mainImageRef} />
 								</Col>
 							</Form.Group>
-							<Form.Group as={Row} className='mb-3'>
+							{/* <Form.Group as={Row} className='mb-3'>
 								<Form.Label column sm='4'>Total Available Units <span className='text-danger'>*</span></Form.Label>
 								<Col sm='8'>
 									<Form.Control type="number" placeholder="Enter total available units" name="totalAvailableUnits" onChange={handleOnChange} value={formData.totalAvailableUnits} />
+								</Col>
+							</Form.Group> */}
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Investor Unit Capacity</Form.Label>
+								<Col sm='8'>
+									<Form.Control type="number" placeholder="Enter investor unit capacity" name="investorUnitCapacity" onChange={handleOnChange} value={formData.investorUnitCapacity} />
 								</Col>
 							</Form.Group>
 						</Col>
@@ -465,12 +471,6 @@ function Projects() {
 										value={{ value: formData.showInUpcoming, label: formData.showInUpcoming === 'yes' ? 'Yes' : 'No' }}
 										onChange={(selectedOption: any) => setFormData({ ...formData, showInUpcoming: selectedOption.value })}
 									/>
-								</Col>
-							</Form.Group>
-							<Form.Group as={Row} className='mb-3'>
-								<Form.Label column sm='4'>Investor Unit Capacity</Form.Label>
-								<Col sm='8'>
-									<Form.Control type="number" placeholder="Enter investor unit capacity" name="investorUnitCapacity" onChange={handleOnChange} value={formData.investorUnitCapacity} />
 								</Col>
 							</Form.Group>
 						</Col>
