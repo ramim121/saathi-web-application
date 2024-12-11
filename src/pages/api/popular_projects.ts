@@ -21,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                     SELECT COUNT(*)
                                     FROM project_investors AS ppi
                                     WHERE ppi.id_projects = Project.id_projects
+                                    AND ppi.investment_status != 'cancelled'
                                 )`),
                                 'investorCount'
                             ]

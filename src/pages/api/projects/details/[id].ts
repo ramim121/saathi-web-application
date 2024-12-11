@@ -59,7 +59,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             include: [
                                 {
                                     model: User,
-                                    attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate'],
+                                    attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'phoneNumber'],
                                     include: [
                                         { model: File, as: 'ProfilePicture' }
                                     ]
@@ -155,7 +155,7 @@ export async function getProjectDetails(projectId: string) {
                 include: [
                     {
                         model: User,
-                        attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate'],
+                        attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'phoneNumber'],
                         include: [
                             { model: File, as: 'ProfilePicture' }
                         ]

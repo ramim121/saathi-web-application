@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project } from '@/models/__associations'
+import { User, ProjectPartner, Project, File } from '@/models/__associations'
 import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import sequelize from '@/config/db';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -74,11 +75,25 @@ export default async function handler(
 				],
 				include: [{
 					model: ProjectPartner, as: 'Partnerships', required: false,
+					attributes: [
+						'partnerUnitCapacity',
+						[
+							sequelize.literal(`(
+							SELECT IFNULL(SUM(invested_unit),0)
+							FROM project_partner_investors AS ppi
+							LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+							WHERE ppi.id_project_partners = Partnerships.id_project_partners and pi.investment_status != 'cancelled'
+						)`),
+							'alreadyInvestedUnits'
+						],
+					],
 					include: [
 						{ model: Project, as: 'Project', required: false, attributes: ['projectName', 'location'] }
-					]
+					],
 
-				}],
+				},
+				{ model: File, as: 'ProfilePicture', required: false }],
+
 				where: whereClause,
 				limit,
 				offset,
