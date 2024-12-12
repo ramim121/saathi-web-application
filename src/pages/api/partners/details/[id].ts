@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner, Project } from '@/models/__associations';
+import { User, File, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor, ProjectInvestmentBooking } from '@/models/__associations';
+import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
@@ -24,6 +25,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     { model: File, as: 'FeaturedImages' },
                     {
                         model: ProjectPartner, as: 'Partnerships',
+                        attributes: [
+                            'partnerUnitCapacity',
+                            [
+                                sequelize.literal(`(
+                                SELECT IFNULL(SUM(invested_unit),0)
+                                FROM project_partner_investors AS ppi
+                                LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                                WHERE ppi.id_project_partners = Partnerships.id_project_partners and pi.investment_status != 'cancelled'
+                            )`),
+                                'alreadyInvestedUnits'
+                            ],
+                        ],
                         include: [
                             {
                                 model: Project, as: 'Project',
@@ -32,6 +45,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                         model: File, as: 'MainImage'
                                     }
                                 ]
+                            },
+                            {
+                                model: ProjectPartnerInvestor,
+                                required: false,
+                                include: [
+                                    {
+                                        model: ProjectInvestor,
+                                        include: [
+                                            {
+                                                model: ProjectInvestmentBooking
+                                            }
+                                        ]
+                                    }
+                                ]
+
                             }
                         ]
 

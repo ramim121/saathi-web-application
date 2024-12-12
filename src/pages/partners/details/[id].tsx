@@ -7,6 +7,7 @@ import Image from "next/image";
 import Carousel from 'react-bootstrap/Carousel';
 import { S3_URL } from '@/config/constants';
 import Swal from "sweetalert2";
+import Link from "next/link";
 
 interface DetailsProps {
     idUsers: number,
@@ -33,7 +34,16 @@ interface DetailsProps {
                 fileName: string,
             }
         },
-        partnerUnitCapacity: number
+        ProjectPartnerInvestors: {
+            ProjectInvestor: {
+                ProjectInvestmentBooking: {
+                    bookingId: string,
+                    idProjectInvestmentBookings: number
+                }
+            }
+        }[],
+        partnerUnitCapacity: number,
+        alreadyInvestedUnits: number
     }[],
     ProfilePicture?: {
         idFiles: number,
@@ -114,16 +124,6 @@ function Details() {
                                         <td>{details.education}</td>
                                     </tr>
                                     <tr>
-                                        <td> Projects </td>
-                                        <td>
-                                            <ul>
-                                                {details.Partnerships && details.Partnerships.map((project, index) => (
-                                                    <li key={index}>{project.Project?.projectName} - {project.Project?.location} (Unit Capacity {project.partnerUnitCapacity})</li>
-                                                ))}
-                                            </ul>
-                                        </td>
-                                    </tr>
-                                    <tr>
                                         <td>Profile Picture</td>
                                         <td className="text-center">
                                             {details.ProfilePicture && <Image src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
@@ -173,6 +173,8 @@ function Details() {
                                 <th>Project Name</th>
                                 <th>Location</th>
                                 <th>Unit Capacity</th>
+                                <th>Already Invested</th>
+                                <th>Booking Id</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -185,6 +187,26 @@ function Details() {
                                     <td>{project.Project?.projectName}</td>
                                     <td>{project.Project?.location}</td>
                                     <td>{project.partnerUnitCapacity}</td>
+                                    <td>{project.alreadyInvestedUnits}</td>
+                                    <td>
+                                        {project.ProjectPartnerInvestors!
+                                            .map((investor, i, array) => {
+                                                const bookingId = investor?.ProjectInvestor?.ProjectInvestmentBooking?.bookingId;
+                                                const bookingUrl = `/bookings/details/${investor?.ProjectInvestor?.ProjectInvestmentBooking?.idProjectInvestmentBookings}`;
+                                                if (bookingId) {
+                                                    return (
+                                                        <span key={bookingId}>
+                                                            <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
+                                                                {bookingId}
+                                                            </Link>
+                                                            {i < array.length - 1 && ', '} {/* Add a comma except after the last item */}
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
+                                            })
+                                            .filter(Boolean)}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
