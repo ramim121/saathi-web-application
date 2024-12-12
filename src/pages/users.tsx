@@ -107,9 +107,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
         }
         if (filters.status) {
             tempUsers = tempUsers.filter(
-                (user) =>
-                    user.status &&
-                    user.status.toLowerCase().includes(filters.status.toLowerCase())
+                (user) => user.status && user.status.toLowerCase() === filters.status.toLowerCase()
             );
         }
         if (filters.nid) {
@@ -130,7 +128,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
             <h4 className="text-start">User List</h4>
             <p>Total Users: {filteredUsers.length}</p>
             <hr />
-            <Row className="mb-3">
+            <Row className="mb-1">
                 <Col>
                     <Form.Label>Search Name</Form.Label>
                     <Form.Control
@@ -161,6 +159,8 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         <option value="partner">Partner</option>
                     </Form.Select>
                 </Col>
+            </Row>
+            <Row className="mb-1">
                 <Col>
                     <Form.Label>Age</Form.Label>
                     <Form.Control
@@ -179,8 +179,19 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         onChange={(e) => setFilters({ ...filters, joining: e.target.value })}
                     />
                 </Col>
+                <Col>
+                    <Form.Label>Satus</Form.Label>
+                    <Form.Select
+                        value={filters.status}
+                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                    >
+                        <option value="">All</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </Form.Select>
+                </Col>
             </Row>
-            <Row className="mb-3">
+            <Row className="mb-2">
                 <Col>
                     <Form.Label>NID Verification</Form.Label>
                     <Form.Select
