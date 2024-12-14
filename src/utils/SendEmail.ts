@@ -5,7 +5,7 @@ interface EmailOptions {
     from: string;
     to: string[];
     subject: string;
-    htmlBody: string;
+    htmlBody?: string;
     textBody?: string;
 }
 
@@ -38,7 +38,7 @@ async function sendEmail(options: EmailOptions): Promise<SendEmailCommandOutput>
                 },
                 Body: {
                     Html: {
-                        Data: options.htmlBody,
+                        Data: options.htmlBody || '',
                         Charset: 'UTF-8'
                     },
                     Text: {

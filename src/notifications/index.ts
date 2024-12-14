@@ -104,7 +104,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
         const notificationBody = JSON.parse(notification.notificationBody!);
         for (var i = 0; i < users.length; i++) {
             response.push(await sendEmail({
-                from: 'Shathi Msg <notification@n.digigramventures.com>',
+                from: 'Shathi Msg <msg@notification.n.digigramventures.com>',
                 to: [users[i].email!],
                 subject: notificationBody.subject,
                 htmlBody: notificationBody.body
@@ -115,7 +115,7 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
     if (typeof notification.receiver === 'string') {
         const notificationBody = JSON.parse(notification.notificationBody!);
         response.push(await sendEmail({
-            from: 'Shathi Msg <notification@n.digigramventures.com>',
+            from: 'Shathi Msg <msg@notification.n.digigramventures.com>',
             to: [notification.receiver],
             subject: notificationBody.subject,
             htmlBody: notificationBody.body
@@ -191,6 +191,4 @@ export default function init() {
         notificationQueueRunning = true;
         setInterval(() => { runNotificationQueue() }, 1000 * 30); // Every 30 seconds
     }
-
-
 }
