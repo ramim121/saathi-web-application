@@ -33,6 +33,8 @@ const runNotificationQueue = async () => {
     unsentNotifications.forEach(async (notification) => {
         // Send the notification
         console.log('Sending notification', notification.idNotificationQueue);
+        notification.status = 'started';
+        await notification.save();
 
         if (notification.notificationType === 'sms') {
             handleSmsNotification(notification);
@@ -100,12 +102,14 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
         const users = await User.findAll({ where: { status: 'active', email: { [Op.not]: null }, emailVerified: "yes" } });
 
         const notificationBody = JSON.parse(notification.notificationBody!);
-        response.push(await sendEmail({
-            from: 'Shathi Msg <notification@n.digigramventures.com>',
-            to: users.map(user => user.email!),
-            subject: notificationBody.subject,
-            htmlBody: notificationBody.body
-        }))
+        for (var i = 0; i < users.length; i++) {
+            response.push(await sendEmail({
+                from: 'Shathi Msg <notification@n.digigramventures.com>',
+                to: [users[i].email!],
+                subject: notificationBody.subject,
+                htmlBody: notificationBody.body
+            }))
+        }
     }
 
     if (typeof notification.receiver === 'string') {

@@ -24,12 +24,12 @@ async function sendEmail(options: EmailOptions): Promise<SendEmailCommandOutput>
     }
 
     try {
+        console.log('Sending email:', options.to);
         // Prepare email command input
         const params: SendEmailCommandInput = {
             Source: options.from,
             Destination: {
                 ToAddresses: [options.to[0]],
-                BccAddresses: options.to.length > 1 ? options.to.slice(1) : undefined
             },
             Message: {
                 Subject: {
