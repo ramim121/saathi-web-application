@@ -2,6 +2,7 @@ import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
 
 import { ProjectInvestmentBookingAttributes } from '@/types/ProjectInvestmentBooking';
+import { Collection } from 'react-bootstrap-icons';
 
 interface ProjectInvestmentBookingModel extends ProjectInvestmentBookingAttributes, Model { }
 
@@ -16,8 +17,25 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         allowNull: false
     },
     paymentMethod: {
-        type: DataTypes.ENUM('bank', 'cash', 'card', 'mobile'),
+        type: DataTypes.ENUM('beftn', 'rtgs', 'npsb', 'cash', 'cheque'),
         allowNull: false
+    },
+    CollectionRequired: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull: false
+    },
+    CollectionStatus: {
+        type: DataTypes.ENUM('pending', 'collected', 'failed'),
+        allowNull: true
+    },
+    CollectionDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    CollectionLocation: {
+        type: DataTypes.STRING,
+        allowNull: true
     },
     paymentConfirmationStatus: {
         type: DataTypes.ENUM('pending', 'uploaded', 'confirmed', 'denied'),

@@ -7,7 +7,7 @@ import ProjectInvestor from './ProjectInvestor';
 export default interface ProjectInvestmentBooking {
     idProjectInvestmentBookings: number;
     idUsers: number;
-    paymentMethod: 'bank' | 'cash' | 'card' | 'mobile';
+    paymentMethod: 'beftn' | 'rtgs' | 'npsb' | 'cash' | 'cheque';
     paymentConfirmationStatus: 'pending' | 'uploaded' | 'confirmed' | 'denied';
     bookingId?: string;
     paymentAmount?: number;
@@ -19,6 +19,10 @@ export default interface ProjectInvestmentBooking {
     idUserBanks?: number;
     Users?: User[];
     UserBank?: UserBank;
+    collectionRequired: 'yes' | 'no';
+    collectionStatus: 'pending' | 'collected' | 'failed';
+    collectionDate?: string;
+    collectionLocation?: string;
     ProjectInvestors?: ProjectInvestor[];
 }
 
