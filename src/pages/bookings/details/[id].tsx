@@ -368,7 +368,7 @@ function Details() {
                                         </ul>
                                     </td>
                                     <td>
-                                        {project.ProjectPartnerInvestors[0].amountInvested}
+                                        {project.ProjectPartnerInvestors[0]?.amountInvested}
                                     </td>
                                     <td>
                                         {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
