@@ -254,10 +254,10 @@ function Details() {
         });
     }
 
-    const handleChequeCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
+    const handleCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to change status of this cheque!",
+            text: "You want to change collection status!",
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
@@ -270,12 +270,12 @@ function Details() {
                             idProjectInvestmentBookings,
                             status
                         }
-                        const res = await fetch(API_URL + 'api/bookings/cheque_status_change', putRequestOptions(formData));
+                        const res = await fetch(API_URL + 'api/bookings/collection_status_change', putRequestOptions(formData));
                         if (res.status === 200) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Chequet status changed successfully!',
+                                text: 'Collection status changed successfully!',
                             });
                             setReload(true);
                         } else {
@@ -381,7 +381,7 @@ function Details() {
                                     {details.transactionId}
                                 </td>
                             </tr>
-                            {details.paymentMethod === 'cheque' &&
+                            {(details.paymentMethod === 'cheque' || details.paymentMethod === 'cash') &&
                                 <>
                                     <tr>
                                         <td>Collection Required</td>
@@ -410,8 +410,8 @@ function Details() {
                                                     title="Status"
                                                     id="bg-vertical-dropdown-3"
                                                 >
-                                                    <Dropdown.Item eventKey="1" onClick={() => handleChequeCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
-                                                    <Dropdown.Item eventKey="2" onClick={() => handleChequeCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
+                                                    <Dropdown.Item eventKey="1" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
+                                                    <Dropdown.Item eventKey="2" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
 
                                                 </DropdownButton>
                                                 : details.collectionStatus?.charAt(0).toUpperCase() + details.collectionStatus?.slice(1)
