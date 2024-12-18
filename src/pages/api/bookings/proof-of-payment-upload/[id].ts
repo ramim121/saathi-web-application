@@ -30,20 +30,20 @@ const schema = Joi.object({
         "string.base": "Payment method is required",
     }),
     collectionDate: Joi.alternatives().conditional('paymentMethod', {
-        is: 'cheque',
+        is: Joi.valid('cheque', 'cash'),
         then: Joi.string()
             .pattern(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
             .required()
             .messages({
-                "any.required": "Collection date is required when payment method is cheque",
+                "any.required": "Collection date is required when payment method is cheque or cash",
                 "string.pattern.base": "Collection date must be in the format YYYY-MM-DD HH:mm:ss",
             }),
         otherwise: Joi.string().optional().allow(null, ''),
     }),
     collectionLocation: Joi.alternatives().conditional('paymentMethod', {
-        is: 'cheque',
+        is: Joi.valid('cheque', 'cash'),
         then: Joi.string().required().messages({
-            "any.required": "Collection location is required when payment method is cheque",
+            "any.required": "Collection location is required when payment method is cheque or cash",
             "string.base": "Collection location is required",
         }),
         otherwise: Joi.string().optional().allow(null, '')
@@ -68,8 +68,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             collectionDate: fields.collectionDate ? fields.collectionDate[0] : null,
             collectionLocation: fields.collectionLocation ? fields.collectionLocation[0] : null
         }
-
-        console.log('data', data.paymentMethod);
 
         const options = {
             abortEarly: false,
@@ -122,10 +120,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
         booking.proofOfPayment = proofOfPaymentFileName;
         booking.paymentConfirmationStatus = 'uploaded';
-        booking.collectionRequired = data.paymentMethod === 'cheque' ? 'yes' : 'no';
-        booking.collectionStatus = data.paymentMethod === 'cheque' ? 'pending' : null;
-        booking.collectionDate = data.paymentMethod === 'cheque' ? data.collectionDate : null;
-        booking.collectionLocation = data.paymentMethod === 'cheque' ? data.collectionLocation : null;
+        booking.collectionRequired = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'yes' : 'no';
+        booking.collectionStatus = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'pending' : null;
+        booking.collectionDate = (data.paymentMethod === 'cheque' || data.paymentMethod === 'cash') && data.collectionDate ? new Date(new Date(data.collectionDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString() : null;
+        booking.collectionLocation = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? data.collectionLocation : null;
 
         let [err2] = await _(booking.save());
         if (err2) { return res.status(500).json({ success: false, message: err2.message }); }
