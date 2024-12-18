@@ -27,23 +27,26 @@ const cors = Cors({
 const schema = Joi.object({
     paymentMethod: Joi.string().required().messages({
         "any.required": "Payment method is required",
-        "string.base": "Invalid payment method",
+        "string.base": "Payment method is required",
     }),
-    collectionDate: Joi.when('paymentMethod', {
+    collectionDate: Joi.alternatives().conditional('paymentMethod', {
         is: 'cheque',
-        then: Joi.date().required().messages({
-            "any.required": "Collection date is required when payment method is cheque",
-            "date.base": "Invalid collection date",
-        }),
-        otherwise: Joi.date().optional()
+        then: Joi.string()
+            .pattern(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+            .required()
+            .messages({
+                "any.required": "Collection date is required when payment method is cheque",
+                "string.pattern.base": "Collection date must be in the format YYYY-MM-DD HH:mm:ss",
+            }),
+        otherwise: Joi.string().optional().allow(null, ''),
     }),
-    collectionLocation: Joi.when('paymentMethod', {
+    collectionLocation: Joi.alternatives().conditional('paymentMethod', {
         is: 'cheque',
         then: Joi.string().required().messages({
             "any.required": "Collection location is required when payment method is cheque",
-            "string.base": "Invalid collection location",
+            "string.base": "Collection location is required",
         }),
-        otherwise: Joi.string().optional()
+        otherwise: Joi.string().optional().allow(null, '')
     })
 }).unknown();
 
@@ -65,6 +68,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             collectionDate: fields.collectionDate ? fields.collectionDate[0] : null,
             collectionLocation: fields.collectionLocation ? fields.collectionLocation[0] : null
         }
+
+        console.log('data', data.paymentMethod);
 
         const options = {
             abortEarly: false,
@@ -112,6 +117,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         let [err1, result1] = await _(upload.done());
         if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
 
+        if (data.paymentMethod) {
+            booking.paymentMethod = data.paymentMethod as 'cheque' | 'beftn' | 'rtgs' | 'npsb' | 'cash';
+        }
         booking.proofOfPayment = proofOfPaymentFileName;
         booking.paymentConfirmationStatus = 'uploaded';
         booking.collectionRequired = data.paymentMethod === 'cheque' ? 'yes' : 'no';

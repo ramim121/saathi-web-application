@@ -20,20 +20,20 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('beftn', 'rtgs', 'npsb', 'cash', 'cheque'),
         allowNull: false
     },
-    CollectionRequired: {
+    collectionRequired: {
         type: DataTypes.ENUM('yes', 'no'),
         defaultValue: 'no',
         allowNull: false
     },
-    CollectionStatus: {
+    collectionStatus: {
         type: DataTypes.ENUM('pending', 'collected', 'failed'),
         allowNull: true
     },
-    CollectionDate: {
+    collectionDate: {
         type: DataTypes.DATE,
         allowNull: true
     },
-    CollectionLocation: {
+    collectionLocation: {
         type: DataTypes.STRING,
         allowNull: true
     },
