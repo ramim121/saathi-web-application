@@ -20,9 +20,9 @@ export default interface ProjectInvestmentBooking {
     Users?: User[];
     UserBank?: UserBank;
     collectionRequired: 'yes' | 'no';
-    collectionStatus: 'pending' | 'collected' | 'failed';
-    collectionDate?: string;
-    collectionLocation?: string;
+    collectionStatus: 'pending' | 'collected' | 'failed' | null;
+    collectionDate?: string | null;
+    collectionLocation?: string | null;
     ProjectInvestors?: ProjectInvestor[];
 }
 

@@ -32,6 +32,10 @@ interface DetailsProps {
     paymentDate: string;
     paymentAmount: number;
     transactionId: string;
+    collectionRequired: string;
+    collectionDate: string;
+    collectionLocation: string;
+    collectionStatus: string;
     ProjectInvestors: {
         Project: {
             projectName: string;
@@ -250,6 +254,52 @@ function Details() {
         });
     }
 
+    const handleChequeCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to change status of this cheque!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then((result) => {
+            if (result.value) {
+                try {
+                    const fetchData = async () => {
+                        const formData = {
+                            idProjectInvestmentBookings,
+                            status
+                        }
+                        const res = await fetch(API_URL + 'api/bookings/cheque_status_change', putRequestOptions(formData));
+                        if (res.status === 200) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Chequet status changed successfully!',
+                            });
+                            setReload(true);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: (await res.json()).message,
+                            });
+                        }
+                    };
+                    fetchData();
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                }
+            }
+        });
+    }
+
+
     return (
         <Container>
             <h4 className="text-start"> Booking Details</h4>
@@ -331,6 +381,45 @@ function Details() {
                                     {details.transactionId}
                                 </td>
                             </tr>
+                            {details.paymentMethod === 'cheque' &&
+                                <>
+                                    <tr>
+                                        <td>Collection Required</td>
+                                        <td>
+                                            {details.collectionRequired?.charAt(0).toUpperCase() + details.collectionRequired?.slice(1)}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Collection Date</td>
+                                        <td>
+                                            {details.collectionDate}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Collection Location</td>
+                                        <td>
+                                            {details.collectionLocation}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Collection Status</td>
+                                        <td>
+                                            {details.collectionStatus === 'pending' ?
+                                                <DropdownButton
+                                                    as={ButtonGroup}
+                                                    title="Status"
+                                                    id="bg-vertical-dropdown-3"
+                                                >
+                                                    <Dropdown.Item eventKey="1" onClick={() => handleChequeCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
+                                                    <Dropdown.Item eventKey="2" onClick={() => handleChequeCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
+
+                                                </DropdownButton>
+                                                : details.collectionStatus?.charAt(0).toUpperCase() + details.collectionStatus?.slice(1)
+                                            }
+                                        </td>
+                                    </tr>
+                                </>
+                            }
                         </tbody>
                     </Table>
                 </Col>
@@ -368,7 +457,7 @@ function Details() {
                                         </ul>
                                     </td>
                                     <td>
-                                        {project.ProjectPartnerInvestors[0].amountInvested}
+                                        {project.ProjectPartnerInvestors[0]?.amountInvested}
                                     </td>
                                     <td>
                                         {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
