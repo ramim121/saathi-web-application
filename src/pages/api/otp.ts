@@ -84,6 +84,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 ],
             });
 
+            if (user && user.status === 'deleted') {
+                return res.status(400).json({ success: false, message: 'User not found' });
+            }
+
             if (!user) {
                 user = new User();
                 user.phoneNumber = phone;
@@ -102,7 +106,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
             let userInfo = jwt.decode(token) as JWTPayload;
 
-            let user = await User.findOne({ where: { idUsers: userInfo!.idUsers } });
+            let user = await User.findOne({ where: { idUsers: userInfo!.idUsers, status: ['active', 'inactive'] } });
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }

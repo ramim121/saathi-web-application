@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OTP Email Template</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f6f6f6; font-family: Arial, sans-serif; line-height: 1.6;">
+    <!-- Full Page Wrapper -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f6f6f6;">
+        <tr>
+            <td align="center" style="padding: 0; margin: 0;">
+                <!-- Inner Container -->
+                <table border="0" cellpadding="0" cellspacing="0" width="600"
+                    style="width: 600px; margin: 0 auto; background-color: #ffffff;">
+                    <!-- Header / Logo Section -->
+                    <tr>
+                        <td style="text-align: center; padding: 20px;">
+                            <!-- Replace the src URL with your actual logo URL -->
+                            <img src="https://api.digigramventures.com/assets/images/logo-header.png"
+                                alt="Your Company Logo" style="max-width: 150px; height: auto;" />
+                        </td>
+                    </tr>
+
+                    <!-- Main Content Section -->
+                    <tr>
+                        <td style="padding: 20px; color: #333333;">
+                            <h2 style="margin-top: 0; margin-bottom: 10px;">Delete Confirmation code</h2>
+                            <p style="margin: 0 0 10px;">
+                                Hello ${data.fullName},
+                            </p>
+                            <p style="margin: 0 0 15px;">
+                                We have received account deletion request for your account. You will need a
+                                One-Time Password (OTP) to verify your identity. Please use
+                                the code below to proceed. This code is valid for the next 5 minutes.
+                            </p>
+                            <p><b style="color:red">Please note, this action is irreversible. Once you have deleted your
+                                    account you will not be able to get it back.</b></p>
+                            <div style="
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #333333;
+                    background-color: #fafafa;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    margin: 25px 0;
+                    text-align: center;
+                    letter-spacing: 4px;
+                  ">
+                                ${data.otp}
+                            </div>
+                            <p style="margin: 0 0 15px;">
+                                If you did not make this request, please ignore this email.
+                            </p>
+                            <p style="margin: 0;">
+                                Thank you,<br />
+                                <strong>Shathi Team</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer Section -->
+                    <tr>
+                        <td style="
+                  text-align: center;
+                  color: #999999;
+                  font-size: 12px;
+                  padding: 20px;
+                ">
+                            &copy; 2024 Digigram Ventures. All rights reserved.
+                            <br />
+                            <a href="https://digigramventures.com" style="color: #007bff; text-decoration: none;">
+                                Visit our website
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+                <!-- End of Inner Container -->
+            </td>
+        </tr>
+    </table>
+    <!-- End of Full Page Wrapper -->
+</body>
+
+</html>

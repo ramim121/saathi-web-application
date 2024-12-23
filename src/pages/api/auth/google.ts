@@ -71,6 +71,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             ],
         });
 
+        if (user && user.status === 'deleted') {
+            return res.status(400).json({ message: 'Your account has been deleted' });
+        }
+
         if (!user) {
             const fileName = await uploadProfilePictureToS3(picture!, googleId!);
 

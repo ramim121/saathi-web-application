@@ -25,7 +25,7 @@ export default interface User {
     nidVerified: 'yes' | 'no';
     nidVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
     profileImage: string | null;
-    status: 'active' | 'inactive';
+    status: 'active' | 'inactive' | 'deleted';
     age: number | null;
     location: string | null;
     role: string | null;

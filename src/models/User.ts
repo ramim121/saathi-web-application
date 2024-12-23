@@ -77,7 +77,7 @@ const User = sequelize.define<UserModel>('User', {
         allowNull: true
     },
     status: {
-        type: DataTypes.ENUM('active', 'inactive'),
+        type: DataTypes.ENUM('active', 'inactive', 'deleted'),
         defaultValue: 'active',
         allowNull: false
     },

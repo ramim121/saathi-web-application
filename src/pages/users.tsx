@@ -188,6 +188,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         <option value="">All</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
+                        <option value="deleted">Deleted</option>
                     </Form.Select>
                 </Col>
             </Row>
