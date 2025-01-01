@@ -30,6 +30,6 @@ jobs:
           script: |
             cd /var/www/html/saathi-web-application-production
             npm install
-            pm2 delete all
+            pm2 delete saathi-app-production
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
             pm2 start ecosystem.config.js
