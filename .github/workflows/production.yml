@@ -28,7 +28,7 @@ jobs:
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEV_SSH_PORT }}
           script: |
-            cd /var/www/html/saathi-web-application
+            cd /var/www/html/saathi-web-application-production
             npm install
             pm2 delete all
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
