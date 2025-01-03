@@ -13,7 +13,7 @@ export default async function handler(
 		const whereClause:
 			{
 				projectName?: { [Op.like]: string };
-				projectStatus?: { [Op.like]: string };
+				projectStatus?: { [Op.like]?: string;[Op.ne]?: string };
 				showInUpcoming?: { [Op.like]: string };
 				investmentType?: { [Op.like]: string };
 				unitInvestmentValue?: { [Op.between]?: [string, string];[Op.gte]?: string;[Op.lte]?: string };
@@ -21,7 +21,7 @@ export default async function handler(
 				returnRangeMin?: { [Op.gte]?: string };
 				returnRangeMax?: { [Op.lte]?: string };
 				[Op.and]?: { returnRangeMin?: { [Op.gte]: string }; returnRangeMax?: { [Op.lte]: string } }[]
-			} = {};
+			} = { projectStatus: { [Op.ne]: 'completed' } };
 
 		const projectCategoryClause: { category_name?: { [Op.like]: string } } = {};
 
