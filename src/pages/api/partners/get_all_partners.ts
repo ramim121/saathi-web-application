@@ -75,6 +75,10 @@ export default async function handler(
 					{
 						model: File,
 						as: 'ProfilePicture'
+					},
+					{
+						model: File,
+						as: 'FeaturedImages'
 					}
 				],
 				order: [['idUsers', 'DESC']],
