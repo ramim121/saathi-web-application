@@ -81,7 +81,7 @@ export default async function handler(
 						as: 'FeaturedImages'
 					}
 				],
-				order: [['idUsers', 'DESC']],
+				order: [[{ model: File, as: 'ProfilePicture' }, 'fileName', 'DESC']],
 				where: whereClause
 			});
 
