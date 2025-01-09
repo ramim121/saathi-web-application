@@ -254,6 +254,11 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                             height="50"
                                             width="50"
                                             src={S3_URL + "profile/" + user.profileImage}
+                                            onClick={() => {
+                                                setSelectedUser(user);
+                                                setShowUserDetailsModal(true);
+                                            }}
+                                            style={{ cursor: "pointer" }}
                                         />
                                     ) : (
                                         <Image
@@ -261,6 +266,11 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                             height="50"
                                             width="50"
                                             src="https://picsum.photos/id/185/50/50"
+                                            onClick={() => {
+                                                setSelectedUser(user);
+                                                setShowUserDetailsModal(true);
+                                            }}
+                                            style={{ cursor: "pointer" }}
                                         />
                                     )}
                                 </td>
