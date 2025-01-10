@@ -172,7 +172,33 @@ export async function getProjectDetails(projectId: string) {
                 model: ProjectCategory,
                 as: 'ProjectCategory'
             },
+
         ],
+        attributes: {
+            include: [
+                [
+                    sequelize.literal(`(
+                    SELECT IFNULL(SUM(unit_purchased),0)
+                    FROM project_investors AS ppi
+                    WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
+                )`),
+                    'totalInvestedUnits'
+                ],
+                [
+                    sequelize.literal(`
+                    CASE
+                        WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
+                            SELECT IFNULL(SUM(unit_purchased),0)
+                            FROM project_investors AS ppi
+                            WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status != 'cancelled'
+                        )
+                        ELSE NULL
+                    END
+                `),
+                    'totalRemainingUnits'
+                ]
+            ]
+        },
         where: {
             idProjects: projectId
         }
