@@ -9,6 +9,7 @@ import JWTPayload from '@/types/JWTPayload';
 import UserBankType from '@/types/UserBank';
 import { createBank } from '../banks/user-bank';
 import user from '../user';
+import { generateNotification } from '@/notifications';
 
 const cors = Cors({
     origin: '*',
@@ -185,9 +186,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         investedUnit: partner.investedUnit,
                     }, { transaction });
                 }
+
+                let currentDate = new Date();
+                // Add 3 days to the current date
+                currentDate.setDate(currentDate.getDate() + 3);
+
+                await generateNotification('booking_placed', {
+                    projectName: projectInfo?.projectName,
+                    tenure: projectInfo?.tenure,
+                    duration: projectInfo?.duration,
+                    unitInvestmentValue: projectInfo?.unitInvestmentValue,
+                    bookingId: bookingId,
+                    unitPurchased: project.unitPurchased,
+                    lastDateToTransferFunds: currentDate,
+                }, userVerification);
             }
 
             await transaction.commit();
+
             return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
         } catch (err) {
             await transaction.rollback();

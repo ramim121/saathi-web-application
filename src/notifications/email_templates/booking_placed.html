@@ -1,0 +1,137 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Welcome to Shathi</title>
+</head>
+
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4;">
+        <tr>
+            <td style="padding: 20px 0;">
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="600"
+                    style="border-collapse: collapse; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <!-- Logo Header -->
+                    <tr>
+                        <td align="center" style="background-color: #6d3c98;">
+                            <img src="https://api.digigramventures.com/assets/images/email-logo-header.jpg"
+                                alt="Shathi Logo" style="max-width: 100px; height: auto;" />
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px; color: #333333;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="font-size: 18px; line-height: 1.6; color: #6d3c98;">
+                                        Dear ${data.fullName},
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 20px 0; font-size: 16px; line-height: 1.6;">
+                                        Thank you for booking an investment in ${data.project.projectName}! Your booking
+                                        has been successfully registered in our system. To confirm your participation,
+                                        please complete your payment as per the instructions provided and submit the
+                                        proof of payment within the next 3 days.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom: 20px; font-size: 16px; line-height: 1.6;">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th style="text-align:center; border-bottom: 2 px solid black;"
+                                                        colspan="2">Investment details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Project Name:</td>
+                                                    <td>${data.projectName}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Project Tenure:</td>
+                                                    <td>${data.duration} ${data.tenure}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Unit Price:</td>
+                                                    <td>BDT ${data.unitInvestmentValue}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Return:</td>
+                                                    <td>${data.totalReturnMin}% to
+                                                        ${data.totalReturnMax}%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Booking ID:</td>
+                                                    <td>${data.bookingId}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Order placed for:</td>
+                                                    <td>${data.unitPurchased} unit</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total price:</td>
+                                                    <td>BDT ${data.unitPurchased *
+                                                        data.unitInvestmentValue}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Last date to transfer funds:</td>
+                                                    <td>${data.lastDateToTransferFunds.getDate() + '/' +
+                                                        (data.lastDateToTransferFunds.getMonth() + 1) + '/' +
+                                                        data.lastDateToTransferFunds.getFullYear()}</td>
+                                                </tr>
+
+                                            </tbody>
+
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size: 16px; line-height: 1.6;">
+                                        You can find the payment submission option under the "My Investments" section in
+                                        the Shathi app. Once your payment is verified, your project tenure will begin
+                                        immediately. It usually takes less than 24 hours to verify your payment.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 16px; line-height: 1.6;">
+                                        If you have any questions or need assistance, don&apos;t
+                                        hesitate
+                                        to contact our support team at <a href="mailto:support@digigramventures.com"
+                                            style="color: #6d3c98; text-decoration: none;">support@digigramventures.com</a>.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 20px; font-size: 16px; line-height: 1.6; color: #6d3c98;">
+                                        Thank you for choosing Shathi! Let&apos;s invest now, Shape tomorrow.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 20px; font-size: 16px; color: #6d3c98; font-weight: bold;">
+                                        Warm regards,<br>
+                                        The Shathi Team
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td
+                            style="background-color: #6d3c98; color: white; text-align: center; padding: 20px; font-size: 12px;">
+                            © 2024 Shathi. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
