@@ -7,11 +7,8 @@ const cors = Cors({
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '@/config/constants';
-import JWTPayload from '@/types/JWTPayload';
-
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+    console.log(req.headers);
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
         try {

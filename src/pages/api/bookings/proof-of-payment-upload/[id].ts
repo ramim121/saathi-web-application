@@ -58,7 +58,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    const form = new formidable.IncomingForm({ maxFileSize: 2 * 1024 * 1024 });
+    const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
 
     form.parse(req, async (err, fields, files) => {
         if (err) { return res.status(500).json({ success: false, message: err.message }); }
