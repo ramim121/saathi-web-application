@@ -54,7 +54,6 @@ interface DetailsProps {
         idProjectInvestors: number;
     }[];
 
-
 }
 
 interface FormDataProps {
@@ -68,12 +67,14 @@ interface FormDataProps {
     transactionId: string;
 }
 
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
     const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
     const [reload, setReload] = useState<boolean>(false);
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
+    const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
         paymentMethod: {
@@ -127,6 +128,34 @@ function Details() {
             [name]: value
         });
     }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setProofOfPaymentFile(file);
+    }
+
+    const handleFileUpload = async () => {
+        if (!proofOfPaymentFile) return;
+
+        const formData = new FormData();
+        formData.append('file', proofOfPaymentFile);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                alert('File uploaded successfully');
+            } else {
+                alert('File upload failed');
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            alert('File upload failed');
+        }
+    };
 
     const handleDeny = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
@@ -338,6 +367,17 @@ function Details() {
                                 <td>Account Holder Name</td>
                                 <td>
                                     {details.UserBank?.accountHolderName}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Upload Proof of Payment</td>
+                                <td>
+                                    <Form.Group className="mb-3">
+                                        <Form.Control type="file" onChange={handleFileChange} />
+                                        <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
+                                            Upload
+                                        </Button>
+                                    </Form.Group>
                                 </td>
                             </tr>
 
