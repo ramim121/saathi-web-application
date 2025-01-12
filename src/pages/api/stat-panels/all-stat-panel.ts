@@ -5,7 +5,7 @@ import Cors from 'micro-cors';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
-    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type', 'ENVIRONEMENT_SOURCE'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type', 'environment'],
 });
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     console.log(req.headers);
