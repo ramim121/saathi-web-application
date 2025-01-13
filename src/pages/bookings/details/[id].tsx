@@ -54,7 +54,6 @@ interface DetailsProps {
         idProjectInvestors: number;
     }[];
 
-
 }
 
 interface FormDataProps {
@@ -68,12 +67,14 @@ interface FormDataProps {
     transactionId: string;
 }
 
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
     const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
     const [reload, setReload] = useState<boolean>(false);
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
+    const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
         paymentMethod: {
@@ -127,6 +128,51 @@ function Details() {
             [name]: value
         });
     }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setProofOfPaymentFile(file);
+    }
+
+    const handleFileUpload = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.preventDefault();
+        if (!proofOfPaymentFile) return;
+
+        const formData = new FormData();
+        formData.append('proofOfPayment', proofOfPaymentFile);
+        formData.append('bookingId', router.query.id as string);
+
+        try {
+            const uploadFile = async () => {
+                const response = await fetch(API_URL + `api/bookings/proof-of-payment-upload/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'File uploaded successfully!',
+                    });
+                    setReload(true);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'File upload failed',
+                    });
+                }
+            };
+            await uploadFile();
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Something went wrong while uploading!',
+            });
+        }
+    };
 
     const handleDeny = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
@@ -340,6 +386,19 @@ function Details() {
                                     {details.UserBank?.accountHolderName}
                                 </td>
                             </tr>
+                            {details.paymentConfirmationStatus !== 'confirmed' &&
+                                <tr>
+                                    <td>Upload Proof of Payment</td>
+                                    <td>
+                                        <Form.Group className="mb-3">
+                                            <Form.Control type="file" onChange={handleFileChange} />
+                                            <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
+                                                Upload
+                                            </Button>
+                                        </Form.Group>
+                                    </td>
+                                </tr>
+                            }
 
                         </tbody>
                     </Table>
