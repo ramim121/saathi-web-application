@@ -134,26 +134,43 @@ function Details() {
         setProofOfPaymentFile(file);
     }
 
-    const handleFileUpload = async () => {
+    const handleFileUpload = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.preventDefault();
         if (!proofOfPaymentFile) return;
 
         const formData = new FormData();
-        formData.append('file', proofOfPaymentFile);
+        formData.append('proofOfPayment', proofOfPaymentFile);
+        formData.append('bookingId', router.query.id as string);
 
         try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            const uploadFile = async () => {
+                const response = await fetch(API_URL + `api/bookings/proof-of-payment-upload/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
 
-            if (response.ok) {
-                alert('File uploaded successfully');
-            } else {
-                alert('File upload failed');
-            }
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'File uploaded successfully!',
+                    });
+                    setReload(true);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'File upload failed',
+                    });
+                }
+            };
+            await uploadFile();
         } catch (error) {
-            console.error('Error uploading file:', error);
-            alert('File upload failed');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Something went wrong while uploading!',
+            });
         }
     };
 
@@ -369,17 +386,19 @@ function Details() {
                                     {details.UserBank?.accountHolderName}
                                 </td>
                             </tr>
-                            <tr>
-                                <td>Upload Proof of Payment</td>
-                                <td>
-                                    <Form.Group className="mb-3">
-                                        <Form.Control type="file" onChange={handleFileChange} />
-                                        <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
-                                            Upload
-                                        </Button>
-                                    </Form.Group>
-                                </td>
-                            </tr>
+                            {details.paymentConfirmationStatus !== 'confirmed' &&
+                                <tr>
+                                    <td>Upload Proof of Payment</td>
+                                    <td>
+                                        <Form.Group className="mb-3">
+                                            <Form.Control type="file" onChange={handleFileChange} />
+                                            <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
+                                                Upload
+                                            </Button>
+                                        </Form.Group>
+                                    </td>
+                                </tr>
+                            }
 
                         </tbody>
                     </Table>
