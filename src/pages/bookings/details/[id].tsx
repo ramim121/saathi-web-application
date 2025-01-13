@@ -410,8 +410,14 @@ function Details() {
                                 <td>Proof of Payment</td>
                                 <td>
                                     {details.proofOfPayment !== null && (
-                                        <a className='btn btn-secondary btn-sm text-light w-100' href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
-                                            View
+                                        <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
+                                            <Image
+                                                src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
+                                                alt={details.proofOfPayment}
+                                                width={100}
+                                                height={100}
+                                                layout="fixed"
+                                            />
                                         </a>
                                     )}
                                 </td>

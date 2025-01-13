@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Table, Button, Modal, Row, Col } from "react-bootstrap";
+import { Container, Table, Button, Modal, Row, Col, Pagination } from "react-bootstrap";
 import { postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { User } from "@/models/__associations";
@@ -33,6 +33,9 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
         email: "",
         phone: "",
     });
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const usersPerPage = 10;
 
     const verifyUserInformation = async (idUsers: number, verificationType: string, verificationStatus: string = "") => {
         try {
@@ -121,7 +124,63 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
         }
 
         setFilteredUsers(tempUsers);
+        setCurrentPage(1);
     }, [filters, usersList]);
+
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+    }
+
+    const paginateUsers = filteredUsers.slice(
+        (currentPage - 1) * usersPerPage,
+        currentPage * usersPerPage
+    );
+
+    const handlePageChange = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    const renderPagination = () => {
+        const maxPageLinks = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxPageLinks / 2));
+        let endPage = Math.min(totalPages, startPage + maxPageLinks - 1);
+
+        if (endPage - startPage < maxPageLinks - 1) {
+            startPage = Math.max(1, endPage - maxPageLinks + 1);
+        }
+
+        const pages = [];
+        if (startPage > 1) pages.push(<Pagination.Item key={1} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
+        if (startPage > 2) pages.push(<Pagination.Ellipsis key="dots-start" />);
+
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(
+                <Pagination.Item
+                    key={i}
+                    active={i === currentPage}
+                    onClick={() => handlePageChange(i)}
+                >
+                    {i}
+                </Pagination.Item>
+            );
+        }
+
+        if (endPage < totalPages - 1) pages.push(<Pagination.Ellipsis key="dots-end" />);
+        if (endPage < totalPages) pages.push(<Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
+
+        return (
+            <Row className="mt-3">
+                <Pagination className="d-flex justify-content-center">
+                    <Pagination.Prev disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} />
+                    {pages}
+                    <Pagination.Next disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} />
+                </Pagination>
+            </Row>
+        );
+    };
+
 
     return (
         <Container>
@@ -227,6 +286,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                     </Form.Select>
                 </Col>
             </Row>
+            {renderPagination()}
             <Table responsive striped bordered hover size="sm">
                 <thead>
                     <tr>
@@ -243,8 +303,8 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredUsers.length > 0 ? (
-                        filteredUsers.map((user, index) => (
+                    {paginateUsers.length > 0 ? (
+                        paginateUsers.map((user, index) => (
                             <tr key={index}>
                                 <td>{user.idUsers}</td>
                                 <td>
