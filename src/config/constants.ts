@@ -1,5 +1,5 @@
 // export const API_URL = process.env.API_URL ? process.env.API_URL : 'https://api.digigramventures.com/';
-export const API_URL = 'http://localhost:3000/';
+export const API_URL = 'http://192.168.91.117:3000/';
 
 export const JWT_SECRET = process.env.JWT_SECRET ? process.env.JWT_SECRET : '778^%009jjnuybbuhuh009*^&^';
 

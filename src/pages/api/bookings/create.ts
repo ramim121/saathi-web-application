@@ -132,13 +132,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 idUserBanks: userBankData.idUserBanks,
             }, { transaction });
 
-
+            const projectForNotifications = [];
             for (const project of projects) {
                 const projectInfo = await Project.findOne({
                     where: {
                         idProjects: project.idProjects,
                     },
-                    attributes: ['totalAvailableUnits', 'investorUnitCapacity',],
+                    attributes: ['totalAvailableUnits', 'investorUnitCapacity','projectName', 'duration', 'tenure', 'unitInvestmentValue'],
+                });
+
+                projectForNotifications.push({
+                    projectName: projectInfo!.projectName,
+                    duration: projectInfo!.duration,
+                    tenure: projectInfo!.tenure,
+                    unitInvestmentValue: projectInfo!.unitInvestmentValue,
+                    unitPurchased: project.unitPurchased,
                 });
 
                 const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
@@ -186,23 +194,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         investedUnit: partner.investedUnit,
                     }, { transaction });
                 }
-
-                let currentDate = new Date();
-                // Add 3 days to the current date
-                currentDate.setDate(currentDate.getDate() + 3);
-
-                await generateNotification('booking_placed', {
-                    projectName: projectInfo?.projectName,
-                    tenure: projectInfo?.tenure,
-                    duration: projectInfo?.duration,
-                    unitInvestmentValue: projectInfo?.unitInvestmentValue,
-                    bookingId: bookingId,
-                    unitPurchased: project.unitPurchased,
-                    lastDateToTransferFunds: currentDate,
-                }, userVerification);
             }
 
             await transaction.commit();
+
+            let currentDate = new Date();
+            await generateNotification('booking_placed', {
+                fullName: userVerification.fullName,
+                projects: projectForNotifications,
+                bookingId: bookingId,
+                lastDateToTransferFunds: currentDate,
+            }, userVerification);
 
             return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
         } catch (err) {

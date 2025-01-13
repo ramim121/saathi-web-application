@@ -5,7 +5,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         try {
 
-            const result = await Bank.findAll({});
+            const result = await Bank.findAll({
+                order: [['bankName', 'ASC']]
+            });
 
             return res.status(200).json({ success: true, data: result });
         } catch (error) {

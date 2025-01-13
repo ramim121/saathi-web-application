@@ -88,6 +88,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const proofOfPaymentFile = files['proofOfPayment']![0] as formidable.File;
 
+        console.log(proofOfPaymentFile.size);
+
         if (proofOfPaymentFile.mimetype !== 'image/jpeg' && proofOfPaymentFile.mimetype !== 'image/png') {
             return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
         }

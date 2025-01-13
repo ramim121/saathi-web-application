@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking } from '@/models/__associations';
+import { ProjectInvestmentBooking, User } from '@/models/__associations';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import { generateNotification } from '@/notifications';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -63,10 +64,15 @@ export default async function handler(
         }
 
         try {
+
             const booking = await ProjectInvestmentBooking.findOne({
                 where: {
                     bookingId,
                 },
+            });
+
+            const investor = await User.findOne({
+                where: { idUsers: booking?.idUsers }
             });
 
             if (!booking) {
@@ -82,6 +88,11 @@ export default async function handler(
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
             await booking.save();
+
+            await generateNotification('booking_active', {
+                fullName: investor?.fullName,
+                bookingId: booking.bookingId,
+            }, investor!);
 
             return res.status(200).json({
                 success: true,

@@ -5,7 +5,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         try {
             const bankData = await BankBranch.findAll({
-                where: { idBanks: req.query.id }
+                where: { idBanks: req.query.id },
+                order: [['branchName', 'ASC']],
             });
 
             if (!bankData) {

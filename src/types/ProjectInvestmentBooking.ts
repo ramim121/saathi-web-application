@@ -17,7 +17,7 @@ export default interface ProjectInvestmentBooking {
     updatedAt: Date;
     proofOfPayment?: string;
     idUserBanks?: number;
-    Users?: User[];
+    User?: User;
     UserBank?: UserBank;
     collectionRequired: 'yes' | 'no';
     collectionStatus: 'pending' | 'collected' | 'failed' | null;

@@ -1,0 +1,307 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Welcome to Shathi</title>
+</head>
+
+<body style="
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+    ">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4">
+        <tr>
+            <td style="padding: 20px 0">
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="
+              border-collapse: collapse;
+              background-color: #ffffff;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            ">
+                    <!-- Logo Header -->
+                    <tr>
+                        <td align="center" style="background-color: #6d3c98">
+                            <img src="https://api.digigramventures.com/assets/images/email-logo-header.jpg"
+                                alt="Shathi Logo" style="max-width: 100px; height: auto" />
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px; color: #333333">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="font-size: 18px; line-height: 1.6; color: #6d3c98">
+                                        Dear <%= fullName %>,
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 20px 0; font-size: 16px; line-height: 1.6">
+                                        Thank you for booking an investment in <b>Shathi</b>. Your
+                                        booking has been successfully registered in our system. To
+                                        confirm your participation, please complete your payment
+                                        as per the instructions provided and submit the proof of
+                                        payment within the next 3 days.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="
+                        padding-bottom: 20px;
+                        font-size: 16px;
+                        line-height: 1.6;
+                      ">
+                                        <!-- Projects Table -->
+                                        <table style="
+                          width: 100%;
+                          border-collapse: collapse;
+                          margin-bottom: 15px;
+                        ">
+                                            <thead>
+                                                <tr>
+                                                    <th style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: left;
+                              ">
+                                                        Project Name
+                                                    </th>
+                                                    <th style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: left;
+                              ">
+                                                        Tenure
+                                                    </th>
+                                                    <th style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: left;
+                              ">
+                                                        Unit Price
+                                                    </th>
+                                                    <th style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: left;
+                              ">
+                                                        Ordered
+                                                    </th>
+                                                    <th style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: left;
+                              ">
+                                                        Payable
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% for (let i=0; i < projects.length; i++) { %>
+                                                    <tr>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            <%= projects[i].projectName %>
+                                                        </td>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            <%= projects[i].duration + " " + projects[i].tenure %>
+                                                        </td>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            ৳ <%= (projects[i].unitInvestmentValue * 1).toLocaleString()
+                                                                %>
+                                                        </td>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            <%= projects[i].unitPurchased %> units
+                                                        </td>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            ৳ <%= (projects[i].unitPurchased *
+                                                                projects[i].unitInvestmentValue).toLocaleString() %>
+                                                        </td>
+                                                    </tr>
+                                                    <% } %>
+                                            </tbody>
+                                        </table>
+
+                                        <!-- Booking Summary Table -->
+                                        <table style="
+                          width: 100%;
+                          border-collapse: collapse;
+                          margin-bottom: 15px;
+                        ">
+                                            <thead>
+                                                <tr>
+                                                    <th colspan="2" style="
+                                background-color: #6d3c98;
+                                color: #ffffff;
+                                padding: 8px;
+                                text-align: center;
+                                border-bottom: 2px solid #6d3c98;
+                              ">
+                                                        Booking summary
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        Booking ID:
+                                                    </td>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        <%= bookingId %>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        Order placed for:
+                                                    </td>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        <%= projects.length %> projects
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <% const totalAmount=projects.reduce((acc, currentProject)=> {
+                                                        return acc +
+                                                        currentProject.unitPurchased *
+                                                        currentProject.unitInvestmentValue; }, 0); %>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            Total payable:
+                                                        </td>
+                                                        <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                            ৳ <%= (totalAmount * 1).toLocaleString() %>
+                                                        </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        Last date to transfer funds:
+                                                    </td>
+                                                    <td style="
+                                padding: 8px;
+                                border-bottom: 1px solid #ddd;
+                                text-align: left;
+                              ">
+                                                        <%= (new
+                                                            Date(lastDateToTransferFunds)).toLocaleDateString("en-In")
+                                                            %>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 16px; line-height: 1.6">
+                                        You can find the payment submission option under the "My
+                                        Investments" section in the Shathi app. Once your payment
+                                        is verified, your project tenure will begin immediately.
+                                        It usually takes less than 24 hours to verify your
+                                        payment.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 16px; line-height: 1.6">
+                                        If you have any questions or need assistance, don&apos;t
+                                        hesitate to contact our support team at
+                                        <a href="mailto:support@digigramventures.com"
+                                            style="color: #6d3c98; text-decoration: none">
+                                            support@digigramventures.com </a>.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="
+                        padding-top: 20px;
+                        font-size: 16px;
+                        line-height: 1.6;
+                        color: #6d3c98;
+                      ">
+                                        Thank you for choosing Shathi! Let&apos;s invest now,
+                                        Shape tomorrow.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="
+                        padding-top: 20px;
+                        font-size: 16px;
+                        color: #6d3c98;
+                        font-weight: bold;
+                      ">
+                                        Warm regards,<br />
+                                        The Shathi Team
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="
+                  background-color: #6d3c98;
+                  color: #ffffff;
+                  text-align: center;
+                  padding: 20px;
+                  font-size: 12px;
+                ">
+                            © 2025 Shathi. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

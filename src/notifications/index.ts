@@ -10,6 +10,7 @@ import sendSms from "@/utils/SendSms";
 import sendNotif, { sendNotificationToTopic } from "@/config/fcm";
 import sendEmail from "@/utils/SendEmail";
 import path from "path";
+import ejs from 'ejs';
 
 // Picks notifications from the queue and sends them
 const runNotificationQueue = async () => {
@@ -128,7 +129,10 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
     await notification.save();
 }
 
-export function generateNotificationBody(template: string, data: any) {
+export function generateNotificationBody(template: string, data: any, isEjs: boolean = false) {
+    if (isEjs) {
+        return ejs.render(template, data);
+    }
     // Get the template
     var templateResult = '';
     eval(`templateResult = \`${template}\``);
@@ -166,6 +170,7 @@ export async function generateNotification(notificationName: string, notificatio
         }
 
         if (notificationTemplate?.emailTemplate && receiver.email && receiver.emailVerified === 'yes') {
+            console.log(notificationData);
             // Open email template file
             const filePath = path.join(process.cwd(), 'src', 'notifications', 'email_templates', notificationTemplate.emailTemplate);
             const emailBody = fs.readFileSync(filePath, 'utf8');
@@ -173,8 +178,8 @@ export async function generateNotification(notificationName: string, notificatio
                 notificationType: 'email',
                 receiver: receiver.email,
                 notificationBody: JSON.stringify({
-                    subject: notificationTemplate.emailSubject,
-                    body: generateNotificationBody(emailBody, notificationData)
+                    subject: generateNotificationBody(notificationTemplate.emailSubject!, notificationData),
+                    body: generateNotificationBody(emailBody, notificationData, filePath.endsWith('.ejs'))
                 })
             });
         }
