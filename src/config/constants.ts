@@ -5,7 +5,7 @@ export const JWT_SECRET = process.env.JWT_SECRET ? process.env.JWT_SECRET : '778
 
 export const BULK_SMS_API_KEY = process.env.BULK_SMS_API_KEY ? process.env.BULK_SMS_API_KEY : '4p9RrLDJg0Jm4hx1YfDE';
 export const BULK_SMS_SENDER_ID = process.env.BULK_SMS_SENDER_ID ? process.env.BULK_SMS_SENDER_ID : '8809617618599';
-export const OTP_EXPIRY = process.env.OTP_EXPIRY ? process.env.OTP_EXPIRY : 5 * 60 * 1000 // 5 minutes
+export const OTP_EXPIRY = process.env.OTP_EXPIRY ? process.env.OTP_EXPIRY : 1 * 60 * 1000 // 5 minutes
 
 export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME ? process.env.S3_BUCKET_NAME : 'saathi-files';
 export const S3_BUCKET_REGION = process.env.S3_BUCKET_REGION ? process.env.S3_BUCKET_REGION : 'ap-southeast-1';
