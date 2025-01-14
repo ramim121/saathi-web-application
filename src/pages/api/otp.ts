@@ -89,6 +89,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
 
             if (!user) {
+
+                const existingPhone = await User.findOne({ where: { phoneNumber: phone } });
+                if (existingPhone) {
+                    return res.status(400).json({ success: false, message: 'Phone number already exists' });
+                }
+
                 user = new User();
                 user.phoneNumber = phone;
                 user.phoneVerified = 'yes';
@@ -109,6 +115,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             let user = await User.findOne({ where: { idUsers: userInfo!.idUsers, status: ['active', 'inactive'] } });
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
+            const existingPhone = await User.findOne({ where: { phoneNumber: phone } });
+
+            if (existingPhone) {
+                return res.status(400).json({ success: false, message: 'Phone number already exists' });
             }
 
             user.phoneNumber = phone;
