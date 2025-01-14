@@ -29,7 +29,7 @@ const runNotificationQueue = async () => {
         }
     });
 
-    console.log('________Queue starts at :' + (new Date()).toLocaleDateString() + " " + (new Date()).toLocaleDateString(), "Unsent notification: " + unsentNotifications.length);
+    console.log('________Queue starts at :' + (new Date()).toUTCString(), "Unsent notification: " + unsentNotifications.length);
 
     unsentNotifications.forEach(async (notification) => {
         // Send the notification

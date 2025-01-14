@@ -75,8 +75,8 @@ const LoginPage = () => {
 					<Row className="justify-content-md-center">
 						<Col md="4">
 							{/* eslint-disable-next-line @next/next/no-img-element */}
-							<div className='d-flex justify-content-center'>
-								<img src="/assets/images/logo-header.png" alt="logo" className="w-50 img-fluid" />
+							<div className='d-flex justify-content-center p-5 pb-3'>
+								<img src="/assets/images/logo-header.png" alt="logo" className="w-100 img-fluid" />
 							</div>
 							<hr />
 							<Form onSubmit={handleSubmit}>
