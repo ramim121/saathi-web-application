@@ -5,6 +5,7 @@ import { JWT_SECRET } from '@/config/constants';
 import { User, Project, ProjectInvestor, ProjectPartner, UserBank, Bank, BankBranch } from '@/models/__associations';
 import Joi from 'joi';
 import Cors from 'micro-cors';
+import Sequelize from 'sequelize';
 import { Op } from 'sequelize';
 const cors = Cors({
     origin: '*',
@@ -59,10 +60,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const existingEmail = await User.findOne({
             where: {
-                email: req.body.email,
-                idUsers: {
-                    [Op.not]: userInfo!.idUsers
-                }
+                [Op.and]: [
+                    Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), Sequelize.fn('LOWER', req.body.email)),
+                    {
+                        idUsers: {
+                            [Op.not]: userInfo!.idUsers
+                        }
+                    }
+                ]
             }
         });
         if (existingEmail) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import Swal from "sweetalert2";
-import { Container, Table, Button, Pagination } from "react-bootstrap";
+import { Container, Table, Button, Pagination, Row } from "react-bootstrap";
 import Link from "next/link";
 import { getRequestOptions } from "@/utils/Fetch";
 
@@ -18,6 +18,7 @@ interface BookingListProps {
         };
         unitPurchased: number;
         investmentDate: string;
+        investmentStatus: string;
     }[];
     // unitPurchased: number;
     // investmentDate: string;
@@ -72,7 +73,6 @@ function List() {
     });
 
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
 
     useEffect(() => {
         const fetchBookingList = async () => {
@@ -83,7 +83,6 @@ function List() {
                 if (res.status === 200) {
                     setBookingList(data.data);
                     setTotal(data.total);
-                    setTotalPages(data.totalPages);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -106,39 +105,66 @@ function List() {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
     const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
+        if (total === 0) return [];
 
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
+        const totalPageCount = Math.ceil(total / filter.pageSize);
+        const currentPage = filter.page;
+
+        let pagesArray = [];
+
+        // Always show the first page
+        pagesArray.push(1);
+
+        // If current page is greater than 3, add an ellipsis before the first middle range
+        if (currentPage > 3) {
+            pagesArray.push("...");
         }
-        return pagesArray
-    }
+
+        // Add a range of pages around the current page
+        let startPage = Math.max(2, currentPage - 1);
+        let endPage = Math.min(totalPageCount - 1, currentPage + 1);
+
+        for (let page = startPage; page <= endPage; page++) {
+            pagesArray.push(page);
+        }
+
+        // Add an ellipsis after the last middle range if there are more pages
+        if (currentPage < totalPageCount - 2) {
+            pagesArray.push("...");
+        }
+
+        // Always show the last page
+        if (totalPageCount > 1) {
+            pagesArray.push(totalPageCount);
+        }
+
+        return pagesArray;
+    };
 
     const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
+        return pagesNumber().map((pageNumber, index) => {
+            if (pageNumber === "...") {
+                return <Pagination.Ellipsis key={`ellipsis-${index}`} />;
+            } else {
+                return (
+                    <Pagination.Item
+                        key={pageNumber}
+                        active={pageNumber === filter.page}
+                        onClick={() => handlePageChange(pageNumber as number)}
+                    >
+                        {pageNumber}
+                    </Pagination.Item>
+                );
+            }
+        });
+    };
+
 
     const handlePageChange = (page: number) => {
         setFilter({
@@ -151,6 +177,13 @@ function List() {
         <Container>
             <h4 className="text-start">Booking List</h4>
             <hr />
+            <Row className="mt-3">
+                <Pagination className="d-flex justify-content-center">
+                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} />
+                    {pageList()}
+                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} />
+                </Pagination>
+            </Row>
             <Table responsive striped bordered hover size="sm">
                 <thead>
                     <tr>
@@ -159,6 +192,7 @@ function List() {
                         <th>Investor Name</th>
                         <th>Payment Status</th>
                         <th>Projects</th>
+                        <th>Project Status</th>
                         <th>Unit Purchased</th>
                         <th>Investment Date</th>
                         <th>Actions</th>
@@ -189,6 +223,7 @@ function List() {
                         <td></td>
                         <td></td>
                         <td></td>
+                        <td></td>
                         <td>
                         </td>
 
@@ -206,6 +241,14 @@ function List() {
                                 <ul>
                                     {booking.ProjectInvestors.map((invest, index) => (
                                         <li key={index}>{invest.Project.projectName}</li>
+                                    ))
+                                    }
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    {booking.ProjectInvestors.map((invest, index) => (
+                                        <li key={index}>{invest.investmentStatus?.charAt(0).toUpperCase() + invest.investmentStatus?.slice(1)}</li>
                                     ))
                                     }
                                 </ul>
@@ -234,7 +277,7 @@ function List() {
                         </tr>
                     )) : (
                         <tr>
-                            <td colSpan={8} className="text-center">No booking found</td>
+                            <td colSpan={9} className="text-center">No booking found</td>
                         </tr>
                     )}
 

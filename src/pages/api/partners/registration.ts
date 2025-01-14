@@ -41,9 +41,10 @@ const schema = Joi.object({
         "any.required": "Name is required",
         "string.empty": "Name can not be empty",
     }),
-    phoneNumber: Joi.string().required().messages({
+    phoneNumber: Joi.string().pattern(/^01\d{9}$/).required().messages({
         "any.required": "Phone number is required",
         "string.empty": "Phone number can not be empty",
+        "string.pattern.base": "Phone number must be 11 digits starting with 01"
     }),
     age: Joi.number().min(1).required().messages({
         "any.required": "Age is required",
