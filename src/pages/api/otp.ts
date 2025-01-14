@@ -6,6 +6,7 @@ import SendSms from '@/utils/SendSms';
 import Cors from 'micro-cors';
 import JWTPayload from '@/types/JWTPayload';
 import _ from 'await-to-js';
+import { Op } from 'sequelize';
 
 const cors = Cors({
     origin: '*',
@@ -117,7 +118,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
 
-            const existingPhone = await User.findOne({ where: { phoneNumber: phone } });
+            const existingPhone = await User.findOne({
+                where: {
+                    phoneNumber: phone,
+                    idUsers: {
+                        [Op.not]: user.idUsers
+                    }
+                }
+            });
 
             if (existingPhone) {
                 return res.status(400).json({ success: false, message: 'Phone number already exists' });

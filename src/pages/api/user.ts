@@ -5,6 +5,7 @@ import { JWT_SECRET } from '@/config/constants';
 import { User, Project, ProjectInvestor, ProjectPartner, UserBank, Bank, BankBranch } from '@/models/__associations';
 import Joi from 'joi';
 import Cors from 'micro-cors';
+import { Op } from 'sequelize';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -56,7 +57,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: errorMessage });
         }
 
-        const existingEmail = await User.findOne({ where: { email: req.body.email } });
+        const existingEmail = await User.findOne({
+            where: {
+                email: req.body.email,
+                idUsers: {
+                    [Op.not]: userInfo!.idUsers
+                }
+            }
+        });
         if (existingEmail) {
             return res.status(400).json({ success: false, message: 'Email already exists' });
         }
