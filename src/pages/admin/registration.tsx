@@ -8,14 +8,14 @@ import { postRequestOptions } from '@/utils/Fetch';
 interface FormDataType {
     name: string,
     email: string,
-    phoneNumber: number
+    phoneNumber: string
 }
 
 function Registration() {
     const [formData, setFormData] = useState<FormDataType>({
         name: '',
         email: '',
-        phoneNumber: 0
+        phoneNumber: '0'
     });
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,43 +30,42 @@ function Registration() {
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
-            confirmButtonText: 'Yes'
-        }).then((result) => {
-            if (result.value) {
+            confirmButtonText: 'Yes',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            preConfirm: async () => {
                 try {
-                    const fetchData = async () => {
-                        const res = await fetch(API_URL + 'api/admin_registration', postRequestOptions(formData));
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: 'Admin registration successfull!',
-                            });
-                            setFormData({
-                                name: '',
-                                email: '',
-                                phoneNumber: 0
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
-
+                    const res = await fetch(API_URL + 'api/admin_registration', postRequestOptions(formData));
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Admin registration successful!',
+                        });
+                        setFormData({
+                            name: '',
+                            email: '',
+                            phoneNumber: '0',
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Something went wrong!',
+                        text: (err instanceof Error ? err.message : 'Something went wrong!'),
                     });
                 }
             }
         });
-    }
+    };
+
 
     return (
         <Container>

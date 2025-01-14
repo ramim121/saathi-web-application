@@ -3,15 +3,15 @@ import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { API_URL } from '@/config/constants';
 import Cookies from "js-cookie";
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { useRouter } from 'next/router';
-import MainLayout from '@/layouts/MainLayout';
 import Swal from 'sweetalert2';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState<string>('');
 	const [password, setPassword] = useState<string>('');
 	const { token, currentUser, updateUserInfo } = useContext(AppContext);
+	const [loading, setLoading] = useState<boolean>(false);
 	const router = useRouter();
 
 	const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +30,7 @@ const LoginPage = () => {
 		};
 
 		try {
+			setLoading(true);
 			const res = await fetch(API_URL + 'api/login', {
 				method: 'POST',
 				headers: {
@@ -57,6 +58,7 @@ const LoginPage = () => {
 					html: data.message,
 				});
 			}
+			setLoading(false);
 
 		} catch (err: any) {
 			Swal.fire({
@@ -64,11 +66,12 @@ const LoginPage = () => {
 				title: 'Error',
 				text: err.message,
 			});
+			setLoading(false);
 		}
 	};
 
 	return (
-		<div style={{height:"95vh"}} className="App">
+		<div style={{ height: "95vh" }} className="App">
 			<div className="h-100 d-flex justify-content-center align-items-center">
 
 				<Container>
@@ -102,8 +105,22 @@ const LoginPage = () => {
 									/>
 								</Form.Group>
 
-								<Button className='w-100 my-2' variant="primary" type="submit">
-									Login
+								<Button className='w-100 my-2' variant="primary" type="submit" disabled={loading}>
+
+									{loading ?
+										<>
+											<Spinner
+												as="span"
+												animation="border"
+												size="sm"
+												role="status"
+												aria-hidden="true"
+											/>
+											<span>  Loading...</span>
+										</>
+										:
+										'Login'
+									}
 								</Button>
 							</Form>
 						</Col>

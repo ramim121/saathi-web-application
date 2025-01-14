@@ -11,87 +11,81 @@ const cors = Cors({
 	allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
-async function handler(
-	req: NextApiRequest,
-	res: NextApiResponse
-) {
-	if (req.method === 'OPTIONS') { return res.status(200).end(); }
-	if (req.method === 'GET') {
-		let tokenData = req.headers.authorization;
-		let token = tokenData?.split(' ')[1];
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+	if (req.method === 'OPTIONS') return res.status(200).end();
+	if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'Method not allowed' });
 
-		if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+	const token = req.headers.authorization?.split(' ')[1];
+	if (!token) return res.status(401).json({ success: false, message: 'Token missing' });
 
-		let userInfo = jwt.decode(token) as JWTPayload;
-		if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+	let userInfo: JWTPayload;
+	try {
+		userInfo = jwt.verify(token, JWT_SECRET) as JWTPayload;
+	} catch {
+		return res.status(401).json({ success: false, message: 'Invalid token' });
+	}
 
-		const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
-		let whereClause: { idProjectInvestmentBookings?: { [Op.like]: string }; bookingId?: { [Op.like]: string }; paymentConfirmationStatus?: { [Op.like]: string } } = {};
+	if (userInfo.userType !== 'admin') return res.status(403).json({ success: false, message: 'Access denied' });
 
-		if (idProjectInvestmentBookings) {
-			whereClause = { ...whereClause, idProjectInvestmentBookings: { [Op.like]: `%${idProjectInvestmentBookings}%` } };
-		}
+	const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
 
-		if (bookingId) {
-			whereClause = { ...whereClause, idProjectInvestmentBookings: { [Op.like]: `%${bookingId}%` } };
-		}
+	const whereClause: any = {};
+	if (idProjectInvestmentBookings) whereClause.idProjectInvestmentBookings = { [Op.like]: `%${idProjectInvestmentBookings}%` };
+	if (bookingId) whereClause.bookingId = { [Op.like]: `%${bookingId}%` };
+	if (paymentConfirmationStatus) whereClause.paymentConfirmationStatus = { [Op.like]: `%${paymentConfirmationStatus}%` };
 
-		if (paymentConfirmationStatus) {
-			whereClause = { ...whereClause, paymentConfirmationStatus: { [Op.like]: `%${paymentConfirmationStatus}%` } };
-		}
 
-		const limit = pageSize ? parseInt(pageSize as string) : 10;
-		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
+	const limit = parseInt(pageSize as string) || 10;
+	const offset = (parseInt(page as string) - 1) * limit || 0;
 
-		try {
+	try {
+		const result = await ProjectInvestmentBooking.findAndCountAll({
+			where: whereClause,
+			include: [
+				{
+					model: User,
+					attributes: ['idUsers', 'fullName'],
+					where: investorName ? { fullName: { [Op.like]: `%${investorName}%` } } : undefined,
+				},
+				{
+					model: ProjectInvestor,
+					include: [
+						{
+							model: Project,
+							attributes: ['idProjects', 'projectName'],
+						},
+						{
+							model: ProjectPartnerInvestor,
+							include: [
+								{
+									model: ProjectPartner,
+									include: [
+										{
+											model: User,
+											attributes: ['idUsers', 'fullName'],
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+			distinct: true,
+			limit,
+			offset,
+			order: [[orderBy as string || 'createdAt', orderType === 'DESC' ? 'DESC' : 'ASC']],
+		});
 
-			const result = await ProjectInvestmentBooking.findAndCountAll({
-				where: whereClause,
-				include: [
-					{
-						model: User,
-						where: investorName ? { fullName: { [Op.like]: `%${investorName}%` } } : undefined,
-					},
-					{
-						model: ProjectInvestor,
-						include: [
-							{
-								model: Project,
-								// where: projects ? { projectName: { [Op.like]: `%${projects}%` } } : undefined,
-							},
-							{
-								model: ProjectPartnerInvestor,
-								include: [
-									{
-										model: ProjectPartner,
-										include: [
-											{
-												model: User,
-											}
-										]
-									}
-								]
-							}
-						]
-					}
-				],
-				limit,
-				offset,
-				order: [[orderBy as string, orderType === 'DESC' ? 'DESC' : 'ASC']],
-			})
-
-			return res.status(200).json({
-				success: true,
-				data: result.rows,
-				total: result.count,
-				currentPage: page ? parseInt(page as string) : 1,
-				totalPages: Math.ceil(result.count / limit)
-			})
-		} catch (error) {
-			return res.status(500).json({ success: false, message: (error as Error).message })
-		}
-	} else {
-		res.status(405).json({ success: false, message: 'Method not allowed' })
+		res.status(200).json({
+			success: true,
+			data: result.rows,
+			total: result.count,
+			currentPage: page ? parseInt(page as string) : 1,
+			totalPages: Math.ceil(result.count / limit),
+		});
+	} catch (error) {
+		res.status(500).json({ success: false, message: (error as Error).message });
 	}
 }
 

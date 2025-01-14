@@ -16,9 +16,10 @@ const schema = Joi.object({
         "string.empty": "Email can not be empty",
         "string.email": "Invalid email",
     }),
-    phoneNumber: Joi.number().required().messages({
+    phoneNumber: Joi.string().pattern(/^01\d{9}$/).required().messages({
         "any.required": "Phone number is required",
-        "number.base": "Phone number can not be empty",
+        "string.empty": "Phone number can not be empty",
+        "string.pattern.base": "Phone number must be 11 digits and start with 01",
     }),
 }).unknown();
 
