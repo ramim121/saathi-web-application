@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useRef, useContext, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { Container, Row, Col, Form, Button, Spinner, Pagination, Table } from 'react-bootstrap';
