@@ -14,6 +14,7 @@ import Select from 'react-select';
 interface DetailsProps {
     idProjectInvestmentBookings: number;
     bookingId: string;
+    cancelled: string;
     User: {
         fullName: string;
         phoneNumber: string;
@@ -345,6 +346,49 @@ function Details() {
         });
     }
 
+    const handleCancel = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'You want to cancel this booking!',
+            icon: 'warning',
+            input: 'text',
+            inputPlaceholder: 'Enter your remarks here...',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            preConfirm: async (remarks) => {
+                try {
+                    const formData = {
+                        idProjectInvestmentBookings: details.idProjectInvestmentBookings,
+                        remarks: remarks || ''
+                    };
+                    const res = await fetch(API_URL + 'api/bookings/cancel', putRequestOptions(formData));
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Booking cancelled successfully!',
+                        });
+                        setReload(true);
+                    } else {
+                        const result = await res.json();
+                        throw new Error(result.message);
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: (err as Error).message || 'Something went wrong!',
+                    });
+                }
+            }
+        });
+    };
+
 
     return (
         <Container>
@@ -369,6 +413,14 @@ function Details() {
                                 </td>
                             </tr>
                             <tr>
+                                <td>Cancelled</td>
+                                <td>
+                                    <span className={`badge ${details.cancelled === 'yes' ? 'bg-danger' : 'bg-success'}`}>
+                                        {details.cancelled === 'yes' ? 'Yes' : 'No'}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td>Investor Bank</td>
                                 <td>
                                     {details.UserBank?.Bank.bankNameFull}
@@ -386,7 +438,7 @@ function Details() {
                                     {details.UserBank?.accountHolderName}
                                 </td>
                             </tr>
-                            {details.paymentConfirmationStatus !== 'confirmed' &&
+                            {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
                                 <tr>
                                     <td>Upload Proof of Payment</td>
                                     <td>
@@ -529,25 +581,27 @@ function Details() {
                                     </td>
                                     <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
                                     <td>
-                                        <DropdownButton
-                                            as={ButtonGroup}
-                                            title="Status"
-                                            id="bg-vertical-dropdown-3"
-                                        >
-                                            {/* {project.investmentStatus === 'booked' &&
+                                        {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' &&
+                                            <DropdownButton
+                                                as={ButtonGroup}
+                                                title="Status"
+                                                id="bg-vertical-dropdown-3"
+                                            >
+                                                {/* {project.investmentStatus === 'booked' &&
                                             <Button variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
                                                 Cancel
                                             </Button>
                                         } */}
-                                            <Dropdown.Item eventKey="1" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>Cancel</Dropdown.Item>
-                                            <Dropdown.Item eventKey="2" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'approved')}>Approve</Dropdown.Item>
-                                            <Dropdown.Item eventKey="3" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'proof_submitted')}>Proof Submit</Dropdown.Item>
-                                            <Dropdown.Item eventKey="4" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'disbursed')}>Disburse</Dropdown.Item>
-                                            <Dropdown.Item eventKey="5" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'profit_added')}>Profit Add</Dropdown.Item>
-                                            <Dropdown.Item eventKey="6" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'paid')}>Paid</Dropdown.Item>
-                                            <Dropdown.Item eventKey="7" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>Ready for withdrawal</Dropdown.Item>
-                                            <Dropdown.Item eventKey="8" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'withdrawn')}>Withdraw</Dropdown.Item>
-                                        </DropdownButton>
+                                                <Dropdown.Item eventKey="1" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>Cancel</Dropdown.Item>
+                                                <Dropdown.Item eventKey="2" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'approved')}>Approve</Dropdown.Item>
+                                                <Dropdown.Item eventKey="3" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'proof_submitted')}>Proof Submit</Dropdown.Item>
+                                                <Dropdown.Item eventKey="4" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'disbursed')}>Disburse</Dropdown.Item>
+                                                <Dropdown.Item eventKey="5" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'profit_added')}>Profit Add</Dropdown.Item>
+                                                <Dropdown.Item eventKey="6" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'paid')}>Paid</Dropdown.Item>
+                                                <Dropdown.Item eventKey="7" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>Ready for withdrawal</Dropdown.Item>
+                                                <Dropdown.Item eventKey="8" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'withdrawn')}>Withdraw</Dropdown.Item>
+                                            </DropdownButton>
+                                        }
                                     </td>
                                 </tr>
                             ))}
@@ -567,20 +621,28 @@ function Details() {
                     </Table>
                 </Col>
             </Row>
-            {details.paymentConfirmationStatus === 'uploaded' &&
-                <Row className='justify-content-center'>
-                    <Col md={4}></Col>
-                    <Col md={4}>
-                        <Button className='w-50' variant="primary" type="submit" onClick={() => setApproverModalShow(true)}>
-                            Approve
+            <Row className='justify-content-center'>
+                <Col md={2}></Col>
+                <Col md={8} className="d-flex justify-content-between">
+                    {(details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed') &&
+                        <Button className='w-50 me-2' variant="danger" type="submit" onClick={handleCancel}>
+                            Cancel
                         </Button>
-                        <Button className='w-50' variant="danger" type="submit" onClick={handleDeny}>
-                            Deny
-                        </Button>
-                    </Col>
-                    <Col md={4}></Col>
-                </Row>
-            }
+                    }
+                    {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
+                        <>
+                            <Button className='w-50 me-2' variant="primary" type="submit" onClick={() => setApproverModalShow(true)}>
+                                Approve
+                            </Button>
+                            <Button className='w-50' variant="danger" type="submit" onClick={handleDeny}>
+                                Deny
+                            </Button>
+                        </>
+                    }
+                </Col>
+                <Col md={2}></Col>
+            </Row>
+
 
             <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} >
                 <Modal.Header closeButton>
