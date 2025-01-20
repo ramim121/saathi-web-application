@@ -4,6 +4,7 @@ import ProjectPartner from './ProjectPartner';
 import ProjectInvestor from './ProjectInvestor';
 import User from './User';
 import File from './File';
+import ProjectProperty from './ProjectProperty';
 
 export default interface Project {
     idProjects: number;
@@ -39,6 +40,8 @@ export default interface Project {
     investorUnitCapacity: number;
     MainImage?: File;
     FeaturedImages?: File[];
+    ProjectProperty?: ProjectProperty;
+    projectType: 'regular' | 'special';
 };
 
 

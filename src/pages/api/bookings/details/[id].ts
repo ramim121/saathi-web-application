@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, File } from '@/models/__associations';
 // import jwt from 'jsonwebtoken';
 // import { JWT_SECRET } from '@/config/constants';
 // import JWTPayload from '@/types/JWTPayload';
@@ -30,7 +30,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                         model: ProjectPartner,
                                         include: [
                                             {
-                                                model: User
+                                                model: User,
+                                                include: [{
+                                                    model: File,
+                                                    as: 'ProfilePicture',
+                                                }]
                                             }
                                         ]
 
@@ -59,7 +63,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ]
             });
 
-            return res.status(200).json({ success: true, data: result });
+            const resultMain = result?.get({ plain: true });
+
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    ...resultMain,
+                    ProjectInvestors:
+                        resultMain.ProjectInvestors.map((projectInvestor: any) => {
+                            const projectInvestorMain = projectInvestor;
+                            const createdAtDate = new Date(projectInvestorMain.createdAt);
+                            // Add the duration in months to the createdAt date
+                            createdAtDate.setMonth(createdAtDate.getMonth() + projectInvestorMain.Project.duration);
+                            // Assign the formatted maturityDate
+                            projectInvestorMain.maturityDate = createdAtDate.toISOString(); // ISO format
+                            return projectInvestorMain;
+                        })
+                }
+            });
         } catch (error) {
             return res.status(500).json({ success: false, message: (error as Error).message })
         }

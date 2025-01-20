@@ -21,6 +21,7 @@ import ProductPacking from "./ProductPacking";
 import AppStatPanel from "./AppStatPanel";
 import ManualNotification from "./ManualNotification";
 import ProjectInvestmentBookingStatus from "./ProjectInvestmentBookingStatus";
+import ProjectProperty from "./ProjectProperty";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -54,6 +55,7 @@ Project.hasMany(File, {
 		ref_type: 'project-featured-image'
 	}
 })
+Project.hasOne(ProjectProperty, { foreignKey: 'idProjects' });
 
 ProjectPartner.belongsTo(Project, { foreignKey: 'idProjects' });
 ProjectPartner.belongsTo(User, { foreignKey: 'idUsers' });
@@ -86,5 +88,7 @@ File.belongsTo(User, { foreignKey: 'refId' });
 ManualNotification.belongsTo(User, { foreignKey: 'createdBy' });
 
 Bank.hasMany(BankBranch, { foreignKey: 'idBanks' });
+
+ProjectProperty.belongsTo(Project, { foreignKey: 'idProjects' });
 
 export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, BankBranch, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification, ProjectInvestmentBookingStatus };

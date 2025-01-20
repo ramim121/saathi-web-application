@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 interface FormDataType {
 	projectName: string,
 	unitInvestmentValue: number,
+	projectType?: 'regular' | 'special',
 	investment: {
 		label: string,
 		value: number,
@@ -21,6 +22,13 @@ interface FormDataType {
 		tenure?: string,
 		investmentType?: string,
 		returnType?: string
+	},
+	ProjectProperty: {
+		cattleLiveWeightRate: number,
+		cattleInitialWeightMin: number,
+		cattleInitialWeightMax: number,
+		cattleFinalWeightMin: number,
+		cattleFinalWeightMax: number,
 	},
 	summary: string,
 	location: string,
@@ -57,9 +65,17 @@ function Projects() {
 	const [formData, setFormData] = useState<FormDataType>({
 		projectName: '',
 		unitInvestmentValue: 0,
+		projectType: 'regular',
 		investment: {
 			label: 'Select Investment Plan',
 			value: 0
+		},
+		ProjectProperty: {
+			cattleLiveWeightRate: 0,
+			cattleInitialWeightMin: 0,
+			cattleInitialWeightMax: 0,
+			cattleFinalWeightMin: 0,
+			cattleFinalWeightMax: 0,
 		},
 		summary: '',
 		location: '',
@@ -232,6 +248,7 @@ function Projects() {
 					formData.createdBy = currentUser?.idUsers || null;
 					const newFormData = new FormData();
 					newFormData.append('projectName', formData.projectName);
+					newFormData.append('projectType', formData.projectType || 'regular');
 					newFormData.append('unitInvestmentValue', formData.unitInvestmentValue.toString());
 					newFormData.append('summary', editorRef.current.getContent());
 					newFormData.append('location', formData.location);
@@ -243,6 +260,7 @@ function Projects() {
 					newFormData.append('otherLocations', formData.otherLocations);
 					newFormData.append('mainImage', formData.mainImage);
 					newFormData.append('investment', JSON.stringify(formData.investment));
+					newFormData.append('ProjectProperty', JSON.stringify(formData.ProjectProperty));
 					newFormData.append('showInUpcoming', formData.showInUpcoming || 'no');
 					newFormData.append('projectCategory', formData.projectCategory.value.toString());
 					newFormData.append('totalAvailableUnits', formData.totalAvailableUnits.toString());
@@ -473,6 +491,55 @@ function Projects() {
 									/>
 								</Col>
 							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								<Form.Label column sm='4'>Project type</Form.Label>
+								<Col sm='8'>
+									<Select options={[
+										{ value: 'regu;ar', label: 'Regular' },
+										{ value: 'special', label: 'Special' },
+									]} value={{ value: formData.projectType, label: formData.projectType === 'regular' ? 'Regular' : 'Special' }} onChange={(selectedOption: any) => setFormData({ ...formData, projectType: selectedOption.value })} />
+								</Col>
+							</Form.Group>
+							{formData.projectType === 'special' && <Card className='mb-3'>
+								<Card.Header className='text-center'>Special project property</Card.Header>
+								<Card.Body>
+									<Form.Group as={Row} className='mb-3'>
+										<Form.Label column sm='4'>Cattle Live Weight Rate</Form.Label>
+										<Col sm='8'>
+											<Form.Control type="number" placeholder="Enter cattle live weight rate" name="cattleLiveWeightRate" onChange={(e) => setFormData({ ...formData, ProjectProperty: { ...formData.ProjectProperty, cattleLiveWeightRate: Number(e.target.value) } })} value={formData.ProjectProperty.cattleLiveWeightRate} />
+										</Col>
+									</Form.Group>
+									<Form.Group as={Row} className='mb-3'>
+										<Form.Label column sm='4'>Cattle Initial Weight</Form.Label>
+										<Col sm='8'>
+											<Row>
+												<Col sm='5'>
+													<Form.Control type="number" placeholder="Minimum weight" name="cattleInitialWeightMin" onChange={(e) => setFormData({ ...formData, ProjectProperty: { ...formData.ProjectProperty, cattleInitialWeightMin: Number(e.target.value) } })} value={formData.ProjectProperty.cattleInitialWeightMin} />
+												</Col>
+												<Col sm='2' className='text-center'>-</Col>
+												<Col sm='5'>
+													<Form.Control type="number" placeholder="Maximum weight" name="cattleInitialWeightMax" onChange={(e) => setFormData({ ...formData, ProjectProperty: { ...formData.ProjectProperty, cattleInitialWeightMax: Number(e.target.value) } })} value={formData.ProjectProperty.cattleInitialWeightMax} />
+												</Col>
+											</Row>
+										</Col>
+									</Form.Group>
+									<Form.Group as={Row} className='mb-3'>
+										<Form.Label column sm='4'>Cattle Final Weight</Form.Label>
+										<Col sm='8'>
+											<Row>
+												<Col sm='5'>
+													<Form.Control type="number" placeholder="Minimum weight" name="cattleFinalWeightMin" onChange={(e) => setFormData({ ...formData, ProjectProperty: { ...formData.ProjectProperty, cattleFinalWeightMin: Number(e.target.value) } })} value={formData.ProjectProperty.cattleFinalWeightMin} />
+												</Col>
+												<Col sm='2' className='text-center'>-</Col>
+												<Col sm='5'>
+													<Form.Control type="number" placeholder="Maximum weight" name="cattleFinalWeightMax" onChange={(e) => setFormData({ ...formData, ProjectProperty: { ...formData.ProjectProperty, cattleFinalWeightMax: Number(e.target.value) } })} value={formData.ProjectProperty.cattleFinalWeightMax} />
+												</Col>
+											</Row>
+										</Col>
+									</Form.Group>
+								</Card.Body>
+							</Card>
+							}
 						</Col>
 					</Row>
 					<Row className='justify-content-center'>
@@ -482,7 +549,7 @@ function Projects() {
 						</Button>
 					</Row>
 				</Form>
-				{/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
+				{<pre>{JSON.stringify(formData, null, 2)}</pre>}
 			</Container>
 		</>
 	);

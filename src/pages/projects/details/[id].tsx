@@ -114,6 +114,10 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                         <td>{projectData.projectName}</td>
                                     </tr>
                                     <tr>
+                                        <td>Project Type</td>
+                                        <td>{projectData.projectType}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Category</td>
                                         <td>{projectData.ProjectCategory?.categoryName}</td>
                                     </tr>
@@ -163,7 +167,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                             </Table>
                         </Col>
                         <Col md={6}>
-                            <Table bordered size="sm">
+                            <Table bordered size="sm mb-2">
                                 <tbody>
                                     <tr>
                                         <td width={"30%"}>Collection Starts</td>
@@ -195,6 +199,33 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                     </tr>
                                 </tbody>
                             </Table>
+                            {projectData.projectType == "special" && <Table bordered size="sm">
+                                <tbody>
+                                    <tr>
+                                        <td className="text-center" colSpan={2}>Special project property</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Cattle live weight rate</td>
+                                        <td>{projectData.ProjectProperty?.cattleLiveWeightRate}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Initial weight min</td>
+                                        <td>{projectData.ProjectProperty?.cattleInitialWeightMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Initial weight max</td>
+                                        <td>{projectData.ProjectProperty?.cattleInitialWeightMax}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Final weight min</td>
+                                        <td>{projectData.ProjectProperty?.cattleFinalWeightMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Final weight max</td>
+                                        <td>{projectData.ProjectProperty?.cattleFinalWeightMax}</td>
+                                    </tr>
+                                </tbody>
+                            </Table>}
                         </Col>
                     </Row>
                 </Tab>

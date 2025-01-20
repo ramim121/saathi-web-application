@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import Cors from 'micro-cors';
+import ProjectProperty from '@/models/ProjectProperty';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -36,6 +37,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             else {
                 const result = await Project.findOne({
                     include: [
+                        ProjectProperty,
                         { model: User, as: 'CreatedBy', attributes: ['fullName'] },
                         {
                             model: ProjectPartner, as: 'ProjectPartners',
@@ -120,6 +122,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 export async function getProjectDetails(projectId: string) {
     return Project.findOne({
         include: [
+            ProjectProperty,
             { model: User, as: 'CreatedBy', attributes: ['fullName'] },
             {
                 model: ProjectInvestor, as: 'ProjectInvestors',

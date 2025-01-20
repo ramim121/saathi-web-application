@@ -23,6 +23,7 @@ const s3Client = new S3Client({
     }
 });
 import Cors from 'micro-cors';
+import ProjectProperty from '@/models/ProjectProperty';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -103,11 +104,32 @@ const schema = Joi.object({
         "number.base": "Project Category must be selected",
         "number.min": "Project Category must be selected",
     }),
-    // totalAvailableUnits: Joi.number().min(1).required().messages({
-    //     "any.required": "Total available units is required",
-    //     "number.base": "Total available units must be a number",
-    //     "number.min": "Total available units must be at least 1",
-    // }),
+    projectType: Joi.string().valid('regular', 'special').required().messages({
+        "any.required": "Project type is required",
+        "any.only": "Invalid project type",
+    }),
+    ProjectProperty: Joi.object({
+        cattleLiveWeightRate: Joi.number().required().messages({
+            "any.required": "Cattle live weight rate is required",
+            "number.base": "Cattle live weight rate must be a number",
+        }),
+        cattleInitialWeightMin: Joi.number().required().messages({
+            "any.required": "Cattle initial weight min is required",
+            "number.base": "Cattle initial weight min must be a number",
+        }),
+        cattleInitialWeightMax: Joi.number().required().messages({
+            "any.required": "Cattle initial weight max is required",
+            "number.base": "Cattle initial weight max must be a number",
+        }),
+        cattleFinalWeightMin: Joi.number().required().messages({
+            "any.required": "Cattle final weight min is required",
+            "number.base": "Cattle final weight min must be a number",
+        }),
+        cattleFinalWeightMax: Joi.number().required().messages({
+            "any.required": "Cattle final weight max is required",
+            "number.base": "Cattle final weight max must be a number",
+        }),
+    }).optional()
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -135,6 +157,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const data = {
                 projectName: fields.projectName ? fields.projectName[0].toString() : null,
                 unitInvestmentValue: fields.unitInvestmentValue ? fields.unitInvestmentValue[0] : null,
+                ProjectProperty: fields.ProjectProperty ? JSON.parse(fields.ProjectProperty[0]) : null,
                 investment: {
                     minimumReturn: investmentFields.minimumReturn ? parseInt(investmentFields.minimumReturn) : null,
                     maximumReturn: investmentFields.maximumReturn ? parseInt(investmentFields.maximumReturn) : null,
@@ -157,6 +180,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 projectCategory: fields.projectCategory ? fields.projectCategory[0] : null,
                 totalAvailableUnits: fields.totalAvailableUnits ? fields.totalAvailableUnits[0] : null,
                 investorUnitCapacity: fields.investorUnitCapacity ? fields.investorUnitCapacity[0] : null,
+                projectType: fields.projectType ? fields.projectType[0] : null
             }
 
             const options = {
@@ -228,7 +252,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     showInUpcoming: data.showInUpcoming,
                     idProjectCategories: data.projectCategory,
                     totalAvailableUnits: data.totalAvailableUnits,
-                    investorUnitCapacity: data.investorUnitCapacity
+                    investorUnitCapacity: data.investorUnitCapacity,
+                    projectType: data.projectType
                 }, { transaction });
 
                 if (mainImage !== null) {
@@ -334,6 +359,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             refId: project.idProjects
                         }, { transaction });
                     }
+                }
+
+                if (data.ProjectProperty) {
+                    await ProjectProperty.create({
+                        cattleLiveWeightRate: data.ProjectProperty.cattleLiveWeightRate,
+                        cattleInitialWeightMin: data.ProjectProperty.cattleInitialWeightMin,
+                        cattleInitialWeightMax: data.ProjectProperty.cattleInitialWeightMax,
+                        cattleFinalWeightMin: data.ProjectProperty.cattleFinalWeightMin,
+                        cattleFinalWeightMax: data.ProjectProperty.cattleFinalWeightMax,
+                        idProjects: project.idProjects
+                    }, { transaction });
                 }
 
                 await transaction.commit();

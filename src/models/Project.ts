@@ -98,6 +98,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
         defaultValue: 'no',
         allowNull: false
     },
+    projectType: {
+        type: DataTypes.ENUM('regular', 'special'),
+        defaultValue: 'regular',
+        allowNull: false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false
