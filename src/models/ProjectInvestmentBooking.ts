@@ -17,7 +17,7 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
     },
     paymentMethod: {
         type: DataTypes.ENUM('beftn', 'rtgs', 'npsb', 'cash', 'cheque'),
-        allowNull: false
+        allowNull: true
     },
     collectionRequired: {
         type: DataTypes.ENUM('yes', 'no'),
@@ -74,7 +74,8 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
     },
     cancelled: {
         type: DataTypes.ENUM('yes', 'no'),
-        allowNull: false
+        allowNull: false,
+        defaultValue: 'no'
     }
 }, {
     tableName: 'project_investment_bookings',
