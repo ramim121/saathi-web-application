@@ -24,7 +24,7 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
         allowNull: false
     },
     investmentStatus: {
-        type: DataTypes.ENUM('booked', 'approved', 'paid'),
+        type: DataTypes.ENUM('booked', 'approved', 'profit_added', 'paid', 'ready_for_withdrawal', 'withdrawn'),
         allowNull: false,
         defaultValue: 'booked'
     },

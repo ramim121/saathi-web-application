@@ -2,7 +2,6 @@ import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
 
 import { ProjectInvestmentBookingAttributes } from '@/types/ProjectInvestmentBooking';
-import { Collection } from 'react-bootstrap-icons';
 
 interface ProjectInvestmentBookingModel extends ProjectInvestmentBookingAttributes, Model { }
 
@@ -72,6 +71,10 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
     proofOfPayment: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    cancelled: {
+        type: DataTypes.ENUM('yes', 'no'),
+        allowNull: false
     }
 }, {
     tableName: 'project_investment_bookings',

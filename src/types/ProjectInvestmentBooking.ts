@@ -1,5 +1,4 @@
 import { Optional } from 'sequelize';
-
 import UserBank from './UserBank';
 import User from './User';
 import ProjectInvestor from './ProjectInvestor';
@@ -23,6 +22,7 @@ export default interface ProjectInvestmentBooking {
     collectionStatus: 'pending' | 'collected' | 'failed' | null;
     collectionDate?: string | null;
     collectionLocation?: string | null;
+    cancelled: 'yes' | 'no';
     ProjectInvestors?: ProjectInvestor[];
 }
 

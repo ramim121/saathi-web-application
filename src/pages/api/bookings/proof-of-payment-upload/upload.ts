@@ -6,10 +6,14 @@ import _ from 'await-to-js';
 import fs from 'fs';
 import ProjectInvestmentBooking from '@/models/ProjectInvestmentBooking';
 import Joi from 'joi';
-
+import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '@/config/constants';
+import JWTPayload from '@/types/JWTPayload';
+import Cors from 'micro-cors';
+import sequelize from '@/config/db';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -17,7 +21,7 @@ const s3Client = new S3Client({
         secretAccessKey: S3_BUCKET_SECRET_KEY
     }
 });
-import Cors from 'micro-cors';
+
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -32,79 +36,99 @@ const schema = Joi.object({
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'OPTIONS') { return res.status(200).end(); }
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    let tokenData = req.headers.authorization;
+    let token = tokenData?.split(' ')[1];
+
+    if (!token || jwt.verify(token, JWT_SECRET) === null) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    let userInfo = jwt.decode(token) as JWTPayload;
+    if (userInfo.userType !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
     const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
 
     form.parse(req, async (err, fields, files) => {
-        if (err) { return res.status(500).json({ success: false, message: err.message }); }
+        if (err) {
+            return res.status(500).json({ success: false, message: err.message });
+        }
 
         const data = {
             bookingId: fields.bookingId ? fields.bookingId[0] : null,
-        }
-
-        const options = {
-            abortEarly: false,
         };
+
+        const options = { abortEarly: false };
         const { error } = schema.validate(data, options);
 
         if (error) {
-            let errorMessage: string[] = [];
+            const errorMessage = error.details.map(e => e.message).join('. <br>');
+            return res.status(400).json({ success: false, message: errorMessage });
+        }
 
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
+        const transaction = await sequelize.transaction();
+        try {
+            const booking = await ProjectInvestmentBooking.findByPk(String(data.bookingId), { transaction });
+
+            if (!booking) {
+                await transaction.rollback();
+                return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+
+            if (!files['proofOfPayment']) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'Proof of payment is required' });
+            }
+
+            const proofOfPaymentFile = files['proofOfPayment'][0] as formidable.File;
+
+            if (!['image/jpeg', 'image/png'].includes(proofOfPaymentFile.mimetype!)) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
+            }
+
+            const proofOfPaymentFileName = generateHash(
+                Date.now() + (booking?.idProjectInvestmentBookings?.toString() ?? '') + proofOfPaymentFile.originalFilename
+            ) + '.' + proofOfPaymentFile.originalFilename!.split('.').pop();
+
+            const params: any = {
+                Bucket: S3_BUCKET_NAME,
+                ContentType: proofOfPaymentFile.mimetype!,
+                ACL: 'public-read',
+                Body: fs.createReadStream(proofOfPaymentFile.filepath),
+                Key: 'proof-of-payment/' + proofOfPaymentFileName
+            };
+
+            const upload = new Upload({ client: s3Client, params });
+
+            upload.on('httpUploadProgress', (progress: any) => {
+                console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
             });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+
+            await upload.done();
+
+            booking.proofOfPayment = proofOfPaymentFileName;
+            booking.paymentConfirmationStatus = 'uploaded';
+
+            await booking.save({ transaction });
+
+            const bookingStatus = await BookingStatusEntry('proof_of_payment_uploaded', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+            if (!bookingStatus) {
+                throw new Error('Error updating booking status');
+            }
+
+            await transaction.commit();
+
+            return res.status(200).json({ success: true, message: 'Proof of payment uploaded successfully' });
+        } catch (error) {
+            await transaction.rollback();
+            return res.status(500).json({ success: false, message: (error as Error).message });
         }
-
-        const booking = await ProjectInvestmentBooking.findByPk(String(data.bookingId));
-
-        if (!booking) {
-            return res.status(404).json({ success: false, message: 'Booking not found' });
-        }
-
-
-        if (!files['proofOfPayment']) { return res.status(400).json({ success: false, message: 'Proof of payment is required' }); }
-
-
-        const proofOfPaymentFile = files['proofOfPayment']![0] as formidable.File;
-
-        if (proofOfPaymentFile.mimetype !== 'image/jpeg' && proofOfPaymentFile.mimetype !== 'image/png') {
-            return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
-        }
-
-        if (!proofOfPaymentFile) { return res.status(400).json({ success: false, message: 'Proof of payment is required' }); }
-
-        let proofOfPaymentFileName = generateHash(Date.now() + (booking?.idProjectInvestmentBookings?.toString() ?? '') + proofOfPaymentFile.originalFilename!.toString()) + '.' + proofOfPaymentFile.originalFilename!.split('.').pop();
-
-        const params: any = {
-            Bucket: S3_BUCKET_NAME,
-            ContentType: proofOfPaymentFile.mimetype!,
-            ACL: 'public-read',
-            Body: fs.createReadStream(proofOfPaymentFile.filepath),
-            Key: 'proof-of-payment/' + proofOfPaymentFileName
-        };
-
-        const upload = new Upload({
-            client: s3Client,
-            params: params
-        });
-
-        upload.on('httpUploadProgress', (progress: any) => {
-            console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
-        });
-        let [err1, result1] = await _(upload.done());
-        if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
-
-
-        booking.proofOfPayment = proofOfPaymentFileName;
-        booking.paymentConfirmationStatus = 'uploaded';
-
-        let [err2] = await _(booking.save());
-        if (err2) { return res.status(500).json({ success: false, message: err2.message }); }
-
-        return res.status(200).json({ success: true, message: 'Proof of payment uploaded successfully' });
-
     });
 }
 
