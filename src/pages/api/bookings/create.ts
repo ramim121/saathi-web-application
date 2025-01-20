@@ -69,7 +69,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let userInfo = jwt.decode(token) as JWTPayload;
 
-        const { investmentDate, projects, userBank } = req.body
+        const { investmentDate, projects } = req.body
         const options = {
             abortEarly: false,
         };
