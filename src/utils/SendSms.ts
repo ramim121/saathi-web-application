@@ -22,6 +22,7 @@ export default async function sendSms(message: string, receiver: string) {
 
     if (response.status == 202 || response.status == 200) {
         const responseData = await response.json();
+        console.log(responseData);
         return responseData;
     } else {
         console.log(response.status);
