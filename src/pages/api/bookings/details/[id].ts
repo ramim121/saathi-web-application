@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, File } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File } from '@/models/__associations';
 // import jwt from 'jsonwebtoken';
 // import { JWT_SECRET } from '@/config/constants';
 // import JWTPayload from '@/types/JWTPayload';
@@ -65,10 +65,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const resultMain = result?.get({ plain: true });
 
+            const bookingHistory = await ProjectInvestmentBookingStatus.findAll({
+                where: {
+                    idProjectInvestmentBookings: req.query.id
+                },
+                include: [
+                    {
+                        model: User
+                    }
+                ]
+            });
+
+            const investorIds = result?.ProjectInvestors?.map(investor => investor.idProjectInvestors) || [];
+
+            const investorHistory = await ProjectInvestorStatus.findAll({
+                where: {
+                    idProjectInvestors: investorIds
+                },
+                include: [
+                    {
+                        model: User
+                    }
+                ]
+            });
+
+            const mergedHistory = [...bookingHistory, ...investorHistory].sort((a, b) => {
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            }).map(entry => {
+                return {
+                    ...entry.dataValues,  // Assuming Sequelize object with dataValues
+                    createdAtFormatted: new Date(entry.createdAt).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    })
+                };
+            });
 
             return res.status(200).json({
-                success: true,
-                data: {
+                success: true, data: {
                     ...resultMain,
                     ProjectInvestors:
                         resultMain.ProjectInvestors.map((projectInvestor: any) => {
@@ -80,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             projectInvestorMain.maturityDate = createdAtDate.toISOString(); // ISO format
                             return projectInvestorMain;
                         })
-                }
+                }, history: mergedHistory
             });
         } catch (error) {
             return res.status(500).json({ success: false, message: (error as Error).message })

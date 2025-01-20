@@ -27,12 +27,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 	if (userInfo.userType !== 'admin') return res.status(403).json({ success: false, message: 'Access denied' });
 
-	const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, orderBy, orderType, page, pageSize } = req.query;
+	const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, cancelled, orderBy, orderType, page, pageSize } = req.query;
 
 	const whereClause: any = {};
 	if (idProjectInvestmentBookings) whereClause.idProjectInvestmentBookings = { [Op.like]: `%${idProjectInvestmentBookings}%` };
 	if (bookingId) whereClause.bookingId = { [Op.like]: `%${bookingId}%` };
 	if (paymentConfirmationStatus) whereClause.paymentConfirmationStatus = { [Op.like]: `%${paymentConfirmationStatus}%` };
+	if (cancelled) whereClause.cancelled = { [Op.like]: `%${cancelled}%` };
 
 
 	const limit = parseInt(pageSize as string) || 10;

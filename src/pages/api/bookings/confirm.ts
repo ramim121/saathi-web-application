@@ -108,6 +108,7 @@ export default async function handler(
 
             const bookingStatus = await BookingStatusEntry('confirmed', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
             if (!bookingStatus) {
+                await transaction.rollback();
                 throw new Error('Error updating booking status');
             }
 

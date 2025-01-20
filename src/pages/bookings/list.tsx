@@ -20,24 +20,7 @@ interface BookingListProps {
         investmentDate: string;
         investmentStatus: string;
     }[];
-    // unitPurchased: number;
-    // investmentDate: string;
-    // investmentStatus: string;
-    // totalInvestedAmount: number;
-    // Project: {
-    //     projectName: string;
-    //     location: string;
-    // };
-    // User: {
-    //     fullName: string;
-    // };
-    // ProjectPartnerInvestors: {
-    //     ProjectPartner: {
-    //         User: {
-    //             fullName: string;
-    //         };
-    //     };
-    // }[];
+    cancelled: string;
 }
 
 interface FilterProps {
@@ -45,9 +28,7 @@ interface FilterProps {
     bookingId: string;
     investorName: string;
     paymentConfirmationStatus: string;
-    // projects: string;
-    // unitPurchased: string;
-    // investmentDate: string;
+    cancelled: string;
     orderBy: string;
     orderType: string;
     page: number;
@@ -63,9 +44,7 @@ function List() {
         bookingId: '',
         investorName: '',
         paymentConfirmationStatus: '',
-        // projects: '',
-        // unitPurchased: '',
-        // investmentDate: '',
+        cancelled: '',
         orderBy: 'idProjectInvestmentBookings',
         orderType: 'DESC',
         page: 1,
@@ -195,6 +174,7 @@ function List() {
                         <th>Project Status</th>
                         <th>Unit Purchased</th>
                         <th>Investment Date</th>
+                        <th>Cancelled</th>
                         <th>Actions</th>
 
                     </tr>
@@ -211,22 +191,14 @@ function List() {
                         <td>
                             <input type="text" className="form-control form-control-sm" placeholder="Search" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus} />
                         </td>
-                        {/* <td>
-                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="projects" onChange={handleInputOnChange} value={filter.projects} />
-                        </td>
-                        <td>
-                            <input type="number" className="form-control form-control-sm" placeholder="Search" name="unitPurchased" onChange={handleInputOnChange} value={filter.unitPurchased} />
-                        </td>
-                        <td>
-                            <input type="date" className="form-control form-control-sm" placeholder="Search" name="investmentDate" onChange={handleInputOnChange} value={filter.investmentDate} />
-                        </td> */}
                         <td></td>
                         <td></td>
                         <td></td>
                         <td></td>
                         <td>
+                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="cancelled" onChange={handleInputOnChange} value={filter.cancelled} />
                         </td>
-
+                        <td></td>
                     </tr>
                 </thead>
                 <tbody>
@@ -248,7 +220,7 @@ function List() {
                             <td>
                                 <ul>
                                     {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.investmentStatus?.charAt(0).toUpperCase() + invest.investmentStatus?.slice(1)}</li>
+                                        <li key={index}>{invest.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + invest.investmentStatus?.replace(/_/g, ' ').slice(1)}</li>
                                     ))
                                     }
                                 </ul>
@@ -269,6 +241,7 @@ function List() {
                                     }
                                 </ul>
                             </td>
+                            <td>{booking.cancelled?.charAt(0).toUpperCase() + booking.cancelled?.slice(1)}</td>
                             <td>
                                 <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
                                     <Button size="sm" variant="primary">Details</Button>
@@ -277,7 +250,7 @@ function List() {
                         </tr>
                     )) : (
                         <tr>
-                            <td colSpan={9} className="text-center">No booking found</td>
+                            <td colSpan={10} className="text-center">No booking found</td>
                         </tr>
                     )}
 

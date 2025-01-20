@@ -285,47 +285,44 @@ function Details() {
     const handleInvestmentStatusChange = async (idProjectInvestors: number, investmentStatus: string) => {
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to change status of this investment!",
+            text: 'You want to change the status of this investment!',
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
-            confirmButtonText: 'Yes'
-        }).then((result) => {
-            if (result.value) {
-                try {
-                    const fetchData = async () => {
-                        const formData = {
-                            idProjectInvestors,
-                            investmentStatus
-                        }
-                        const res = await fetch(API_URL + 'api/bookings/investment_status_change', putRequestOptions(formData));
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: 'Investment status changed successfully!',
-                            });
-                            setReload(true);
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
+            confirmButtonText: 'Yes',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                const formData = {
+                    idProjectInvestors,
+                    investmentStatus,
+                };
 
-                } catch (err) {
+                try {
+                    const res = await fetch(API_URL + 'api/bookings/investment_status_change', putRequestOptions(formData));
+
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Investment status changed successfully!',
+                        });
+                        setReload(true);
+                    } else {
+                        const errorResult = await res.json();
+                        throw new Error(errorResult.message);
+                    }
+                } catch (error) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Something went wrong!',
+                        text: (error as Error).message || 'Something went wrong!',
                     });
                 }
-            }
+            },
         });
-    }
+    };
+
 
     const handleCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
         Swal.fire({
@@ -470,9 +467,11 @@ function Details() {
                                     <td>
                                         <Form.Group className="mb-3">
                                             <Form.Control type="file" onChange={handleFileChange} ref={proofOfPaymentRef} />
-                                            <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
-                                                Upload
-                                            </Button>
+                                            <div className="d-flex justify-content-center">
+                                                <Button className='btn btn-primary btn-sm text-light w-50 mt-2' onClick={handleFileUpload}>
+                                                    Upload
+                                                </Button>
+                                            </div>
                                         </Form.Group>
                                     </td>
                                 </tr>
@@ -605,28 +604,12 @@ function Details() {
                                     <td>
                                         {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
                                     </td>
-                                    <td>{project.investmentStatus?.charAt(0).toUpperCase() + project.investmentStatus?.slice(1)}</td>
+                                    <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
                                     <td>
-                                        {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' &&
-                                            <DropdownButton
-                                                as={ButtonGroup}
-                                                title="Status"
-                                                id="bg-vertical-dropdown-3"
-                                            >
-                                                {/* {project.investmentStatus === 'booked' &&
-                                            <Button variant="danger" type="submit" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>
-                                                Cancel
+                                        {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
+                                            <Button className='btn btn-sm btn-primary' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
+                                                Ready For Withdrawal
                                             </Button>
-                                        } */}
-                                                <Dropdown.Item eventKey="1" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'cancelled')}>Cancel</Dropdown.Item>
-                                                <Dropdown.Item eventKey="2" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'approved')}>Approve</Dropdown.Item>
-                                                <Dropdown.Item eventKey="3" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'proof_submitted')}>Proof Submit</Dropdown.Item>
-                                                <Dropdown.Item eventKey="4" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'disbursed')}>Disburse</Dropdown.Item>
-                                                <Dropdown.Item eventKey="5" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'profit_added')}>Profit Add</Dropdown.Item>
-                                                <Dropdown.Item eventKey="6" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'paid')}>Paid</Dropdown.Item>
-                                                <Dropdown.Item eventKey="7" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>Ready for withdrawal</Dropdown.Item>
-                                                <Dropdown.Item eventKey="8" onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'withdrawn')}>Withdraw</Dropdown.Item>
-                                            </DropdownButton>
                                         }
                                     </td>
                                 </tr>
@@ -648,25 +631,23 @@ function Details() {
                 </Col>
             </Row>
             <Row className='justify-content-center'>
-                <Col md={2}></Col>
-                <Col md={8} className="d-flex justify-content-between">
+                <Col md={6} className="d-flex justify-content-between">
                     {(details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed') &&
-                        <Button className='w-50 me-2' variant="danger" type="submit" onClick={handleCancel}>
+                        <Button className='w-75 me-2' variant="danger" type="button" onClick={handleCancel}>
                             Cancel
                         </Button>
                     }
                     {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
                         <>
-                            <Button className='w-50 me-2' variant="primary" type="submit" onClick={() => setApproverModalShow(true)}>
+                            <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
                                 Confirm
                             </Button>
-                            <Button className='w-50' variant="danger" type="submit" onClick={handleDeny}>
+                            <Button className='w-75' variant="danger" type="button" onClick={handleDeny}>
                                 Deny
                             </Button>
                         </>
                     }
                 </Col>
-                <Col md={2}></Col>
             </Row>
 
 
