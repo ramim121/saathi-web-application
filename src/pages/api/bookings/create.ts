@@ -22,7 +22,7 @@ const schema = Joi.object({
         "any.required": "Investment date is required",
         "date.base": "Invalid date",
     }),
-    idUserbanks: Joi.number().optional(),
+    // idUserbanks: Joi.number().optional(),
     projects: Joi.array().items(
         Joi.object({
             idProjects: Joi.number().required().messages({
@@ -69,11 +69,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let userInfo = jwt.decode(token) as JWTPayload;
 
-        const { investmentDate, projects, userBank, idUserBanks } = req.body
+        const { investmentDate, projects, userBank } = req.body
         const options = {
             abortEarly: false,
         };
-        const { error } = schema.validate({ investmentDate, projects, idUserBanks }, options);
+        const { error } = schema.validate({ investmentDate, projects }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -105,31 +105,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
 
-            let userBankData: any;
+            // let userBankData: any;
 
-            if (idUserBanks) {
-                userBankData = await UserBank.findOne({ where: { idUserBanks: idUserBanks, idUsers: userInfo.idUsers } });
-                if (!userBankData) {
-                    await transaction.rollback();
-                    return res.status(400).json({ success: false, message: 'User bank not found' });
-                }
-            } else {
-                userBankData = await createBank({ body: req.body.userBanks } as NextApiRequest, res, userInfo, transaction, false);
+            // if (idUserBanks) {
+            //     userBankData = await UserBank.findOne({ where: { idUserBanks: idUserBanks, idUsers: userInfo.idUsers } });
+            //     if (!userBankData) {
+            //         await transaction.rollback();
+            //         return res.status(400).json({ success: false, message: 'User bank not found' });
+            //     }
+            // } else {
+            //     userBankData = await createBank({ body: req.body.userBanks } as NextApiRequest, res, userInfo, transaction, false);
 
-                if (typeof userBankData == 'string') {
-                    return res.status(400).json({ success: false, message: userBankData });
-                }
-            }
+            //     if (typeof userBankData == 'string') {
+            //         return res.status(400).json({ success: false, message: userBankData });
+            //     }
+            // }
 
             const maximumBookingId = await ProjectInvestmentBooking.max('bookingId');
             const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
             const projectInvestmentBooking = await ProjectInvestmentBooking.create({
                 idUsers: userInfo.idUsers,
-                paymentMethod: 'bank',
+                // paymentMethod: 'bank',
                 bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
-                idUserBanks: userBankData.idUserBanks,
+                // idUserBanks: userBankData.idUserBanks,
             }, { transaction });
 
             const projectForNotifications = [];
@@ -138,7 +138,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     where: {
                         idProjects: project.idProjects,
                     },
-                    attributes: ['totalAvailableUnits', 'investorUnitCapacity','projectName', 'duration', 'tenure', 'unitInvestmentValue'],
+                    attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName', 'duration', 'tenure', 'unitInvestmentValue'],
                 });
 
                 projectForNotifications.push({
