@@ -22,6 +22,7 @@ import AppStatPanel from "./AppStatPanel";
 import ManualNotification from "./ManualNotification";
 import ProjectInvestmentBookingStatus from "./ProjectInvestmentBookingStatus";
 import ProjectProperty from "./ProjectProperty";
+import ProjectInvestorStatus from "./ProjectInvestorStatus";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -75,6 +76,11 @@ ProjectInvestor.belongsTo(User, { foreignKey: 'idUsers' });
 ProjectInvestor.belongsTo(ProjectInvestmentBooking, { foreignKey: 'idProjectInvestmentBookings' });
 
 ProjectInvestor.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectInvestors' });
+ProjectInvestor.hasMany(ProjectInvestorStatus, { foreignKey: 'idProjectInvestors' });
+
+ProjectInvestorStatus.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
+ProjectInvestorStatus.belongsTo(User, { foreignKey: 'idUsers' });
+
 
 ProjectPartnerInvestor.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
@@ -91,4 +97,4 @@ Bank.hasMany(BankBranch, { foreignKey: 'idBanks' });
 
 ProjectProperty.belongsTo(Project, { foreignKey: 'idProjects' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, BankBranch, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification, ProjectInvestmentBookingStatus };
+export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, BankBranch, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification, ProjectInvestmentBookingStatus, ProjectInvestorStatus, ProjectProperty };

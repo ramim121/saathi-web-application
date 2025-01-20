@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
+import ProjectInvestorStatusEntry from '@/utils/ProjectInvestorStatusEntry';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'PUT') {
         let tokenData = req.headers.authorization;
@@ -30,14 +32,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             investor.investmentStatus = investmentStatus;
             await investor.save({ transaction });
 
-            await transaction.commit();
-
             if (investmentStatus === 'cancelled') {
                 await generateNotification('booking_cancelled', {
                     fullName: investorUser?.fullName,
                     bookingId: investor.ProjectInvestmentBooking.bookingId,
                 }, investorUser!);
             }
+
+            const investorBookingStatus = await ProjectInvestorStatusEntry('ready_for_withdrawal', idProjectInvestors, userInfo.idUsers, '', transaction);
+            if (!investorBookingStatus) {
+                await transaction.rollback();
+                throw new Error('Error updating investor booking status');
+            }
+
+            await transaction.commit();
 
             return res.status(200).json({ success: true, message: 'Investment status changed successfully', data: investor })
         } catch (error) {

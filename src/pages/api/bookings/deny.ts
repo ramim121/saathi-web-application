@@ -50,6 +50,7 @@ export default async function handler(
 
 			const bookingStatus = await BookingStatusEntry('denied', booking.idProjectInvestmentBookings!, userInfo.idUsers, remarks, transaction);
 			if (!bookingStatus) {
+				await transaction.rollback();
 				throw new Error('Error updating booking status');
 			}
 

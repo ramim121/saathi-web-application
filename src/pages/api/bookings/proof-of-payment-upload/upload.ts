@@ -119,6 +119,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const bookingStatus = await BookingStatusEntry('proof_of_payment_uploaded', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
             if (!bookingStatus) {
+                await transaction.rollback();
                 throw new Error('Error updating booking status');
             }
 
