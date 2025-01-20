@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
+import sequelize from '@/config/db';
+import BookingStatusEntry from '@/utils/BookingStatusEntry';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -42,10 +44,16 @@ export default async function handler(
         let tokenData = req.headers.authorization;
         let token = tokenData?.split(' ')[1];
 
-        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+        if (!token || jwt.verify(token, JWT_SECRET) === null) {
+            res.status(401).json({ success: false, message: 'Invalid token' });
+            return;
+        }
 
         let userInfo = jwt.decode(token) as JWTPayload;
-        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+        if (userInfo.userType !== 'admin') {
+            res.status(403).json({ success: false, message: 'Access denied' });
+            return;
+        }
 
         const { bookingId, paymentMethod, paymentDate, paymentAmount, transactionId } = req.body;
 
@@ -63,46 +71,58 @@ export default async function handler(
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
 
-        try {
+        const transaction = await sequelize.transaction();
 
+        try {
             const booking = await ProjectInvestmentBooking.findOne({
                 where: {
                     bookingId,
                 },
-            });
-
-            const investor = await User.findOne({
-                where: { idUsers: booking?.idUsers }
+                transaction,
             });
 
             if (!booking) {
+                await transaction.rollback();
                 return res.status(404).json({
                     success: false,
                     message: 'Booking not found',
                 });
             }
 
+            const investor = await User.findOne({
+                where: { idUsers: booking.idUsers },
+                transaction,
+            });
+
             booking.paymentMethod = paymentMethod.value;
             booking.paymentDate = paymentDate;
             booking.paymentAmount = paymentAmount;
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
-            await booking.save();
+            await booking.save({ transaction });
 
             await generateNotification('booking_active', {
                 fullName: investor?.fullName,
                 bookingId: booking.bookingId,
             }, investor!);
 
+            const bookingStatus = await BookingStatusEntry('confirmed', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+            if (!bookingStatus) {
+                throw new Error('Error updating booking status');
+            }
+
+            await transaction.commit();
+
             return res.status(200).json({
                 success: true,
                 data: booking,
-                message: 'Booking approved successfully',
+                message: 'Booking confirmed successfully',
             });
         } catch (err) {
-            return res.status(500).json({ success: false, message: (err as Error).message })
+            await transaction.rollback();
+            return res.status(500).json({ success: false, message: (err as Error).message });
         }
     } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+        res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }

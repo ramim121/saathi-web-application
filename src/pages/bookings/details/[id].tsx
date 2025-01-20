@@ -1,15 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup } from "react-bootstrap";
-import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, putRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
 import Image from "next/image";
 import { API_URL } from '@/config/constants';
 import Select from 'react-select';
-
+import { getCookie } from '@/utils/GetCookie';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -86,7 +86,7 @@ function Details() {
         paymentAmount: 0,
         transactionId: ''
     });
-
+    const proofOfPaymentRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         if (id != undefined) {
             fetchPartnerDetails();
@@ -137,124 +137,150 @@ function Details() {
 
     const handleFileUpload = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
-        if (!proofOfPaymentFile) return;
-
-        const formData = new FormData();
-        formData.append('proofOfPayment', proofOfPaymentFile);
-        formData.append('bookingId', router.query.id as string);
-
-        try {
-            const uploadFile = async () => {
-                const response = await fetch(API_URL + `api/bookings/proof-of-payment-upload/upload`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'File uploaded successfully!',
-                    });
-                    setReload(true);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'File upload failed',
-                    });
-                }
-            };
-            await uploadFile();
-        } catch (error) {
+        if (!proofOfPaymentFile) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Something went wrong while uploading!',
+                text: 'Please select a file to upload!',
             });
+            return;
         }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to upload this proof of payment?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                const formData = new FormData();
+                formData.append('proofOfPayment', proofOfPaymentFile);
+                formData.append('bookingId', router.query.id as string);
+
+                try {
+                    const response = await fetch(API_URL + 'api/bookings/proof-of-payment-upload/upload', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'File uploaded successfully!',
+                        });
+                        setReload(true);
+                        if (proofOfPaymentRef.current) {
+                            proofOfPaymentRef.current.value = '';
+                        }
+                    } else {
+                        const errorResult = await response.json();
+                        throw new Error(errorResult.message || 'File upload failed.');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: (error as Error).message,
+                    });
+                }
+            },
+        });
     };
+
 
     const handleDeny = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
+
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to deny this booking!",
+            text: 'You want to deny this booking!',
             icon: 'warning',
+            input: 'text',
+            inputPlaceholder: 'Enter your remarks here...',
             showCancelButton: true,
             cancelButtonText: 'No',
-            confirmButtonText: 'Yes'
-        }).then((result) => {
-            if (result.value) {
+            confirmButtonText: 'Yes',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            preConfirm: async (remarks) => {
+                const formData = {
+                    bookingId: details.bookingId,
+                    paymentConfirmationStatus: 'denied',
+                    remarks: remarks || ''
+                };
+
                 try {
-                    const fetchData = async () => {
-                        const formData = {
-                            bookingId: details.bookingId,
-                            paymentConfirmationStatus: 'denied'
-                        }
-                        const res = await fetch(API_URL + `api/bookings/deny`, putRequestOptions(formData));
-                        if (res.status === 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: 'Booking denied successfully!',
-                            });
-                            setReload(true);
+                    const res = await fetch(API_URL + 'api/bookings/deny', putRequestOptions(formData));
 
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                html: (await res.json()).message,
-                            });
-                        }
-                    };
-                    fetchData();
-
-                } catch (err) {
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Booking denied successfully!',
+                        });
+                        setReload(true);
+                    } else {
+                        const errorResult = await res.json();
+                        throw new Error(errorResult.message);
+                    }
+                } catch (error) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Something went wrong!',
+                        text: (error as Error).message || 'Something went wrong!',
                     });
                 }
+            },
+        });
+    };
 
-            }
-        })
-    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        try {
-            const fetchData = async () => {
-                formData.bookingId = details.bookingId;
-                const res = await fetch(API_URL + `api/bookings/approve`, putRequestOptions(formData));
-                if (res.status === 200) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Booking approved successfully!',
-                    });
-                    setReload(true);
-                    setApproverModalShow(false);
-                } else {
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to confirm this booking?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                try {
+                    formData.bookingId = details.bookingId;
+                    const res = await fetch(API_URL + 'api/bookings/confirm', putRequestOptions(formData));
+
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Booking confirmed successfully!',
+                        });
+                        setReload(true);
+                        setApproverModalShow(false);
+                    } else {
+                        const errorResult = await res.json();
+                        throw new Error(errorResult.message);
+                    }
+                } catch (error) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        html: (await res.json()).message,
+                        text: (error as Error).message || 'Something went wrong!',
                     });
                 }
-            };
-            fetchData();
+            },
+        });
+    };
 
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong!',
-            });
-        }
-    }
 
     const handleInvestmentStatusChange = async (idProjectInvestors: number, investmentStatus: string) => {
         Swal.fire({
@@ -443,7 +469,7 @@ function Details() {
                                     <td>Upload Proof of Payment</td>
                                     <td>
                                         <Form.Group className="mb-3">
-                                            <Form.Control type="file" onChange={handleFileChange} />
+                                            <Form.Control type="file" onChange={handleFileChange} ref={proofOfPaymentRef} />
                                             <Button className='btn btn-primary btn-sm text-light w-100 mt-2' onClick={handleFileUpload}>
                                                 Upload
                                             </Button>
@@ -632,7 +658,7 @@ function Details() {
                     {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
                         <>
                             <Button className='w-50 me-2' variant="primary" type="submit" onClick={() => setApproverModalShow(true)}>
-                                Approve
+                                Confirm
                             </Button>
                             <Button className='w-50' variant="danger" type="submit" onClick={handleDeny}>
                                 Deny
@@ -646,7 +672,7 @@ function Details() {
 
             <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} >
                 <Modal.Header closeButton>
-                    <Modal.Title>Approve Booking</Modal.Title>
+                    <Modal.Title>Confirm Booking</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form onSubmit={handleSubmit}>

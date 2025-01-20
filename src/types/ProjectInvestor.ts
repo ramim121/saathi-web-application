@@ -9,7 +9,7 @@ export default interface ProjectInvestor {
     idProjects: number;
     idUsers: number;
     unitPurchased: number;
-    investmentStatus: 'booked' | 'approved' | 'paid';
+    investmentStatus: 'booked' | 'approved' | 'profit_added' | 'paid' | 'ready_for_withdrawal' | 'withdrawn';
     investmentDate: string; // Assuming date is in format 'YYYY-MM-DD'
     createdAt?: string; // Assuming it can be null
     updatedAt?: string; // Assuming it can be null
