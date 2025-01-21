@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, User, ProjectInvestor } from '@/models/__associations';
+import { ProjectInvestmentBooking, User, ProjectInvestor, Project, ProjectPartnerInvestor, ProjectPartner } from '@/models/__associations';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -7,6 +7,7 @@ import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import sequelize from '@/config/db';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import { Op } from 'sequelize';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -99,6 +100,7 @@ export default async function handler(
             booking.paymentAmount = paymentAmount;
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
+
             await booking.save({ transaction });
 
             const projectInvestor = await ProjectInvestor.findAll({
@@ -107,8 +109,85 @@ export default async function handler(
             });
 
             for (const investor of projectInvestor) {
+
+                const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
+                    where: {
+                        idProjects: investor.idProjects,
+                        investmentStatus: 'confirmed'
+                    }
+                });
+
+                const projectInfo = await Project.findOne({
+                    where: {
+                        idProjects: investor.idProjects,
+                    },
+                    attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName'],
+                });
+
+                if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
+                    if (Number(alreadyPurchased) + Number(investor.unitPurchased) > projectInfo.totalAvailableUnits) {
+                        await transaction.rollback();
+                        return res.status(400).json({ success: false, message: 'Total available units excedded' });
+                    }
+                }
+
+                const userBooking = await ProjectInvestor.sum('unitPurchased', {
+                    where: {
+                        idUsers: investor.idUsers,
+                        idProjects: investor.idProjects,
+                        idProjectInvestors: {
+                            [Op.not]: investor.idProjectInvestors
+                        },
+                    }
+                });
+
+                if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
+                    if (Number(userBooking) + Number(investor.unitPurchased) > projectInfo.investorUnitCapacity) {
+                        await transaction.rollback();
+                        return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
+                    }
+                }
+
+                const projectPartnerInvestor = await ProjectPartnerInvestor.findAll({
+                    where: {
+                        idProjectInvestors: investor.idProjectInvestors,
+                    },
+                    transaction,
+                });
+
+                for (const partner of projectPartnerInvestor) {
+
+                    const partnerInfo = await ProjectPartner.findOne({
+                        where: {
+                            idProjectPartners: partner.idProjectPartners,
+                        },
+                        attributes: ['partnerUnitCapacity'],
+                    });
+
+                    const alreadyInvested = await ProjectPartnerInvestor.sum('investedUnit', {
+                        where: {
+                            idProjectPartners: partner.idProjectPartners,
+                            idProjectPartnerInvestors: {
+                                [Op.not]: partner.idProjectPartnerInvestors
+                            },
+                            idProjectInvestors: {
+                                [Op.in]: sequelize.literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed')`)
+                            }
+                        }
+                    });
+
+                    if (partnerInfo && partnerInfo.partnerUnitCapacity !== 0) {
+                        if (Number(alreadyInvested) + Number(partner.investedUnit) > partnerInfo.partnerUnitCapacity) {
+                            await transaction.rollback();
+                            return res.status(400).json({ success: false, message: 'Partner unit capacity excedded' });
+                        }
+                    }
+                }
+
+
                 investor.investmentStatus = 'confirmed';
                 await investor.save({ transaction });
+
             }
 
             await generateNotification('booking_active', {

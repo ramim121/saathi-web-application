@@ -92,7 +92,7 @@ export default async function handler(
                                 SELECT COALESCE(SUM(unit_purchased), 0)
                                 FROM project_investors AS ppi
                                 WHERE ppi.id_projects = Project.id_projects
-								AND ppi.investment_status != 'cancelled'
+								AND ppi.investment_status = 'confirmed'
                             )`),
 							'totalInvestedUnits'
 						],
@@ -103,7 +103,7 @@ export default async function handler(
 				                        SELECT SUM(unit_purchased)
 				                        FROM project_investors AS ppi
 				                        WHERE ppi.id_projects = Project.id_projects
-										AND ppi.investment_status != 'cancelled'
+										AND ppi.investment_status != 'confirmed'
 				                    )
 				                    ELSE NULL
 				                END

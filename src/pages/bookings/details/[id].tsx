@@ -667,7 +667,7 @@ function Details() {
                                     <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
                                         Confirm
                                     </Button>
-                                    <Button className='w-75' variant="danger" type="button" onClick={handleDeny}>
+                                    <Button className='w-75' variant="warning" type="button" onClick={handleDeny}>
                                         Deny
                                     </Button>
                                 </>
@@ -742,10 +742,11 @@ function Details() {
                                     id="paymentMethod"
                                     instanceId="paymentMethod"
                                     options={[
-                                        { value: 'bank', label: 'Bank' },
+                                        { value: 'beftn', label: 'Beftn' },
+                                        { value: 'npsb', label: 'Npsb' },
+                                        { value: 'rtgs', label: 'Rtgs' },
                                         { value: 'cash', label: 'Cash' },
-                                        { value: 'card', label: 'Card' },
-                                        { value: 'mobile', label: 'Mobile' }
+                                        { value: 'cheque', label: 'Cheque' }
                                     ]}
                                     value={formData.paymentMethod}
                                     onChange={(selectedOption: any) => setFormData({ ...formData, paymentMethod: selectedOption })}

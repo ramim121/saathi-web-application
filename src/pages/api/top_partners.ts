@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File } from '@/models/__associations'
+import { User, File } from '@/models/__associations';
+import sequelize from '@/config/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -19,6 +20,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     'joiningDate',
                     'education',
                     'disability',
+                    [
+                        sequelize.literal(`(
+                                            SELECT COUNT(*)
+                                            FROM project_partners
+                                            JOIN project_partner_investors AS ppi ON project_partners.id_project_partners = ppi.id_project_partners
+                                            JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
+                                            WHERE project_partners.id_users = User.id_users AND pi.investment_status = 'confirmed'
+                                        )`),
+                        'investorCount'
+                    ],
+
                 ],
                 include: [
                     { model: File, as: 'ProfilePicture' },
@@ -27,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {
                     user_type: 'partner',
                 },
-                order: [['createdAt', 'DESC']]
+                order: [[sequelize.literal('investorCount'), 'DESC']]
             });
 
             res.status(200).json({ success: true, data: result });
