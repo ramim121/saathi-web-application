@@ -10,6 +10,7 @@ import UserBankType from '@/types/UserBank';
 import { createBank } from '../banks/user-bank';
 import user from '../user';
 import { generateNotification } from '@/notifications';
+import BookingStatusEntry from '@/utils/BookingStatusEntry';
 
 const cors = Cors({
     origin: '*',
@@ -194,6 +195,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         investedUnit: partner.investedUnit,
                     }, { transaction });
                 }
+            }
+
+            const bookingStatus = await BookingStatusEntry('placed', projectInvestmentBooking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+            if (!bookingStatus) {
+                await transaction.rollback();
+                throw new Error('Error in booking placed');
             }
 
             await transaction.commit();
