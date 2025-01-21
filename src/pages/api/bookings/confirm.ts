@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, User } from '@/models/__associations';
+import { ProjectInvestmentBooking, User, ProjectInvestor } from '@/models/__associations';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -100,6 +100,16 @@ export default async function handler(
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
             await booking.save({ transaction });
+
+            const projectInvestor = await ProjectInvestor.findAll({
+                where: { idProjectInvestmentBookings: booking.idProjectInvestmentBookings! },
+                transaction,
+            });
+
+            for (const investor of projectInvestor) {
+                investor.investmentStatus = 'confirmed';
+                await investor.save({ transaction });
+            }
 
             await generateNotification('booking_active', {
                 fullName: investor?.fullName,

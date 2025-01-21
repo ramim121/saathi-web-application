@@ -150,32 +150,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     unitPurchased: project.unitPurchased,
                 });
 
-                const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
-                    where: {
-                        idProjects: project.idProjects,
-                    }
-                });
+                // const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
+                //     where: {
+                //         idProjects: project.idProjects,
+                //     }
+                // });
 
-                if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
-                    if (Number(alreadyPurchased) + Number(project.unitPurchased) > projectInfo.totalAvailableUnits) {
-                        await transaction.rollback();
-                        return res.status(400).json({ success: false, message: 'Total available units excedded' });
-                    }
-                }
+                // if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
+                //     if (Number(alreadyPurchased) + Number(project.unitPurchased) > projectInfo.totalAvailableUnits) {
+                //         await transaction.rollback();
+                //         return res.status(400).json({ success: false, message: 'Total available units excedded' });
+                //     }
+                // }
 
-                const userBooking = await ProjectInvestor.sum('unitPurchased', {
-                    where: {
-                        idUsers: userInfo.idUsers,
-                        idProjects: project.idProjects,
-                    }
-                });
+                // const userBooking = await ProjectInvestor.sum('unitPurchased', {
+                //     where: {
+                //         idUsers: userInfo.idUsers,
+                //         idProjects: project.idProjects,
+                //     }
+                // }); 
 
-                if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
-                    if (Number(userBooking) + Number(project.unitPurchased) > projectInfo.investorUnitCapacity) {
-                        await transaction.rollback();
-                        return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
-                    }
-                }
+                // if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
+                //     if (Number(userBooking) + Number(project.unitPurchased) > projectInfo.investorUnitCapacity) {
+                //         await transaction.rollback();
+                //         return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
+                //     }
+                // }
 
 
                 const projectInvestor = await ProjectInvestor.create({

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor } from '@/models/__associations';
 import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -34,6 +34,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             booking.cancelled = 'yes';
             await booking.save({ transaction });
+
+            const projectInvestor = await ProjectInvestor.findAll({
+                where: { idProjectInvestmentBookings: booking.idProjectInvestmentBookings! },
+                transaction,
+            });
+
+            for (const investor of projectInvestor) {
+                investor.investmentStatus = 'cancelled';
+                await investor.save({ transaction });
+            }
 
             if (booking.idProjectInvestmentBookings === undefined) {
                 await transaction.rollback();

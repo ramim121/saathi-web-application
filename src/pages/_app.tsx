@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/style.css';
 import '../styles/layout.css';
+import '../styles/timeline.css';
 import { AppProps } from "next/app"
 
 export default function App({ Component, pageProps }: AppProps) {

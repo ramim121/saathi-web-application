@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup } from "react-bootstrap";
+import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup, Tabs, Tab } from "react-bootstrap";
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
@@ -10,6 +10,7 @@ import Image from "next/image";
 import { API_URL } from '@/config/constants';
 import Select from 'react-select';
 import { getCookie } from '@/utils/GetCookie';
+import { ChatDots, List, GraphUp, FileEarmarkText, HandThumbsUp, House, Calendar, Rulers } from 'react-bootstrap-icons';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -68,6 +69,12 @@ interface FormDataProps {
     transactionId: string;
 }
 
+interface TimelineItemProps {
+    icon: React.ReactNode;
+    color: string;
+    header: string;
+    description: string;
+}
 
 function Details() {
     const router = useRouter();
@@ -412,244 +419,315 @@ function Details() {
         });
     };
 
+    const TimelineItem: React.FC<TimelineItemProps> = ({ icon, color, header, description }) => (
+        <div className="timeline-item">
+            <div style={{ color }} className="main-icon">
+                {icon}
+            </div>
+            <div className="timeline-card">
+                <div className="circle-custom">
+                    <i className="fa fas fa-circle"></i>
+                </div>
+                <div className="subcard">
+                    <h3>{header}</h3>
+                    <p>{description}</p>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <Container>
             <h4 className="text-start"> Booking Details</h4>
             <hr />
-            <Row>
-                <Col md={6}>
-                    <Table bordered size='sm'>
-                        <tbody>
-                            <tr>
-                                <td>Booking ID</td>
-                                <td>{details.bookingId}</td>
-                            </tr>
-                            <tr>
-                                <td>Investor </td>
-                                <td>{details.User?.fullName} ( {details.User?.phoneNumber} )</td>
-                            </tr>
-                            <tr>
-                                <td>Payment Confirmation Status</td>
-                                <td>
-                                    {details.paymentConfirmationStatus?.charAt(0).toUpperCase() + details.paymentConfirmationStatus?.slice(1)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Cancelled</td>
-                                <td>
-                                    <span className={`badge ${details.cancelled === 'yes' ? 'bg-danger' : 'bg-success'}`}>
-                                        {details.cancelled === 'yes' ? 'Yes' : 'No'}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Investor Bank</td>
-                                <td>
-                                    {details.UserBank?.Bank.bankNameFull}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Account Number</td>
-                                <td>
-                                    {details.UserBank?.accountNumber}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Account Holder Name</td>
-                                <td>
-                                    {details.UserBank?.accountHolderName}
-                                </td>
-                            </tr>
-                            {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
-                                <tr>
-                                    <td>Upload Proof of Payment</td>
-                                    <td>
-                                        <Form.Group className="mb-3">
-                                            <Form.Control type="file" onChange={handleFileChange} ref={proofOfPaymentRef} />
-                                            <div className="d-flex justify-content-center">
-                                                <Button className='btn btn-primary btn-sm text-light w-50 mt-2' onClick={handleFileUpload}>
-                                                    Upload
-                                                </Button>
-                                            </div>
-                                        </Form.Group>
-                                    </td>
-                                </tr>
+            <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
+                <Tab eventKey="details" title="Details">
+                    <Row>
+                        <Col md={6}>
+                            <Table bordered size='sm'>
+                                <tbody>
+                                    <tr>
+                                        <td>Booking ID</td>
+                                        <td>{details.bookingId}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Investor </td>
+                                        <td>{details.User?.fullName} ( {details.User?.phoneNumber} )</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Payment Confirmation Status</td>
+                                        <td>
+                                            {details.paymentConfirmationStatus?.charAt(0).toUpperCase() + details.paymentConfirmationStatus?.slice(1)}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Cancelled</td>
+                                        <td>
+                                            <span className={`badge ${details.cancelled === 'yes' ? 'bg-danger' : 'bg-success'}`}>
+                                                {details.cancelled === 'yes' ? 'Yes' : 'No'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Investor Bank</td>
+                                        <td>
+                                            {details.UserBank?.Bank.bankNameFull}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Account Number</td>
+                                        <td>
+                                            {details.UserBank?.accountNumber}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Account Holder Name</td>
+                                        <td>
+                                            {details.UserBank?.accountHolderName}
+                                        </td>
+                                    </tr>
+                                    {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
+                                        <tr>
+                                            <td>Upload Proof of Payment</td>
+                                            <td>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Control type="file" onChange={handleFileChange} ref={proofOfPaymentRef} />
+                                                    <div className="d-flex justify-content-center">
+                                                        <Button className='btn btn-primary btn-sm text-light w-50 mt-2' onClick={handleFileUpload}>
+                                                            Upload
+                                                        </Button>
+                                                    </div>
+                                                </Form.Group>
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+                            </Table>
+                        </Col>
+                        <Col md={6}>
+                            <Table bordered size='sm'>
+                                <tbody>
+                                    <tr>
+                                        <td>Proof of Payment</td>
+                                        <td>
+                                            {details.proofOfPayment !== null && (
+                                                <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
+                                                    <Image
+                                                        src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
+                                                        alt={details.proofOfPayment}
+                                                        width={100}
+                                                        height={100}
+                                                        layout="fixed"
+                                                    />
+                                                </a>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Payment Method</td>
+                                        <td>
+                                            {details.paymentMethod?.charAt(0).toUpperCase() + details.paymentMethod?.slice(1)}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Payment Date</td>
+                                        <td>
+                                            {details.paymentDate}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Payment Amount</td>
+                                        <td>
+                                            {details.paymentAmount}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transaction ID</td>
+                                        <td>
+                                            {details.transactionId}
+                                        </td>
+                                    </tr>
+                                    {(details.paymentMethod === 'cheque' || details.paymentMethod === 'cash') &&
+                                        <>
+                                            <tr>
+                                                <td>Collection Required</td>
+                                                <td>
+                                                    {details.collectionRequired?.charAt(0).toUpperCase() + details.collectionRequired?.slice(1)}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Collection Date</td>
+                                                <td>
+                                                    {details.collectionDate}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Collection Location</td>
+                                                <td>
+                                                    {details.collectionLocation}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Collection Status</td>
+                                                <td>
+                                                    {details.collectionStatus === 'pending' ?
+                                                        <DropdownButton
+                                                            as={ButtonGroup}
+                                                            title="Status"
+                                                            id="bg-vertical-dropdown-3"
+                                                        >
+                                                            <Dropdown.Item eventKey="1" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
+                                                            <Dropdown.Item eventKey="2" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
+
+                                                        </DropdownButton>
+                                                        : details.collectionStatus?.charAt(0).toUpperCase() + details.collectionStatus?.slice(1)
+                                                    }
+                                                </td>
+                                            </tr>
+                                        </>
+                                    }
+                                </tbody>
+                            </Table>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col md={12}>
+                            <Table size='sm' bordered>
+                                <thead>
+                                    <tr>
+                                        <th>Sl</th>
+                                        <th>Investment Date</th>
+                                        <th>Projects</th>
+                                        <th>Unit Purchased</th>
+                                        <th>Project Partners</th>
+                                        <th>Unit Price</th>
+                                        <th>Total Amount</th>
+                                        <th>Investment Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {details.ProjectInvestors && details.ProjectInvestors.map((project, index) => (
+                                        <tr key={index}>
+                                            <td>{index + 1}</td>
+                                            <td>{project.investmentDate}</td>
+
+                                            <td>{project.Project.projectName}</td>
+                                            <td>{project.unitPurchased}</td>
+                                            <td>
+                                                <ul>
+                                                    {project.ProjectPartnerInvestors.map((partner, index) => (
+                                                        <li key={index}>{partner.ProjectPartner.User.fullName}</li>
+                                                    ))
+                                                    }
+                                                </ul>
+                                            </td>
+                                            <td>
+                                                {project.ProjectPartnerInvestors[0]?.amountInvested}
+                                            </td>
+                                            <td>
+                                                {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
+                                            </td>
+                                            <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
+                                            <td>
+                                                {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
+                                                    <Button className='btn btn-sm btn-primary' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
+                                                        Ready For Withdrawal
+                                                    </Button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    ))}
+
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'right' }}>
+                                            <strong> Total Payable Amount:</strong>
+                                        </td>
+                                        <td>
+                                            {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
+                                        </td>
+                                        <td colSpan={2}></td>
+                                    </tr>
+                                </tfoot>
+                            </Table>
+                        </Col>
+                    </Row>
+                    <Row className='justify-content-center'>
+                        <Col md={6} className="d-flex justify-content-between">
+                            {(details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed') &&
+                                <Button className='w-75 me-2' variant="danger" type="button" onClick={handleCancel}>
+                                    Cancel
+                                </Button>
                             }
-
-                        </tbody>
-                    </Table>
-                </Col>
-                <Col md={6}>
-                    <Table bordered size='sm'>
-                        <tbody>
-                            <tr>
-                                <td>Proof of Payment</td>
-                                <td>
-                                    {details.proofOfPayment !== null && (
-                                        <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
-                                            <Image
-                                                src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
-                                                alt={details.proofOfPayment}
-                                                width={100}
-                                                height={100}
-                                                layout="fixed"
-                                            />
-                                        </a>
-                                    )}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Payment Method</td>
-                                <td>
-                                    {details.paymentMethod?.charAt(0).toUpperCase() + details.paymentMethod?.slice(1)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Payment Date</td>
-                                <td>
-                                    {details.paymentDate}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Payment Amount</td>
-                                <td>
-                                    {details.paymentAmount}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Transaction ID</td>
-                                <td>
-                                    {details.transactionId}
-                                </td>
-                            </tr>
-                            {(details.paymentMethod === 'cheque' || details.paymentMethod === 'cash') &&
+                            {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
                                 <>
-                                    <tr>
-                                        <td>Collection Required</td>
-                                        <td>
-                                            {details.collectionRequired?.charAt(0).toUpperCase() + details.collectionRequired?.slice(1)}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Collection Date</td>
-                                        <td>
-                                            {details.collectionDate}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Collection Location</td>
-                                        <td>
-                                            {details.collectionLocation}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Collection Status</td>
-                                        <td>
-                                            {details.collectionStatus === 'pending' ?
-                                                <DropdownButton
-                                                    as={ButtonGroup}
-                                                    title="Status"
-                                                    id="bg-vertical-dropdown-3"
-                                                >
-                                                    <Dropdown.Item eventKey="1" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
-                                                    <Dropdown.Item eventKey="2" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
-
-                                                </DropdownButton>
-                                                : details.collectionStatus?.charAt(0).toUpperCase() + details.collectionStatus?.slice(1)
-                                            }
-                                        </td>
-                                    </tr>
+                                    <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
+                                        Confirm
+                                    </Button>
+                                    <Button className='w-75' variant="danger" type="button" onClick={handleDeny}>
+                                        Deny
+                                    </Button>
                                 </>
                             }
-                        </tbody>
-                    </Table>
-                </Col>
-            </Row>
-            <Row>
-                <Col md={12}>
-                    <Table size='sm' bordered>
-                        <thead>
-                            <tr>
-                                <th>Sl</th>
-                                <th>Investment Date</th>
-                                <th>Projects</th>
-                                <th>Unit Purchased</th>
-                                <th>Project Partners</th>
-                                <th>Unit Price</th>
-                                <th>Total Amount</th>
-                                <th>Investment Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {details.ProjectInvestors && details.ProjectInvestors.map((project, index) => (
-                                <tr key={index}>
-                                    <td>{index + 1}</td>
-                                    <td>{project.investmentDate}</td>
-
-                                    <td>{project.Project.projectName}</td>
-                                    <td>{project.unitPurchased}</td>
-                                    <td>
-                                        <ul>
-                                            {project.ProjectPartnerInvestors.map((partner, index) => (
-                                                <li key={index}>{partner.ProjectPartner.User.fullName}</li>
-                                            ))
-                                            }
-                                        </ul>
-                                    </td>
-                                    <td>
-                                        {project.ProjectPartnerInvestors[0]?.amountInvested}
-                                    </td>
-                                    <td>
-                                        {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
-                                    </td>
-                                    <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
-                                    <td>
-                                        {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
-                                            <Button className='btn btn-sm btn-primary' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
-                                                Ready For Withdrawal
-                                            </Button>
-                                        }
-                                    </td>
-                                </tr>
-                            ))}
-
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'right' }}>
-                                    <strong> Total Payable Amount:</strong>
-                                </td>
-                                <td>
-                                    {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
-                                </td>
-                                <td colSpan={2}></td>
-                            </tr>
-                        </tfoot>
-                    </Table>
-                </Col>
-            </Row>
-            <Row className='justify-content-center'>
-                <Col md={6} className="d-flex justify-content-between">
-                    {(details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed') &&
-                        <Button className='w-75 me-2' variant="danger" type="button" onClick={handleCancel}>
-                            Cancel
-                        </Button>
-                    }
-                    {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
-                        <>
-                            <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
-                                Confirm
-                            </Button>
-                            <Button className='w-75' variant="danger" type="button" onClick={handleDeny}>
-                                Deny
-                            </Button>
-                        </>
-                    }
-                </Col>
-            </Row>
-
+                        </Col>
+                    </Row>
+                </Tab>
+                <Tab eventKey="timeline" title="Timeline">
+                    <div className="timeline">
+                        <TimelineItem
+                            icon={<ChatDots size={32} />}
+                            color="#1395D3"
+                            header="2012"
+                            description="Bridge inspection prompted discussions about replacement or rehabilitation/retrofit strategies."
+                        />
+                        <TimelineItem
+                            icon={<List size={32} />}
+                            color="#F26723"
+                            header="2013 - 2016"
+                            description="Pierce County developed replacement, rehabilitation, and retrofit options."
+                        />
+                        <TimelineItem
+                            icon={<GraphUp size={32} />}
+                            color="#A5B038"
+                            header="2017 - 2021"
+                            description="Pierce County pursued preliminary funding and identified and evaluated potential funding sources and financial scenarios."
+                        />
+                        <TimelineItem
+                            icon={<FileEarmarkText size={32} />}
+                            color="#1395D3"
+                            header="2022"
+                            description="Pierce County budgeted for a Type, Size, and Location Study for a bridge replacement."
+                        />
+                        <TimelineItem
+                            icon={<HandThumbsUp size={32} />}
+                            color="#F26723"
+                            header="2023"
+                            description="Pierce County advertised for and selected a designer to perform the Type, Size, and Location Study."
+                        />
+                        <TimelineItem
+                            icon={<House size={32} />}
+                            color="#F1A01F"
+                            header="2024 (Early)"
+                            description="Type, Size, and Locations Study kicked off."
+                        />
+                        <TimelineItem
+                            icon={<Calendar size={32} />}
+                            color="#A5B038"
+                            header="2025 (Late)"
+                            description="Type, Size, and Location Study anticipated completion."
+                        />
+                        <TimelineItem
+                            icon={<Rulers size={32} />}
+                            color="#1395D3"
+                            header="2026 - Beyond"
+                            description="Finalize design, complete environmental permitting (NEPA), secure funding. Complete property rights, assessments, and acquisitions. Construction."
+                        />
+                    </div>
+                </Tab>
+            </Tabs>
 
             <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} >
                 <Modal.Header closeButton>
@@ -700,7 +778,10 @@ function Details() {
                     </Form>
                 </Modal.Body>
             </Modal>
+
+
         </Container>
+
     );
 }
 
