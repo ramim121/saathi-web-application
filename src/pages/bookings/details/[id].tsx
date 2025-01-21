@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup } from "react-bootstrap";
-import { getRequestOptions, putRequestOptions, postRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
 import Image from "next/image";
