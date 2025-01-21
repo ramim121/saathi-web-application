@@ -27,7 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             sequelize.literal(`(
                                 SELECT COUNT(*)
                                 FROM project_partner_investors AS ppi
-                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
+                                JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'confirmed'
                             )`),
                             'investorCount'
                         ]
