@@ -37,6 +37,10 @@ const createSchema = Joi.object({
         "any.required": "Account holder name is required",
         "string.base": "Account holder name can not be empty",
     }),
+    default: Joi.string().required().messages({
+        "any.required": "Default status must be selected",
+        "string.base": "Default status must be selected",
+    }),
 }).unknown();
 
 const updateSchema = Joi.object({
