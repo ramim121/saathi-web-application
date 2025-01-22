@@ -14,8 +14,10 @@ import { ChatDots, List, GraphUp, FileEarmarkText, HandThumbsUp, House, Calendar
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
+    idUsers: number;
     bookingId: string;
     cancelled: string;
+    idUserBanks: number;
     User: {
         fullName: string;
         phoneNumber: string;
@@ -67,6 +69,9 @@ interface FormDataProps {
     paymentDate: string;
     paymentAmount: number;
     transactionId: string;
+    collectionDate?: string;
+    collectionLocation?: string;
+    idUserBanks?: number;
 }
 
 interface TimelineItemProps {
@@ -74,6 +79,22 @@ interface TimelineItemProps {
     color: string;
     header: string;
     description: string;
+}
+
+interface UserBanksProps {
+    idUserBanks: number;
+    idUsers: number;
+    idBanks: number;
+    idBankBranches: number;
+    accountNumber: string;
+    accountHolderName: string;
+    default: string;
+    Bank: {
+        bankNameFull: string;
+    };
+    BankBranch: {
+        branchName: string;
+    };
 }
 
 function Details() {
@@ -91,8 +112,10 @@ function Details() {
         },
         paymentDate: '',
         paymentAmount: 0,
-        transactionId: ''
+        transactionId: '',
+
     });
+    const [userBanks, setUserBanks] = useState<UserBanksProps[]>([]);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         if (id != undefined) {
@@ -106,6 +129,30 @@ function Details() {
         }
     }, [reload])
 
+    useEffect(() => {
+        if (details !== undefined) {
+            setFormData({
+                bookingId: details.bookingId,
+                paymentMethod: {
+                    value: details.paymentMethod,
+                    label: details.paymentMethod === 'cheque' ? 'Cheque' : details.paymentMethod === 'beftn' ? 'BEFTN' : details.paymentMethod === 'rtgs' ? 'RTGS' : details.paymentMethod === 'npsb' ? 'NPSB' : 'Cash'
+                },
+                paymentDate: details.paymentDate,
+                paymentAmount: details.paymentAmount,
+                transactionId: details.transactionId,
+                collectionDate: details.collectionDate ? new Date(details.collectionDate).toISOString().slice(0, 16) : '',
+                collectionLocation: details.collectionLocation,
+                idUserBanks: details.idUserBanks
+            });
+        }
+    }, [details])
+
+    useEffect(() => {
+        if (details.idUsers) {
+            fetchUserBanks();
+        }
+    }, [details.idUsers])
+
     const fetchPartnerDetails = async () => {
         try {
             const res = await fetch('/api/bookings/details/' + id, getRequestOptions());
@@ -113,6 +160,28 @@ function Details() {
             if (res.status === 200) {
                 setDetails(data.data);
                 setReload(false);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                });
+            }
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message,
+            });
+        }
+    }
+
+    const fetchUserBanks = async () => {
+        try {
+            const res = await fetch('/api/user-bank/' + details.idUsers, getRequestOptions());
+            const data = await res.json();
+            if (res.status === 200) {
+                setUserBanks(data.data);
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -436,6 +505,14 @@ function Details() {
         </div>
     );
 
+    const paymentMethods = [
+        { value: 'cheque', label: 'Cheque' },
+        { value: 'beftn', label: 'BEFTN' },
+        { value: 'rtgs', label: 'RTGS' },
+        { value: 'npsb', label: 'NPSB' },
+        { value: 'cash', label: 'Cash' }
+    ];
+
     return (
         <Container>
             <h4 className="text-start"> Booking Details</h4>
@@ -559,7 +636,7 @@ function Details() {
                                             <tr>
                                                 <td>Collection Date</td>
                                                 <td>
-                                                    {details.collectionDate}
+                                                    {new Date(details.collectionDate).toLocaleString('en-US', { timeZone: 'UTC' })}
                                                 </td>
                                             </tr>
                                             <tr>
@@ -729,7 +806,7 @@ function Details() {
                 </Tab>
             </Tabs>
 
-            <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} >
+            <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} size='lg'>
                 <Modal.Header closeButton>
                     <Modal.Title>Confirm Booking</Modal.Title>
                 </Modal.Header>
@@ -741,18 +818,55 @@ function Details() {
                                 <Select
                                     id="paymentMethod"
                                     instanceId="paymentMethod"
-                                    options={[
-                                        { value: 'beftn', label: 'Beftn' },
-                                        { value: 'npsb', label: 'Npsb' },
-                                        { value: 'rtgs', label: 'Rtgs' },
-                                        { value: 'cash', label: 'Cash' },
-                                        { value: 'cheque', label: 'Cheque' }
-                                    ]}
-                                    value={formData.paymentMethod}
+                                    options={paymentMethods.map(method => ({
+                                        value: method.value,
+                                        label: method.label
+                                    }))}
+                                    value={paymentMethods.find(method => method.value === formData.paymentMethod.value) ? {
+                                        value: formData.paymentMethod.value,
+                                        label: formData.paymentMethod.label
+                                    } : null}
                                     onChange={(selectedOption: any) => setFormData({ ...formData, paymentMethod: selectedOption })}
                                 />
                             </Col>
                         </Form.Group>
+                        {(formData.paymentMethod.value === 'cheque' || formData.paymentMethod.value === 'cash') &&
+                            <>
+                                <Form.Group as={Row} className='mb-3'>
+                                    <Form.Label column sm='4'>Collection Date <span className='text-danger'>*</span></Form.Label>
+                                    <Col sm='8'>
+                                        <Form.Control type='datetime-local' name='collectionDate' value={formData.collectionDate} onChange={handleOnChange} />
+                                    </Col>
+                                </Form.Group>
+
+                                <Form.Group as={Row} className='mb-3'>
+                                    <Form.Label column sm='4'>Collection Location <span className='text-danger'>*</span></Form.Label>
+                                    <Col sm='8'>
+                                        <Form.Control type='text' name='collectionLocation' value={formData.collectionLocation} onChange={handleOnChange} />
+                                    </Col>
+                                </Form.Group>
+                            </>
+                        }
+                        {formData.paymentMethod.value !== 'cash' && formData.paymentMethod.value !== 'cheque' &&
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>User Bank <span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Select
+                                        id="idUserBanks"
+                                        instanceId="idUserBanks"
+                                        options={userBanks.map(bank => ({
+                                            value: bank.idUserBanks,
+                                            label: `${bank.Bank.bankNameFull} - ${bank.BankBranch.branchName} - ${bank.accountNumber}`
+                                        }))}
+                                        value={userBanks.find(bank => bank.idUserBanks === formData.idUserBanks) ? {
+                                            value: formData.idUserBanks,
+                                            label: userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.Bank.bankNameFull + ' - ' + userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.BankBranch.branchName + ' - ' + userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.accountNumber
+                                        } : null}
+                                        onChange={(selectedOption: any) => setFormData({ ...formData, idUserBanks: selectedOption.value })}
+                                    />
+                                </Col>
+                            </Form.Group>
+                        }
                         <Form.Group as={Row} className='mb-3'>
                             <Form.Label column sm='4'>Payment Date <span className='text-danger'>*</span></Form.Label>
                             <Col sm='8'>
@@ -777,6 +891,7 @@ function Details() {
                             </Button>
                         </Row>
                     </Form>
+                    {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
                 </Modal.Body>
             </Modal>
 

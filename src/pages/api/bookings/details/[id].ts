@@ -1,18 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File } from '@/models/__associations';
-// import jwt from 'jsonwebtoken';
-// import { JWT_SECRET } from '@/config/constants';
-// import JWTPayload from '@/types/JWTPayload';
+import sequelize from '@/config/db';
+// WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
-        // let tokenData = req.headers.authorization;
-        // let token = tokenData?.split(' ')[1];
-
-        // if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
-
-        // let userInfo = jwt.decode(token) as JWTPayload;
-        // if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
-
         try {
 
             const result = await ProjectInvestmentBooking.findOne({
@@ -28,6 +20,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 include: [
                                     {
                                         model: ProjectPartner,
+                                        attributes: [
+                                            'partnerUnitCapacity',
+                                            [
+                                                sequelize.literal(`(
+                                                    SELECT IFNULL(SUM(invested_unit), 0)
+                                                    FROM project_partner_investors AS ppi
+                                                    LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                                                    AND pi.investment_status = 'confirmed'
+                                                )`),
+                                                'alreadyInvestedUnits'
+                                            ],
+                                        ],
                                         include: [
                                             {
                                                 model: User,
@@ -36,8 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                                     as: 'ProfilePicture',
                                                 }]
                                             }
-                                        ]
-
+                                        ],
                                     }
                                 ]
                             },
@@ -113,9 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         resultMain.ProjectInvestors.map((projectInvestor: any) => {
                             const projectInvestorMain = projectInvestor;
                             const createdAtDate = new Date(projectInvestorMain.createdAt);
-                            // Add the duration in months to the createdAt date
                             createdAtDate.setMonth(createdAtDate.getMonth() + projectInvestorMain.Project.duration);
-                            // Assign the formatted maturityDate
                             projectInvestorMain.maturityDate = createdAtDate.toISOString(); // ISO format
                             return projectInvestorMain;
                         })
