@@ -98,7 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     } catch (error) {
         console.error('Error during Google Sign-In:', error);
-        res.status(500).json({ message: 'Authentication failed', error: (error as Error).message });
+        res.status(400).json({ message: 'Authentication failed', error: (error as Error).message });
     }
 }
 

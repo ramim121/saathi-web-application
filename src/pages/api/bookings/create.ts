@@ -7,7 +7,6 @@ import { JWT_SECRET } from '@/config/constants';
 import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import UserBankType from '@/types/UserBank';
-import { createBank } from '../banks/user-bank';
 import user from '../user';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
@@ -106,22 +105,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
 
-            // let userBankData: any;
-
-            // if (idUserBanks) {
-            //     userBankData = await UserBank.findOne({ where: { idUserBanks: idUserBanks, idUsers: userInfo.idUsers } });
-            //     if (!userBankData) {
-            //         await transaction.rollback();
-            //         return res.status(400).json({ success: false, message: 'User bank not found' });
-            //     }
-            // } else {
-            //     userBankData = await createBank({ body: req.body.userBanks } as NextApiRequest, res, userInfo, transaction, false);
-
-            //     if (typeof userBankData == 'string') {
-            //         return res.status(400).json({ success: false, message: userBankData });
-            //     }
-            // }
-
             const maximumBookingId = await ProjectInvestmentBooking.max('bookingId');
             const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
@@ -216,7 +199,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
         } catch (err) {
             await transaction.rollback();
-            return res.status(500).json({ success: false, message: (err as Error).message })
+            return res.status(400).json({ success: false, message: (err as Error).message })
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })

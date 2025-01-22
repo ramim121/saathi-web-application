@@ -86,7 +86,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 			totalPages: Math.ceil(result.count / limit),
 		});
 	} catch (error) {
-		res.status(500).json({ success: false, message: (error as Error).message });
+		res.status(400).json({ success: false, message: (error as Error).message });
 	}
 }
 

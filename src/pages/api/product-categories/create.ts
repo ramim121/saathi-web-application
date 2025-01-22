@@ -60,7 +60,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
             if (err) {
-                return res.status(500).json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message });
             }
 
             const categoryImage = files['categoryImage'] ? files['categoryImage'][0] as formidable.File : null;
@@ -136,14 +136,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 let [err1, result1] = await _(upload.done());
                 if (err1) {
                     await transaction.rollback();
-                    return res.status(500).json({ success: false, message: err1.message });
+                    return res.status(400).json({ success: false, message: err1.message });
                 }
 
                 await transaction.commit();
                 return res.status(200).json({ success: true, message: 'Product Category created successfully', data: productCategory });
             } catch (err) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: (err as Error).message });
+                return res.status(400).json({ success: false, message: (err as Error).message });
             }
         });
     } else {

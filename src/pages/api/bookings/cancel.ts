@@ -47,19 +47,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             if (booking.idProjectInvestmentBookings === undefined) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: 'Booking ID is undefined' });
+                return res.status(400).json({ success: false, message: 'Booking ID is undefined' });
             }
             const bookingStatus = await BookingStatusEntry('cancelled', booking.idProjectInvestmentBookings, userInfo.idUsers, remarks, transaction);
             if (!bookingStatus) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: 'Error cancelling booking' });
+                return res.status(400).json({ success: false, message: 'Error cancelling booking' });
             }
 
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Booking cancelled successfully', data: booking });
         } catch (error) {
             await transaction.rollback();
-            return res.status(500).json({ success: false, message: (error as Error).message });
+            return res.status(400).json({ success: false, message: (error as Error).message });
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' });

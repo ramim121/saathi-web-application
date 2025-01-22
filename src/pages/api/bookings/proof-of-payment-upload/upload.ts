@@ -56,7 +56,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     form.parse(req, async (err, fields, files) => {
         if (err) {
-            return res.status(500).json({ success: false, message: err.message });
+            return res.status(400).json({ success: false, message: err.message });
         }
 
         const data = {
@@ -128,7 +128,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(200).json({ success: true, message: 'Proof of payment uploaded successfully' });
         } catch (error) {
             await transaction.rollback();
-            return res.status(500).json({ success: false, message: (error as Error).message });
+            return res.status(400).json({ success: false, message: (error as Error).message });
         }
     });
 }

@@ -90,7 +90,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
         });
         let [err1, result1] = await _(upload.done());
-        if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
+        if (err1) { return res.status(400).json({ success: false, message: err1.message }); }
 
         upload = new Upload({
             client: s3Client,
@@ -102,7 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         let [err2, result2] = await _(upload.done());
-        if (err2) { return res.status(500).json({ success: false, message: err2.message }); }
+        if (err2) { return res.status(400).json({ success: false, message: err2.message }); }
         console.log(result2);
 
         user.nidImageFront = nidFrontfileName;
@@ -110,7 +110,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         user.nidVerificationStatus = 'pending';
 
         let [err] = await _(user.save());
-        if (err) { return res.status(500).json({ success: false, message: err.message }); }
+        if (err) { return res.status(400).json({ success: false, message: err.message }); }
 
         return res.status(200).json({ success: true, message: 'NID updated successfully', data: user });
     })

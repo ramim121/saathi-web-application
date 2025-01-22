@@ -88,7 +88,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         form.parse(req, async (err, fields, files) => {
             if (err) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message });
             }
 
             const data = {
@@ -141,7 +141,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             let [err1, result1] = await _(upload.done());
             if (err1) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: err1.message });
+                return res.status(400).json({ success: false, message: err1.message });
             }
 
             if (data.paymentMethod) {
@@ -158,7 +158,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             let [err2] = await _(booking.save({ transaction }));
             if (err2) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: err2.message });
+                return res.status(400).json({ success: false, message: err2.message });
             }
 
             if (booking.idProjectInvestmentBookings === undefined) {
@@ -177,7 +177,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     } catch (err) {
         await transaction.rollback();
-        return res.status(500).json({ success: false, message: (err as Error).message });
+        return res.status(400).json({ success: false, message: (err as Error).message });
     }
 }
 

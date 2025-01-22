@@ -38,7 +38,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         let [err, result] = await _(ContactForm.create(req.body));
-        if (err) { return res.status(500).json({ success: false, message: err.message }); }
+        if (err) { return res.status(400).json({ success: false, message: err.message }); }
 
         // Send email to the admin
         return res.status(200).json({ success: true, message: 'Message sent successfully' });

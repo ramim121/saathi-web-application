@@ -89,7 +89,7 @@ export default async function handler(
 			return res.status(200).json({ success: true, data: result });
 		} catch (error) {
 			// Handling errors
-			return res.status(500).json({ success: false, message: (error as Error).message });
+			return res.status(400).json({ success: false, message: (error as Error).message });
 		}
 	} else {
 		// Method not allowed for non-GET requests

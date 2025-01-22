@@ -77,7 +77,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(200).json({ success: true, message: 'Bank information updated successfully', data: userBank })
         } catch (err) {
             await transaction.rollback();
-            return res.status(500).json({ success: false, message: (err as Error).message })
+            return res.status(400).json({ success: false, message: (err as Error).message })
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })

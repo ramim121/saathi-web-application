@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ success: true, message: 'Project status changed successfully', data: project })
         } catch (error) {
             await transaction.rollback();
-            return res.status(500).json({ success: false, message: (error as Error).message })
+            return res.status(400).json({ success: false, message: (error as Error).message })
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })

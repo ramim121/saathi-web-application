@@ -17,10 +17,6 @@ const cors = Cors({
 });
 
 const createSchema = Joi.object({
-    idUsers: Joi.number().required().messages({
-        "any.required": "Investor must be selected",
-        "number.base": "Investor must be selected",
-    }),
     idBanks: Joi.number().required().messages({
         "any.required": "Bank must be selected",
         "number.base": "Bank must be selected",
@@ -99,7 +95,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             });
             return res.status(200).json({ success: true, data: result });
         } catch (error) {
-            return res.status(500).json({ success: false, message: (error as Error).message })
+            return res.status(400).json({ success: false, message: (error as Error).message })
         }
     } else if (req.method === 'POST') {
         createBank(req, res, userInfo);
@@ -126,7 +122,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 const [error3] = await _(UserBank.update({ default: 'no' }, { where: { idUsers: userInfo.idUsers }, transaction }));
                 if (error3) {
                     await transaction.rollback();
-                    return res.status(500).json({ success: false, message: error3.message })
+                    return res.status(400).json({ success: false, message: error3.message })
                 }
             }
 
@@ -151,7 +147,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             if (error2) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: error2.message })
+                return res.status(400).json({ success: false, message: error2.message })
             }
 
             await transaction.commit();
@@ -167,11 +163,10 @@ export default cors(handler as any);
 
 export async function createBank(req: NextApiRequest, res: NextApiResponse, userInfo: JWTPayload, transactionMain?: Transaction, sendResponse = true): Promise<userBankType | string | undefined> {
     const idUsers = userInfo.idUsers;
-    const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
     const options = {
         abortEarly: false,
     };
-    const { error } = createSchema.validate({ idUsers, idBanks, idBankBranches, accountHolderName, accountNumber }, options);
+    const { error } = createSchema.validate(req.body, options);
     if (error) {
         let errorMessage: string[] = [];
 
@@ -184,7 +179,7 @@ export async function createBank(req: NextApiRequest, res: NextApiResponse, user
 
     const userBankExist = await UserBank.findOne({
         where: {
-            accountNumber,
+            accountNumber: req.body.accountNumber,
             idUsers
         }
     });
@@ -199,21 +194,27 @@ export async function createBank(req: NextApiRequest, res: NextApiResponse, user
     const transaction = transactionMain || await sequelize.transaction();
 
     try {
+        if (req.body.default === 'yes') {
+            UserBank.update({ default: 'no' }, { where: { idUsers }, transaction });
+        }
+
         const userBank = await UserBank.create({
             idUsers,
             idBanks: req.body.idBanks,
             idBankBranches: req.body.idBankBranches,
             accountNumber: req.body.accountNumber,
             accountHolderName: req.body.accountHolderName,
-            default: previousUserBank.length === 0 ? 'yes' : 'no'
+            default: req.body.default,
         }, { transaction });
+
+
 
         if (!transactionMain) await transaction.commit();
         if (sendResponse) { res.status(200).json({ success: true, message: 'User bank created successfully', data: userBank }); return; }
         return userBank as userBankType;
     } catch (err) {
         await transaction.rollback();
-        if (sendResponse) { res.status(500).json({ success: false, message: (err as Error).message }); return; }
+        if (sendResponse) { res.status(400).json({ success: false, message: (err as Error).message }); return; }
         return (err as Error).message;
     }
 }

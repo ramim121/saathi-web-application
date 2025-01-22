@@ -74,13 +74,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
         });
         let [err1, result1] = await _(upload.done());
-        if (err1) { return res.status(500).json({ success: false, message: err1.message }); }
+        if (err1) { return res.status(400).json({ success: false, message: err1.message }); }
         console.log('File uploaded successfully', result1);
 
         user.profileImage = profilePicturefileName;
 
         let [err] = await _(user.save());
-        if (err) { return res.status(500).json({ success: false, message: err.message }); }
+        if (err) { return res.status(400).json({ success: false, message: err.message }); }
 
         return res.status(200).json({ success: false, message: 'Profile picture updated successfully', data: user });
     })

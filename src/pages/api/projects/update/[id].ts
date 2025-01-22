@@ -80,7 +80,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
             if (err) {
-                return res.status(500).json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message });
             }
 
             const data = {
@@ -210,7 +210,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                     if (err1) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: err1.message });
+                        return res.status(400).json({ success: false, message: err1.message });
                     }
 
                     thumbUpload.on('httpUploadProgress', (progress: any) => {
@@ -220,7 +220,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                     if (err2) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: err2.message });
+                        return res.status(400).json({ success: false, message: err2.message });
                     }
 
                     await File.create({
@@ -292,7 +292,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                         if (err1) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: err1.message });
+                            return res.status(400).json({ success: false, message: err1.message });
                         }
 
                         thumbUpload.on('httpUploadProgress', (progress: any) => {
@@ -303,7 +303,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                         if (err2) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: err2.message });
+                            return res.status(400).json({ success: false, message: err2.message });
                         }
 
                         await File.create({
@@ -320,7 +320,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(200).json({ success: true, message: 'Project updated successfully', data: project });
             } catch (err) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: (err as Error).message });
+                return res.status(400).json({ success: false, message: (err as Error).message });
             }
         });
     } else {

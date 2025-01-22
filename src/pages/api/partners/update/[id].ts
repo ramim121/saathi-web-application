@@ -84,7 +84,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const form = new formidable.IncomingForm();
         form.parse(req, async (err, fields, files) => {
             if (err) {
-                return res.status(500).json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message });
             }
 
             const data = {
@@ -221,7 +221,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     let [err1] = await _(upload.done());
                     if (err1) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: "profile picture upload error. " + err1.message });
+                        return res.status(400).json({ success: false, message: "profile picture upload error. " + err1.message });
                     }
 
                     thumbUpload.on('httpUploadProgress', (progress: any) => {
@@ -231,7 +231,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                     if (err2) {
                         await transaction.rollback();
-                        return res.status(500).json({ success: false, message: err2.message });
+                        return res.status(400).json({ success: false, message: err2.message });
                     }
 
                     await File.create({
@@ -302,7 +302,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         let [err2] = await _(upload.done());
                         if (err2) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: "Featured image upload error. " + err2.message });
+                            return res.status(400).json({ success: false, message: "Featured image upload error. " + err2.message });
                         }
 
                         thumbUpload.on('httpUploadProgress', (progress: any) => {
@@ -312,7 +312,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         let [err3] = await _(thumbUpload.done());
                         if (err3) {
                             await transaction.rollback();
-                            return res.status(500).json({ success: false, message: "Featured image thumbnail upload error. " + err3.message });
+                            return res.status(400).json({ success: false, message: "Featured image thumbnail upload error. " + err3.message });
                         }
 
                         await File.create({
@@ -330,7 +330,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(200).json({ success: true, message: 'Partner updated successfully', data: partner });
             } catch (err) {
                 await transaction.rollback();
-                return res.status(500).json({ success: false, message: (err as Error).message });
+                return res.status(400).json({ success: false, message: (err as Error).message });
             }
         });
     } else {
