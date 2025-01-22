@@ -18,9 +18,8 @@ const schema = Joi.object({
             'string.empty': 'Payment method cannot be empty',
             'any.required': 'Payment method must be selected',
         }),
-        label: Joi.any() // No validation messages for label since it's optional and without specific checks
+        label: Joi.any()
     }).required(),
-
     paymentDate: Joi.date().required().messages({
         'any.required': 'Payment date is required',
         'date.base': 'Payment date must be a date',
@@ -35,6 +34,33 @@ const schema = Joi.object({
         'string.base': 'Transaction ID must be a string',
         'string.empty': 'Transaction ID cannot be empty',
     }),
+    collectionDate: Joi.alternatives().conditional('paymentMethod.value', {
+        is: Joi.valid('cheque', 'cash'),
+        then: Joi.string()
+            .pattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+            .required()
+            .messages({
+                "any.required": "Collection date is required when payment method is cheque or cash",
+                "string.pattern.base": "Collection date must be in the format YYYY-MM-DDTHH:mm",
+            }),
+        otherwise: Joi.string().optional().allow(null, ''),
+    }),
+    collectionLocation: Joi.alternatives().conditional('paymentMethod.value', {
+        is: Joi.valid('cheque', 'cash'),
+        then: Joi.string().required().messages({
+            "any.required": "Collection location is required when payment method is cheque or cash",
+            "string.base": "Collection location is required",
+        }),
+        otherwise: Joi.string().optional().allow(null, '')
+    }),
+    idUserBanks: Joi.alternatives().conditional('paymentMethod.value', {
+        is: Joi.valid('npsb', 'rtgs', 'beftn'),
+        then: Joi.string().required().messages({
+            "any.required": "User bank ID is required when payment method is npsb, rtgs, or beftn",
+            "string.base": "User bank ID is required",
+        }),
+        otherwise: Joi.string().optional().allow(null, '')
+    })
 }).unknown();
 
 export default async function handler(
@@ -56,13 +82,13 @@ export default async function handler(
             return;
         }
 
-        const { bookingId, paymentMethod, paymentDate, paymentAmount, transactionId } = req.body;
+        const { bookingId, paymentMethod, paymentDate, paymentAmount, transactionId, collectionDate, collectionLocation, idUserBanks } = req.body;
 
         const options = {
             abortEarly: false,
         };
 
-        const { error } = schema.validate({ bookingId, paymentMethod, paymentDate, paymentAmount, transactionId }, options);
+        const { error } = schema.validate({ bookingId, paymentMethod, paymentDate, paymentAmount, transactionId, collectionDate, collectionLocation, idUserBanks: String(idUserBanks) }, options);
         if (error) {
             let errorMessage: string[] = [];
 
@@ -100,6 +126,16 @@ export default async function handler(
             booking.paymentAmount = paymentAmount;
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
+            booking.collectionRequired = paymentMethod.value === 'cheque' || paymentMethod.value === 'cash' ? 'yes' : 'no';
+            booking.collectionStatus = paymentMethod.value === 'cheque' || paymentMethod.value === 'cash' ? 'pending' : null;
+            const collectionDateTime = (paymentMethod.value === 'cheque' || paymentMethod.value === 'cash') && collectionDate ? new Date(collectionDate) : null;
+            if (collectionDateTime) {
+                collectionDateTime.setHours(collectionDateTime.getHours() + 12);
+                booking.collectionDate = collectionDateTime.toISOString().replace('T', ' ').substring(0, 19);
+            } else {
+                booking.collectionDate = null;
+            }
+            booking.collectionLocation = (paymentMethod.value === 'cheque' || paymentMethod.value === 'cash') ? collectionLocation : null;
 
             await booking.save({ transaction });
 

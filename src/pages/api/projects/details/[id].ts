@@ -52,7 +52,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                                         SELECT IFNULL(SUM(invested_unit),0)
                                         FROM project_partner_investors AS ppi
                                         LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                                        WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status != 'cancelled'
+                                        WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status = 'confirmed'
                                     )`),
                                         'alreadyInvestedUnits'
                                     ],

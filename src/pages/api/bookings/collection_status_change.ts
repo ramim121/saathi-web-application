@@ -4,6 +4,8 @@ import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import BookingStatusEntry from '@/utils/BookingStatusEntry';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'PUT') {
         let tokenData = req.headers.authorization;
@@ -25,6 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
             booking.collectionStatus = status;
             await booking.save({ transaction });
+
+            const bookingStatus = await BookingStatusEntry(`collection_${status}`, idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+            if (!bookingStatus) {
+                await transaction.rollback();
+                throw new Error('Error in booking placed');
+            }
 
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Collection status changed successfully', data: booking })
