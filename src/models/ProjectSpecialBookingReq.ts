@@ -20,7 +20,7 @@ const ProjectSpecialBookingReq = sequelize.define<ProjectSpecialBookingReqModel>
         allowNull: true
     },
     preferredColor: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: true
     },
     preferredProductPrice: {
