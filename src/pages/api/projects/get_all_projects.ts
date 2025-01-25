@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project, ProjectPartner, File, ProjectCategory } from '@/models/__associations'
+import { Project, ProjectPartner, File, ProjectCategory, ProjectProperty } from '@/models/__associations'
 import { Op } from 'sequelize'
 import sequelize from '@/config/db';
 
@@ -70,6 +70,7 @@ export default async function handler(
 		try {
 			const result = await Project.findAll({
 				include: [
+					ProjectProperty,
 					{
 						model: ProjectPartner, as: 'ProjectPartners', required: true,
 					},

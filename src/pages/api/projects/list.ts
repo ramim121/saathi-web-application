@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project, ProjectCategory, File } from '@/models/__associations'
+import { User, ProjectPartner, Project, ProjectCategory, File, ProjectProperty } from '@/models/__associations'
 import sequelize from '@/config/db';
 import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
@@ -120,6 +120,7 @@ export default async function handler(
 					]
 				],
 				include: [
+					ProjectProperty,
 					{
 						model: User,
 						as: 'CreatedBy',
