@@ -110,13 +110,26 @@ export default async function handler(
 				                END
 				            `),
 							'totalRemainingUnits'
+						],
+						[
+							sequelize.literal(`(
+								SELECT COUNT(*)
+								FROM project_investors AS ppi
+								WHERE ppi.id_projects = Project.id_projects
+								AND ppi.investment_status = 'confirmed'
+							)`),
+							'investorCount'
 						]
 					]
 				},
 				having: sequelize.literal(`
 					(totalAvailableUnits = 0 OR totalInvestedUnits < totalAvailableUnits)
 				`),
-				where: whereClause
+				where: whereClause,
+				order: [
+					[sequelize.literal(`CASE WHEN projectType = 'special' THEN 0 ELSE 1 END`), 'ASC'],
+					[sequelize.literal('investorCount'), 'DESC']
+				]
 			})
 
 			return res.status(200).json({ success: true, data: result })

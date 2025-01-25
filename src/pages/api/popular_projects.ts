@@ -31,10 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         showInUpcoming: 'no',
                         projectStatus: { [Op.ne]: 'completed' }
                     },
-                    having: sequelize.literal(`
-                        (totalAvailableUnits = 0 OR investorCount < totalAvailableUnits)
-                    `),
-                    order: [[sequelize.literal('investorCount'), 'DESC']],
+                    order: [
+                        [sequelize.literal(`CASE WHEN projectType = 'special' THEN 0 ELSE 1 END`), 'ASC'],
+                        [sequelize.literal('investorCount'), 'DESC']
+                    ],
                     limit: 5
                 }
             )
