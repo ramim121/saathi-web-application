@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Project, File } from '@/models/__associations';
+import { Project, File, ProjectProperty } from '@/models/__associations';
 import sequelize from '@/config/db';
 import { Op } from 'sequelize';
 
@@ -10,6 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const result = await Project.findAll(
                 {
                     include: [
+                        ProjectProperty,
                         {
                             model: File, as: 'MainImage', required: false
                         }
