@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File, ProjectSpecialBookingReq } from '@/models/__associations';
 import sequelize from '@/config/db';
 // WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
 
@@ -46,6 +46,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             },
                             {
                                 model: Project,
+                            },
+                            {
+                                model: ProjectSpecialBookingReq,
+                                required: false
                             }
                         ]
                     },

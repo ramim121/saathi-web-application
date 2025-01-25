@@ -1,13 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, UserBank, User, Project } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectSpecialBookingReq, User, Project } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 import Cors from 'micro-cors';
 import { JWT_SECRET } from '@/config/constants';
 import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
-import UserBankType from '@/types/UserBank';
-import user from '../user';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 
@@ -69,7 +67,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let userInfo = jwt.decode(token) as JWTPayload;
 
-        const { investmentDate, projects } = req.body
+        const { investmentDate, projects, deliveryLocation, preferredColor, preferredProductPrice, additionalRequest } = req.body
         const options = {
             abortEarly: false,
         };
@@ -110,10 +108,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const projectInvestmentBooking = await ProjectInvestmentBooking.create({
                 idUsers: userInfo.idUsers,
-                // paymentMethod: 'bank',
                 bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
-                // idUserBanks: userBankData.idUserBanks,
             }, { transaction });
 
             const projectForNotifications = [];
@@ -122,7 +118,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     where: {
                         idProjects: project.idProjects,
                     },
-                    attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName', 'duration', 'tenure', 'unitInvestmentValue'],
+                    attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName', 'duration', 'tenure', 'unitInvestmentValue', 'projectType'],
                 });
 
                 projectForNotifications.push({
@@ -132,34 +128,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     unitInvestmentValue: projectInfo!.unitInvestmentValue,
                     unitPurchased: project.unitPurchased,
                 });
-
-                // const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
-                //     where: {
-                //         idProjects: project.idProjects,
-                //     }
-                // });
-
-                // if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
-                //     if (Number(alreadyPurchased) + Number(project.unitPurchased) > projectInfo.totalAvailableUnits) {
-                //         await transaction.rollback();
-                //         return res.status(400).json({ success: false, message: 'Total available units excedded' });
-                //     }
-                // }
-
-                // const userBooking = await ProjectInvestor.sum('unitPurchased', {
-                //     where: {
-                //         idUsers: userInfo.idUsers,
-                //         idProjects: project.idProjects,
-                //     }
-                // }); 
-
-                // if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
-                //     if (Number(userBooking) + Number(project.unitPurchased) > projectInfo.investorUnitCapacity) {
-                //         await transaction.rollback();
-                //         return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
-                //     }
-                // }
-
 
                 const projectInvestor = await ProjectInvestor.create({
                     idUsers: userInfo.idUsers,
@@ -176,6 +144,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         idProjectPartners: partner.idProjectPartners,
                         amountInvested: partner.amountInvested,
                         investedUnit: partner.investedUnit,
+                    }, { transaction });
+                }
+
+                if (projectInfo!.projectType === 'special') {
+                    const specialBooking = await ProjectSpecialBookingReq.create({
+                        idProjectInvestors: projectInvestor.idProjectInvestors,
+                        deliveryLocation: deliveryLocation || null,
+                        preferredColor: preferredColor || null,
+                        preferredProductPrice: preferredProductPrice || null,
+                        additionalRequest: additionalRequest || null,
                     }, { transaction });
                 }
             }
