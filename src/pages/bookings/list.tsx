@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import Swal from "sweetalert2";
-import { Container, Table, Button, Pagination, Row } from "react-bootstrap";
+import { Container, Table, Button, Pagination, Row, Form, Nav } from "react-bootstrap";
 import Link from "next/link";
 import { getRequestOptions } from "@/utils/Fetch";
 
@@ -44,7 +44,7 @@ function List() {
         bookingId: '',
         investorName: '',
         paymentConfirmationStatus: '',
-        cancelled: '',
+        cancelled: 'no',
         orderBy: 'idProjectInvestmentBookings',
         orderType: 'DESC',
         page: 1,
@@ -52,6 +52,7 @@ function List() {
     });
 
     const [total, setTotal] = useState<number>(0);
+    const [activeTab, setActiveTab] = useState<string>("current");
 
     useEffect(() => {
         const fetchBookingList = async () => {
@@ -80,7 +81,7 @@ function List() {
         fetchBookingList();
     }, [filter]);
 
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
@@ -88,6 +89,15 @@ function List() {
             page: 1
         });
     }
+
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        setFilter({
+            ...filter,
+            cancelled: tab === "cancelled" ? "yes" : "no",
+            page: 1,
+        });
+    };
 
     const pagesNumber = () => {
         if (total === 0) return [];
@@ -156,6 +166,14 @@ function List() {
         <Container>
             <h4 className="text-start">Booking List</h4>
             <hr />
+            <Nav variant="tabs" activeKey={activeTab} onSelect={(selectedKey) => handleTabChange(selectedKey || "current")}>
+                <Nav.Item>
+                    <Nav.Link eventKey="current">Current Bookings</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="cancelled">Cancelled Bookings</Nav.Link>
+                </Nav.Item>
+            </Nav>
             <Row className="mt-3">
                 <Pagination className="d-flex justify-content-center">
                     <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} />
@@ -196,7 +214,11 @@ function List() {
                         <td></td>
                         <td></td>
                         <td>
-                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="cancelled" onChange={handleInputOnChange} value={filter.cancelled} />
+                            <Form.Select className="form-control form-control-sm" name="cancelled" onChange={handleInputOnChange} value={filter.cancelled}>
+                                <option value="">All</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </Form.Select>
                         </td>
                         <td></td>
                     </tr>

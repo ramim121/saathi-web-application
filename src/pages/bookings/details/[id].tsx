@@ -56,6 +56,12 @@ interface DetailsProps {
             amountInvested: number;
         }[];
         idProjectInvestors: number;
+        ProjectSpecialBookingReq?: {
+            additionalRequest: string;
+            deliveryLocation: string;
+            preferredColor: string;
+            preferredProductPrice: number;
+        }
     }[];
 
 }
@@ -532,9 +538,11 @@ function Details() {
                                         <td>{details.User?.fullName} ( {details.User?.phoneNumber} )</td>
                                     </tr>
                                     <tr>
-                                        <td>Payment Confirmation Status</td>
+                                        <td>Payment Status</td>
                                         <td>
-                                            {details.paymentConfirmationStatus?.charAt(0).toUpperCase() + details.paymentConfirmationStatus?.slice(1)}
+                                            <span className={`badge ${details.paymentConfirmationStatus === 'confirmed' ? 'bg-success' : details.paymentConfirmationStatus === 'denied' ? 'bg-danger' : 'bg-warning'}`}>
+                                                {details.paymentConfirmationStatus?.charAt(0).toUpperCase() + details.paymentConfirmationStatus?.slice(1)}
+                                            </span>
                                         </td>
                                     </tr>
                                     <tr>
@@ -681,6 +689,7 @@ function Details() {
                                         <th>Unit Price</th>
                                         <th>Total Amount</th>
                                         <th>Investment Status</th>
+                                        <th>Special Booking Req</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -708,6 +717,16 @@ function Details() {
                                             </td>
                                             <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
                                             <td>
+                                                {project.ProjectSpecialBookingReq &&
+                                                    <>
+                                                        <strong>Additional Request:</strong> {project.ProjectSpecialBookingReq.additionalRequest}<br />
+                                                        <strong>Delivery Location:</strong> {project.ProjectSpecialBookingReq.deliveryLocation}<br />
+                                                        <strong>Preferred Color:</strong> {project.ProjectSpecialBookingReq.preferredColor}<br />
+                                                        <strong>Preferred Price:</strong> {project.ProjectSpecialBookingReq.preferredProductPrice}<br />
+                                                    </>
+                                                }
+                                            </td>
+                                            <td>
                                                 {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
                                                     <Button className='btn btn-sm btn-primary' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
                                                         Ready For Withdrawal
@@ -726,7 +745,7 @@ function Details() {
                                         <td>
                                             {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
                                         </td>
-                                        <td colSpan={2}></td>
+                                        <td colSpan={3}></td>
                                     </tr>
                                 </tfoot>
                             </Table>
