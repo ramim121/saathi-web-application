@@ -90,7 +90,7 @@ const Project = sequelize.define<ProjectModel>('Project', {
     },
     projectStatus: {
         type: DataTypes.ENUM('created', 'collection_started', 'collection_done', 'project_started', 'project_finished', 'fund_disbursed', 'closed', 'completed'),
-        defaultValue: 'pending',
+        defaultValue: 'created',
         allowNull: false
     },
     showInUpcoming: {
@@ -120,7 +120,11 @@ const Project = sequelize.define<ProjectModel>('Project', {
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0
-    }
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
 }, {
     tableName: 'projects',
     underscored: true,

@@ -28,7 +28,7 @@ const BankBranch = sequelize.define<BankBranchModel>('BankBranch', {
         allowNull: false
     },
     address: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(512),
         allowNull: false
     },
     swiftCode: {

@@ -23,13 +23,22 @@ import ManualNotification from "./ManualNotification";
 import ProjectInvestmentBookingStatus from "./ProjectInvestmentBookingStatus";
 import ProjectProperty from "./ProjectProperty";
 import ProjectInvestorStatus from "./ProjectInvestorStatus";
+import ProjectPartnerInvestorUpdate from "./ProjectPartnerInvestorUpdate";
+import AppFcmToken from "./AppFcmToken";
+import AppVersion from "./AppVersion";
+import ContactMessage from "./ContactMessage";
+import NotificationQueue from "./NotificationQueue";
+import NotificationTemplate from "./NotificationTemplate";
+import ProductPartner from "./ProductPartner";
 import ProjectSpecialBookingReq from "./ProjectSpecialBookingReq";
+
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
 User.hasMany(ProjectInvestor, { foreignKey: 'idUsers', as: 'Investments' });
 User.hasMany(ProjectInvestmentBooking, { foreignKey: 'idUsers' });
 User.hasMany(UserBank, { foreignKey: 'idUsers' });
+User.hasMany(AppFcmToken, { foreignKey: 'idUsers' });
 
 User.hasOne(File, {
 	foreignKey: 'refId', as: 'ProfilePicture', scope: {
@@ -78,7 +87,7 @@ ProjectInvestor.belongsTo(ProjectInvestmentBooking, { foreignKey: 'idProjectInve
 
 ProjectInvestor.hasMany(ProjectPartnerInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectInvestor.hasMany(ProjectInvestorStatus, { foreignKey: 'idProjectInvestors' });
-ProjectInvestor.belongsTo(ProjectSpecialBookingReq, { foreignKey: 'idProjectInvestors' });
+ProjectInvestor.hasOne(ProjectSpecialBookingReq, { foreignKey: 'idProjectInvestors' });
 
 ProjectInvestorStatus.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectInvestorStatus.belongsTo(User, { foreignKey: 'idUsers' });
@@ -86,6 +95,7 @@ ProjectInvestorStatus.belongsTo(User, { foreignKey: 'idUsers' });
 
 ProjectPartnerInvestor.belongsTo(ProjectInvestor, { foreignKey: 'idProjectInvestors' });
 ProjectPartnerInvestor.belongsTo(ProjectPartner, { foreignKey: 'idProjectPartners' });
+ProjectPartnerInvestor.hasMany(ProjectPartnerInvestorUpdate, { foreignKey: 'idProjectPartnerInvestors' });
 
 UserBank.belongsTo(User, { foreignKey: 'idUsers' });
 UserBank.belongsTo(Bank, { foreignKey: 'idBanks' });
@@ -99,4 +109,38 @@ Bank.hasMany(BankBranch, { foreignKey: 'idBanks' });
 
 ProjectProperty.belongsTo(Project, { foreignKey: 'idProjects' });
 
-export { User, ProjectCategory, Project, ProjectPartner, ProjectInvestor, InvestmentSetup, Skill, File, Blog, ProjectPartnerInvestor, UserBank, Bank, BankBranch, ProjectInvestmentBooking, DigigramBank, Product, ProductCategory, ProductImage, ProductStock, ProductPacking, AppStatPanel, ManualNotification, ProjectInvestmentBookingStatus, ProjectInvestorStatus, ProjectProperty, ProjectSpecialBookingReq };
+export {
+	User,
+	ProjectCategory,
+	Project,
+	ProjectPartner,
+	ProjectInvestor,
+	InvestmentSetup,
+	Skill,
+	File,
+	Blog,
+	ProjectPartnerInvestor,
+	UserBank,
+	Bank,
+	BankBranch,
+	ProjectInvestmentBooking,
+	DigigramBank,
+	Product,
+	ProductCategory,
+	ProductImage,
+	ProductStock,
+	ProductPacking,
+	AppStatPanel,
+	ManualNotification,
+	ProjectInvestmentBookingStatus,
+	ProjectProperty,
+	ProjectInvestorStatus,
+	ProjectPartnerInvestorUpdate,
+	AppFcmToken,
+	AppVersion,
+	ContactMessage,
+	NotificationQueue,
+	NotificationTemplate,
+	ProductPartner,
+	ProjectSpecialBookingReq,
+};

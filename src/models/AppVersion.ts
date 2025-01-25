@@ -23,7 +23,7 @@ const AppVersion = sequelize.define<AppVersionModel>('AppVersion', {
         allowNull: false
     },
     remarks: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(512),
         allowNull: false
     },
     createdAt: {

@@ -24,7 +24,7 @@ const ProjectInvestorStatus = sequelize.define<ProjectInvestorStatusModel>('Proj
         allowNull: false
     },
     remarks: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(512),
         allowNull: false
     },
     createdAt: {
