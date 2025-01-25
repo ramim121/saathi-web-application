@@ -4,7 +4,7 @@ export default interface ProjectSpecialBookingReq {
     idProjectSpecialBookingReqs: number;
     idProjectInvestors: number;
     deliveryLocation: string;
-    preferredColor: number;
+    preferredColor: string;
     preferredProductPrice: number;
     additionalRequest: string;
     createdAt: Date;
