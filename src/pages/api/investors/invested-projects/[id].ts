@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, ProjectPartner, ProjectPartnerInvestor, Project, ProjectInvestor, ProjectInvestmentBooking, File } from '@/models/__associations';
+import { User, ProjectPartner, ProjectPartnerInvestor, Project, ProjectInvestor, ProjectInvestmentBooking, File, ProjectInvestmentBookingStatus } from '@/models/__associations';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -28,6 +28,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                     {
                         model: ProjectInvestmentBooking,
+                        include: [
+                            {
+                                model: ProjectInvestmentBookingStatus,
+                                where: {
+                                    status: 'confirmed'
+                                },
+                                required: false
+                            }
+                        ]
                     }
                 ]
             });
@@ -37,19 +46,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const duration = investment.ProjectPartnerInvestors?.[0]?.ProjectPartner?.Project?.duration || 0;
                 const tenure = investment.ProjectPartnerInvestors?.[0]?.ProjectPartner?.Project?.tenure || 'months';
 
-                let projectStartDate;
-                let projectEndDate;
-                const endDate = new Date(investmentDate);
+                let projectStartDate = null;
+                let projectEndDate = null;
 
-                if (tenure === 'months') {
-                    endDate.setMonth(endDate.getMonth() + duration); // Add months to investmentDate
-                    projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-                    projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-                }
-                else if (tenure === 'years') {
-                    endDate.setFullYear(endDate.getFullYear() + duration); // Add years to investmentDate
-                    projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-                    projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                const endDate = investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt
+                    ? new Date(investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt)
+                    : null;
+
+                if (endDate) {
+                    if (tenure === 'months') {
+                        endDate.setMonth(endDate.getMonth() + duration); // Add months to investmentDate
+                        projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                        projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                    }
+                    else if (tenure === 'years') {
+                        endDate.setFullYear(endDate.getFullYear() + duration); // Add years to investmentDate
+                        projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                        projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                    }
                 }
 
                 return {

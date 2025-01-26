@@ -10,7 +10,7 @@ import Image from "next/image";
 import { API_URL } from '@/config/constants';
 import Select from 'react-select';
 import { getCookie } from '@/utils/GetCookie';
-import { ChatDots, List, GraphUp, FileEarmarkText, HandThumbsUp, House, Calendar, Rulers } from 'react-bootstrap-icons';
+import { ChatDots } from 'react-bootstrap-icons';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -103,10 +103,24 @@ interface UserBanksProps {
     };
 }
 
+interface HistoryProps {
+    idProjectInvestmentBookingStatus?: number;
+    idProjectInvestmentBookings?: number;
+    idProjectInvestorStatus?: number;
+    idProjectInvestors?: number;
+    User: {
+        fullName: string;
+    }
+    status: string;
+    remarks: string;
+    createdAtFormatted: string;
+}
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
     const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
+    const [history, setHistory] = useState<HistoryProps[]>([]);
     const [reload, setReload] = useState<boolean>(false);
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
     const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
@@ -125,13 +139,13 @@ function Details() {
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         if (id != undefined) {
-            fetchPartnerDetails();
+            fetchBookingDetails();
         }
     }, [id])
 
     useEffect(() => {
         if (reload === true) {
-            fetchPartnerDetails();
+            fetchBookingDetails();
         }
     }, [reload])
 
@@ -159,12 +173,13 @@ function Details() {
         }
     }, [details.idUsers])
 
-    const fetchPartnerDetails = async () => {
+    const fetchBookingDetails = async () => {
         try {
             const res = await fetch('/api/bookings/details/' + id, getRequestOptions());
             const data = await res.json();
             if (res.status === 200) {
                 setDetails(data.data);
+                setHistory(data.history);
                 setReload(false);
             } else {
                 Swal.fire({
@@ -773,54 +788,15 @@ function Details() {
                 </Tab>
                 <Tab eventKey="timeline" title="Timeline">
                     <div className="timeline">
-                        <TimelineItem
-                            icon={<ChatDots size={32} />}
-                            color="#1395D3"
-                            header="2012"
-                            description="Bridge inspection prompted discussions about replacement or rehabilitation/retrofit strategies."
-                        />
-                        <TimelineItem
-                            icon={<List size={32} />}
-                            color="#F26723"
-                            header="2013 - 2016"
-                            description="Pierce County developed replacement, rehabilitation, and retrofit options."
-                        />
-                        <TimelineItem
-                            icon={<GraphUp size={32} />}
-                            color="#A5B038"
-                            header="2017 - 2021"
-                            description="Pierce County pursued preliminary funding and identified and evaluated potential funding sources and financial scenarios."
-                        />
-                        <TimelineItem
-                            icon={<FileEarmarkText size={32} />}
-                            color="#1395D3"
-                            header="2022"
-                            description="Pierce County budgeted for a Type, Size, and Location Study for a bridge replacement."
-                        />
-                        <TimelineItem
-                            icon={<HandThumbsUp size={32} />}
-                            color="#F26723"
-                            header="2023"
-                            description="Pierce County advertised for and selected a designer to perform the Type, Size, and Location Study."
-                        />
-                        <TimelineItem
-                            icon={<House size={32} />}
-                            color="#F1A01F"
-                            header="2024 (Early)"
-                            description="Type, Size, and Locations Study kicked off."
-                        />
-                        <TimelineItem
-                            icon={<Calendar size={32} />}
-                            color="#A5B038"
-                            header="2025 (Late)"
-                            description="Type, Size, and Location Study anticipated completion."
-                        />
-                        <TimelineItem
-                            icon={<Rulers size={32} />}
-                            color="#1395D3"
-                            header="2026 - Beyond"
-                            description="Finalize design, complete environmental permitting (NEPA), secure funding. Complete property rights, assessments, and acquisitions. Construction."
-                        />
+                        {history.map((item, index) => (
+                            <TimelineItem
+                                key={index}
+                                icon={<ChatDots size={32} />}
+                                color="#1395D3"
+                                header={item.status.charAt(0).toUpperCase() + item.status.slice(1).replace(/_/g, ' ')}
+                                description={item.User.fullName + ' - ' + item.remarks + ' - ' + item.createdAtFormatted}
+                            />
+                        ))}
                     </div>
                 </Tab>
             </Tabs>
