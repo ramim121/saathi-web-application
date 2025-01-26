@@ -20,9 +20,12 @@ const schema = Joi.object({
         "any.required": "Investment date is required",
         "date.base": "Invalid date",
     }),
-    // idUserbanks: Joi.number().optional(),
     projects: Joi.array().items(
         Joi.object({
+            deliveryLocation: Joi.string().optional(),
+            preferredColor: Joi.string().optional(),
+            preferredProductPrice: Joi.number().optional(),
+            additionalRequest: Joi.string().optional(),
             idProjects: Joi.number().required().messages({
                 "any.required": "Project must be selected",
                 "number.base": "Project must be selected",
@@ -67,7 +70,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let userInfo = jwt.decode(token) as JWTPayload;
 
-        const { investmentDate, projects, deliveryLocation, preferredColor, preferredProductPrice, additionalRequest } = req.body
+        const { investmentDate, projects } = req.body
         const options = {
             abortEarly: false,
         };
@@ -150,10 +153,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 if (projectInfo!.projectType === 'special') {
                     const specialBooking = await ProjectSpecialBookingReq.create({
                         idProjectInvestors: projectInvestor.idProjectInvestors,
-                        deliveryLocation: deliveryLocation || null,
-                        preferredColor: preferredColor || null,
-                        preferredProductPrice: preferredProductPrice || null,
-                        additionalRequest: additionalRequest || null,
+                        deliveryLocation: project.deliveryLocation || null,
+                        preferredColor: project.preferredColor || null,
+                        preferredProductPrice: project.preferredProductPrice || null,
+                        additionalRequest: project.additionalRequest || null,
                     }, { transaction });
                 }
             }
