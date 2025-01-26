@@ -7,6 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const result = await ProjectInvestor.findAll({
                 include: [
+                    Project,
                     {
                         model: ProjectPartnerInvestor,
                         include: [
