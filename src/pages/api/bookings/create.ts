@@ -22,10 +22,10 @@ const schema = Joi.object({
     }),
     projects: Joi.array().items(
         Joi.object({
-            deliveryLocation: Joi.string().optional(),
-            preferredColor: Joi.string().optional(),
-            preferredProductPrice: Joi.number().optional(),
-            additionalRequest: Joi.string().optional(),
+            deliveryLocation: Joi.string().optional().allow(null),
+            preferredColor: Joi.string().optional().allow(null),
+            preferredProductPrice: Joi.number().optional().allow(null),
+            additionalRequest: Joi.string().optional().allow(null),
             idProjects: Joi.number().required().messages({
                 "any.required": "Project must be selected",
                 "number.base": "Project must be selected",
