@@ -19,15 +19,13 @@ const schema = Joi.object({
         "any.required": "Return type is required",
         "any.only": "Invalid return type",
     }),
-    minimumReturn: Joi.number().min(0.00001).required().messages({
+    minimumReturn: Joi.number().required().messages({
         "any.required": "Minimum return is required",
         "number.base": "Minimum return must be a number",
-        "number.min": "Minimum return must be greater than 0",
     }),
-    maximumReturn: Joi.number().min(Joi.ref('minimumReturn')).required().messages({
+    maximumReturn: Joi.number().required().messages({
         "any.required": "Maximum return is required",
         "number.base": "Maximum return must be a number",
-        "number.min": "Maximum return must be greater than or equal to minimum return",
     }),
     duration: Joi.number().min(1).required().messages({
         "any.required": "Tenure is required",
