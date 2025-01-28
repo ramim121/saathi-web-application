@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner, ProjectPartnerInvestor } from '@/models/__associations';
+import { User, File, ProjectPartner } from '@/models/__associations';
 import sequelize from 'sequelize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -35,9 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ]
                 },
                 having: sequelize.literal(`
-					(partnerUnitCapacity = 0 OR investorCount < partnerUnitCapacity)
-				`),
-                order: [[sequelize.literal('investorCount'), 'ASC']]
+                    (partnerUnitCapacity = 0 OR investorCount < partnerUnitCapacity)
+                `),
+                order: [
+                    [sequelize.literal('investorCount'), 'ASC'],
+                    ['idProjectPartners', 'ASC']
+                ]
             });
 
             return res.status(200).json({ success: true, data: result });
