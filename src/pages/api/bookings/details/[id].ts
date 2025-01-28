@@ -104,13 +104,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ...entry.dataValues,  // Assuming Sequelize object with dataValues
                     createdAtFormatted: new Date(entry.createdAt).toLocaleString('en-US', {
                         year: 'numeric',
-                        month: 'short',
+                        month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit',
-                        hour12: true
-                    }).replace(',', '').replace('AM', ' AM').replace('PM', ' PM')
+                        hour12: false
+                    })
                 };
             });
 
