@@ -25,9 +25,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                     AND ppi.investment_status = 'confirmed'
                                 )`),
                                 'investorCount'
+                            ],
+                            [
+                                sequelize.literal(`(
+                                    SELECT COALESCE(SUM(unit_purchased), 0)
+                                    FROM project_investors AS ppi
+                                    WHERE ppi.id_projects = Project.id_projects
+                                    AND ppi.investment_status = 'confirmed'
+                                )`),
+                                'totalInvestedUnits'
                             ]
                         ]
                     },
+                    having: sequelize.literal(`
+                        (totalAvailableUnits = 0 OR totalInvestedUnits < totalAvailableUnits)
+                    `),
                     where: {
                         showInUpcoming: 'no',
                         projectStatus: { [Op.ne]: 'completed' }
