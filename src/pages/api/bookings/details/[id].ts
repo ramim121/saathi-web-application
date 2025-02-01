@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File, ProjectSpecialBookingReq, ProjectProperty } from '@/models/__associations';
+import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File, ProjectSpecialBookingReq } from '@/models/__associations';
 import sequelize from '@/config/db';
 // WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
 
@@ -46,7 +46,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             },
                             {
                                 model: Project,
-                                include: [ProjectProperty]
                             },
                             {
                                 model: ProjectSpecialBookingReq,
@@ -104,13 +103,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ...entry.dataValues,  // Assuming Sequelize object with dataValues
                     createdAtFormatted: new Date(entry.createdAt).toLocaleString('en-US', {
                         year: 'numeric',
-                        month: 'short',
+                        month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit',
-                        hour12: true
-                    }).replace(',', '').replace('AM', ' AM').replace('PM', ' PM')
+                        hour12: false
+                    })
                 };
             });
 
