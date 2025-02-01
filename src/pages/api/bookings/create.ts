@@ -98,9 +98,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: 'Please verify your email or phone number before making any investment' });
         }
 
-        if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
-            return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
-        }
+        // if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
+        //     return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
+        // }
 
         const transaction = await sequelize.transaction();
 
