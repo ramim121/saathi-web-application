@@ -54,6 +54,7 @@ interface DetailsProps {
                 };
             };
             amountInvested: number;
+            idProjectPartnerInvestors: number;
         }[];
         idProjectInvestors: number;
         ProjectSpecialBookingReq?: {
@@ -116,6 +117,16 @@ interface HistoryProps {
     createdAtFormatted: string;
 }
 
+interface LiveUpdateFormDataProps {
+    idProjectPartnerInvestors: string;
+    liveWeight: number | null;
+    updateDate: string;
+    updateBody: string;
+    updateTitle: string;
+    videoUrl: string;
+    updateImage: File | null;
+}
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
@@ -123,6 +134,7 @@ function Details() {
     const [history, setHistory] = useState<HistoryProps[]>([]);
     const [reload, setReload] = useState<boolean>(false);
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
+    const [liveUpdateModalShow, setLiveUpdateModalShow] = useState<boolean>(false);
     const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
@@ -134,6 +146,15 @@ function Details() {
         paymentAmount: 0,
         transactionId: '',
 
+    });
+    const [liveUpdateFormData, setLiveUpdateFormData] = useState<LiveUpdateFormDataProps>({
+        idProjectPartnerInvestors: '',
+        liveWeight: null,
+        updateDate: '',
+        updateBody: '',
+        updateTitle: '',
+        videoUrl: '',
+        updateImage: null,
     });
     const [userBanks, setUserBanks] = useState<UserBanksProps[]>([]);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
@@ -526,6 +547,68 @@ function Details() {
         </div>
     );
 
+    const handleLiveUpdateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to submit this live update?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                try {
+                    const formData = new FormData();
+                    formData.append('idProjectPartnerInvestors', liveUpdateFormData.idProjectPartnerInvestors);
+                    formData.append('liveWeight', liveUpdateFormData.liveWeight?.toString() || '');
+                    formData.append('updateDate', liveUpdateFormData.updateDate);
+                    formData.append('updateTitle', liveUpdateFormData.updateTitle);
+                    formData.append('updateBody', liveUpdateFormData.updateBody);
+                    formData.append('videoUrl', liveUpdateFormData.videoUrl);
+                    if (liveUpdateFormData.updateImage) {
+                        formData.append('updateImage', liveUpdateFormData.updateImage);
+                    }
+
+                    const res = await fetch(API_URL + 'api/bookings/live-update', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
+                        body: formData,
+                    });
+
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Live update submitted successfully!',
+                        });
+                        setLiveUpdateFormData({
+                            idProjectPartnerInvestors: '',
+                            liveWeight: null,
+                            updateDate: '',
+                            updateBody: '',
+                            updateTitle: '',
+                            videoUrl: '',
+                            updateImage: null,
+                        });
+                        setReload(true);
+                        setLiveUpdateModalShow(false);
+                    } else {
+                        const errorResult = await res.json();
+                        throw new Error(errorResult.message);
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: (error as Error).message || 'Something went wrong!',
+                    });
+                }
+            },
+        });
+    };
+
     const paymentMethods = [
         { value: 'cheque', label: 'Cheque' },
         { value: 'beftn', label: 'BEFTN' },
@@ -719,9 +802,18 @@ function Details() {
                                             <td>
                                                 <ul>
                                                     {project.ProjectPartnerInvestors.map((partner, index) => (
-                                                        <li key={index}>{partner.ProjectPartner.User.fullName}</li>
-                                                    ))
-                                                    }
+                                                        <li key={index}>
+                                                            <a href="#" onClick={() => {
+                                                                setLiveUpdateFormData({
+                                                                    ...liveUpdateFormData,
+                                                                    idProjectPartnerInvestors: partner.idProjectPartnerInvestors.toString()
+                                                                });
+                                                                setLiveUpdateModalShow(true);
+                                                            }}>
+                                                                {partner.ProjectPartner.User.fullName}
+                                                            </a>
+                                                        </li>
+                                                    ))}
                                                 </ul>
                                             </td>
                                             <td>
@@ -887,6 +979,66 @@ function Details() {
                         </Row>
                     </Form>
                     {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
+                </Modal.Body>
+            </Modal>
+
+            <Modal show={liveUpdateModalShow} onHide={() => setLiveUpdateModalShow(false)} size='lg'>
+                <Modal.Header closeButton>
+                    <Modal.Title>Live Update</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={handleLiveUpdateSubmit}>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Live Weight</Form.Label>
+                            <Col sm='8'>
+                                <Form.Control type='number' name='liveWeight' value={liveUpdateFormData.liveWeight ?? ''} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, liveWeight: Number(e.target.value) })} />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Update Date <span className='text-danger'>*</span></Form.Label>
+                            <Col sm='8'>
+                                <Form.Control type='date' name='updateDate' value={liveUpdateFormData.updateDate} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateDate: e.target.value })} />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Update Title <span className='text-danger'>*</span></Form.Label>
+                            <Col sm='8'>
+                                <Form.Control type='text' name='updateTitle' value={liveUpdateFormData.updateTitle} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateTitle: e.target.value })} />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Update Body <span className='text-danger'>*</span></Form.Label>
+                            <Col sm='8'>
+                                <Form.Control as='textarea' name='updateBody' value={liveUpdateFormData.updateBody} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateBody: e.target.value })} />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Video URL</Form.Label>
+                            <Col sm='8'>
+                                <Form.Control type='text' name='videoUrl' value={liveUpdateFormData.videoUrl} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, videoUrl: e.target.value })} />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            <Form.Label column sm='4'>Update Image</Form.Label>
+                            <Col sm='8'>
+                                <Form.Control type='file' name='updateImage' onChange={
+                                    (e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const file = e.target.files?.[0] || null;
+                                        setLiveUpdateFormData({
+                                            ...liveUpdateFormData,
+                                            updateImage: file
+                                        });
+                                    }
+                                } />
+                            </Col>
+                        </Form.Group>
+                        <Row className='justify-content-center'>
+                            <Button className='w-50 mt-2' variant="primary" type="submit" >
+                                Submit
+                            </Button>
+                        </Row>
+                    </Form>
+                    {/* <pre>{JSON.stringify(liveUpdateFormData, null, 2)}</pre> */}
                 </Modal.Body>
             </Modal>
 
