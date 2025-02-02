@@ -85,7 +85,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                                 sequelize.literal(`(
 								SELECT IFNULL(SUM(unit_purchased),0)
 								FROM project_investors AS ppi
-								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status == 'confirmed'
+								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
 							)`),
                                 'totalInvestedUnits'
                             ],
@@ -95,7 +95,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                                     WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
                                         SELECT IFNULL(SUM(unit_purchased),0)
                                         FROM project_investors AS ppi
-                                        WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status == 'confirmed'
+                                        WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
                                     )
                                     ELSE NULL
                                 END
@@ -149,7 +149,7 @@ export async function getProjectDetails(projectId: string) {
                             SELECT IFNULL(SUM(invested_unit),0)
                             FROM project_partner_investors AS ppi
                             LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                            WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status == 'confirmed'
+                            WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status = 'confirmed'
                         )`),
                             'alreadyInvestedUnits'
                         ],
@@ -183,7 +183,7 @@ export async function getProjectDetails(projectId: string) {
                     sequelize.literal(`(
                     SELECT IFNULL(SUM(unit_purchased),0)
                     FROM project_investors AS ppi
-                    WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status == 'confirmed'
+                    WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
                 )`),
                     'totalInvestedUnits'
                 ],
@@ -193,7 +193,7 @@ export async function getProjectDetails(projectId: string) {
                         WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
                             SELECT IFNULL(SUM(unit_purchased),0)
                             FROM project_investors AS ppi
-                            WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status == 'confirmed'
+                            WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
                         )
                         ELSE NULL
                     END
