@@ -104,7 +104,7 @@ export default async function handler(
 				                        SELECT SUM(unit_purchased)
 				                        FROM project_investors AS ppi
 				                        WHERE ppi.id_projects = Project.id_projects
-										AND ppi.investment_status != 'confirmed'
+										AND ppi.investment_status == 'confirmed'
 				                    )
 				                    ELSE NULL
 				                END
