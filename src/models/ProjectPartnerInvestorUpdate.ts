@@ -12,20 +12,8 @@ const ProjectPartnerInvestorUpdate = sequelize.define<ProjectPartnerInvestorUpda
         autoIncrement: true,
         primaryKey: true
     },
-    idProjectPartners: {
+    idProjectPartnerInvestors: {
         type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    updateDate: {
-        type: DataTypes.DATE,
-        allowNull: false
-    },
-    updateBody: {
-        type: DataTypes.STRING(512),
-        allowNull: false
-    },
-    updateTitle: {
-        type: DataTypes.STRING,
         allowNull: false
     },
     createdAt: {
@@ -35,6 +23,30 @@ const ProjectPartnerInvestorUpdate = sequelize.define<ProjectPartnerInvestorUpda
     updatedAt: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    liveWeight: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    updateDate: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    updateBody: {
+        type: DataTypes.STRING(512),
+        allowNull: true
+    },
+    updateTitle: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    videoUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    updateImage: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'project_partner_investor_updates',
