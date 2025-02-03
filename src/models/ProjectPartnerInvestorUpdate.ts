@@ -47,6 +47,10 @@ const ProjectPartnerInvestorUpdate = sequelize.define<ProjectPartnerInvestorUpda
     updateImage: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    imageThumbnail: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'project_partner_investor_updates',

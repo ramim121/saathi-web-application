@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectPartnerInvestorUpdate, File } from '@/models/__associations';
+import { ProjectPartnerInvestorUpdate } from '@/models/__associations';
 import Joi from 'joi';
 import sequelize from '@/config/db';
 import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
@@ -112,9 +112,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const transaction = await sequelize.transaction();
             try {
+
+                console.log('data', data.liveWeight);
                 const liveUpdate = await ProjectPartnerInvestorUpdate.create({
                     idProjectPartnerInvestors: data.idProjectPartnerInvestors,
-                    liveWeight: data.liveWeight,
+                    liveWeight: data.liveWeight ? data.liveWeight : null,
                     updateDate: data.updateDate,
                     updateBody: data.updateBody,
                     updateTitle: data.updateTitle,
@@ -163,13 +165,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         return res.status(400).json({ success: false, message: err2.message });
                     }
 
-                    await File.create({
-                        originalFileName: updateImage.originalFilename!,
-                        fileName: updateImageFileName,
-                        thumbnail: thumbImageFileName,
-                        refType: 'live-update',
-                        refId: liveUpdate.idProjectPartnerInvestorUpdates
-                    }, { transaction });
+                    await liveUpdate.update({ updateImage: updateImageFileName, imageThumbnail: thumbImageFileName }, { transaction });
                 }
 
                 await transaction.commit();

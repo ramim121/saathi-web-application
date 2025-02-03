@@ -5,13 +5,13 @@ export default interface ProjectPartnerInvestorUpdate {
     idProjectpartnerInvestors: number;
     createdAt: Date;
     updatedAt: Date;
-    liveWeight?: number;
+    liveWeight?: number | null;
     updateDate: Date;
     updateBody: string;
     updateTitle: string;
     videoUrl?: string;
     updateImage?: string;
-
+    imageThumbnail?: string;
 }
 
 export interface ProjectPartnerInvestorUpdateAttributes extends Optional<ProjectPartnerInvestorUpdate, 'idProjectPartnerInvestorUpdates'> { }

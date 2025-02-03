@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup, Tabs, Tab } from "react-bootstrap";
@@ -11,6 +11,7 @@ import { API_URL } from '@/config/constants';
 import Select from 'react-select';
 import { getCookie } from '@/utils/GetCookie';
 import { ChatDots } from 'react-bootstrap-icons';
+import Link from 'next/link';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -42,6 +43,7 @@ interface DetailsProps {
     collectionStatus: string;
     ProjectInvestors: {
         Project: {
+            idProjects: number;
             projectName: string;
         };
         unitPurchased: number;
@@ -50,6 +52,7 @@ interface DetailsProps {
         ProjectPartnerInvestors: {
             ProjectPartner: {
                 User: {
+                    idUsers: number;
                     fullName: string;
                 };
             };
@@ -127,6 +130,19 @@ interface LiveUpdateFormDataProps {
     updateImage: File | null;
 }
 
+interface LiveUpdateListDataProps {
+    idProjectPartnerInvestorUpdates: number;
+    idProjectPartnerInvestors: number;
+    createdAt: string;
+    liveWeight: number | null;
+    updateDate: string;
+    updateBody: string;
+    updateTitle: string;
+    videoUrl: string;
+    updateImage: string;
+    imageThumbnail: string;
+}
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
@@ -135,6 +151,7 @@ function Details() {
     const [reload, setReload] = useState<boolean>(false);
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
     const [liveUpdateModalShow, setLiveUpdateModalShow] = useState<boolean>(false);
+    const [liveUpdateListModalShow, setLiveUpdateListModalShow] = useState<boolean>(false);
     const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
@@ -157,7 +174,9 @@ function Details() {
         updateImage: null,
     });
     const [userBanks, setUserBanks] = useState<UserBanksProps[]>([]);
+    const [liveUpdateListData, setLiveUpdateListData] = useState<LiveUpdateListDataProps[]>([]);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (id != undefined) {
             fetchBookingDetails();
@@ -193,6 +212,28 @@ function Details() {
             fetchUserBanks();
         }
     }, [details.idUsers])
+
+    const fetchLiveUpdateList = async (idProjectPartnerInvestors: string) => {
+        try {
+            const res = await fetch('/api/live-update/list/' + idProjectPartnerInvestors, getRequestOptions());
+            const data = await res.json();
+            if (res.status === 200) {
+                setLiveUpdateListData(data.data);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                });
+            }
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message,
+            });
+        }
+    }
 
     const fetchBookingDetails = async () => {
         try {
@@ -571,7 +612,7 @@ function Details() {
                         formData.append('updateImage', liveUpdateFormData.updateImage);
                     }
 
-                    const res = await fetch(API_URL + 'api/bookings/live-update', {
+                    const res = await fetch(API_URL + 'api/live-update/create', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: formData,
@@ -783,7 +824,7 @@ function Details() {
                                         <th>Investment Date</th>
                                         <th>Projects</th>
                                         <th>Unit Purchased</th>
-                                        <th>Project Partners</th>
+                                        <th>Project Partners / Updates</th>
                                         <th>Unit Price</th>
                                         <th>Total Amount</th>
                                         <th>Investment Status</th>
@@ -797,24 +838,52 @@ function Details() {
                                             <td>{index + 1}</td>
                                             <td>{project.investmentDate}</td>
 
-                                            <td>{project.Project.projectName}</td>
-                                            <td>{project.unitPurchased}</td>
                                             <td>
-                                                <ul>
-                                                    {project.ProjectPartnerInvestors.map((partner, index) => (
-                                                        <li key={index}>
-                                                            <a href="#" onClick={() => {
-                                                                setLiveUpdateFormData({
-                                                                    ...liveUpdateFormData,
-                                                                    idProjectPartnerInvestors: partner.idProjectPartnerInvestors.toString()
-                                                                });
-                                                                setLiveUpdateModalShow(true);
-                                                            }}>
-                                                                {partner.ProjectPartner.User.fullName}
-                                                            </a>
-                                                        </li>
-                                                    ))}
-                                                </ul>
+                                                <Link href={`/projects/details/${project.Project.idProjects}`}>
+                                                    {project.Project.projectName}
+                                                </Link>
+                                            </td>
+
+                                            <td>{project.unitPurchased}</td>
+                                            <td className="p-0 m-0">
+                                                <Table className="m-0 table-borderless">
+                                                    <tbody>
+                                                        {
+                                                            project.ProjectPartnerInvestors.map((partner, index) => {
+                                                                return (
+                                                                    <tr key={index}>
+                                                                        <td className="text-start" style={{ whiteSpace: 'nowrap' }}>
+                                                                            <Link href={`/partners/details/${partner.ProjectPartner.User.idUsers}`}>
+                                                                                {partner.ProjectPartner.User.fullName}
+                                                                            </Link>
+                                                                        </td>
+                                                                        <td className="text-end">
+                                                                            <Button className='btn btn-sm btn-primary' onClick={() => {
+                                                                                Swal.fire({
+                                                                                    title: 'Live Updates',
+                                                                                    showCancelButton: false,
+                                                                                    showDenyButton: true,
+                                                                                    confirmButtonText: 'Create',
+                                                                                    denyButtonText: 'List',
+                                                                                    denyButtonColor: '#0dcaf0',
+                                                                                    preConfirm: () => {
+                                                                                        setLiveUpdateModalShow(true);
+                                                                                    },
+                                                                                    preDeny: () => {
+                                                                                        fetchLiveUpdateList(partner.idProjectPartnerInvestors.toString());
+                                                                                        setLiveUpdateListModalShow(true);
+                                                                                    }
+                                                                                });
+                                                                            }} style={{ whiteSpace: 'nowrap' }}>
+                                                                                Live Updates
+                                                                            </Button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            })
+                                                        }
+                                                    </tbody>
+                                                </Table>
                                             </td>
                                             <td>
                                                 {project.ProjectPartnerInvestors[0]?.amountInvested}
@@ -1041,8 +1110,63 @@ function Details() {
                     {/* <pre>{JSON.stringify(liveUpdateFormData, null, 2)}</pre> */}
                 </Modal.Body>
             </Modal>
-
-
+            <Modal show={liveUpdateListModalShow} onHide={() => setLiveUpdateListModalShow(false)} size='lg'>
+                <Modal.Header closeButton>
+                    <Modal.Title>Live Update List</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Table bordered size='sm'>
+                        <thead>
+                            <tr>
+                                <th>Sl</th>
+                                <th>Live Weight</th>
+                                <th>Update Date</th>
+                                <th>Update Title</th>
+                                <th>Update Body</th>
+                                <th>Video URL</th>
+                                <th>Update Image</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {liveUpdateListData.length > 0 ? (
+                                liveUpdateListData.map((liveUpdate, index) => (
+                                    <tr key={index}>
+                                        <td>{index + 1}</td>
+                                        <td>{liveUpdate.liveWeight}</td>
+                                        <td>{liveUpdate.updateDate}</td>
+                                        <td>{liveUpdate.updateTitle}</td>
+                                        <td>{liveUpdate.updateBody}</td>
+                                        <td>
+                                            {liveUpdate.videoUrl !== null && (
+                                                <a href={liveUpdate.videoUrl.startsWith('http') ? liveUpdate.videoUrl : `http://${liveUpdate.videoUrl}`} target="_blank" rel="noopener noreferrer">
+                                                    {liveUpdate.videoUrl}
+                                                </a>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {liveUpdate.updateImage !== null &&
+                                                <a href={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.updateImage}`} target="_blank" rel="noopener noreferrer">
+                                                    <Image
+                                                        src={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.imageThumbnail}`}
+                                                        alt={liveUpdate.updateImage}
+                                                        width={100}
+                                                        height={100}
+                                                        layout="fixed"
+                                                    />
+                                                </a>
+                                            }
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} className="text-center">No live updates found</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </Table>
+                </Modal.Body>
+            </Modal>
         </Container>
 
     );
