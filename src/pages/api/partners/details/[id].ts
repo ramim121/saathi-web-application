@@ -29,11 +29,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             'partnerUnitCapacity',
                             [
                                 sequelize.literal(`(
-                                SELECT IFNULL(SUM(invested_unit),0)
-                                FROM project_partner_investors AS ppi
-                                LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                                WHERE ppi.id_project_partners = Partnerships.id_project_partners and pi.investment_status = 'confirmed'
-                            )`),
+                                    SELECT IFNULL(SUM(invested_unit),0)
+                                    FROM project_partner_investors AS ppi
+                                    LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                                    WHERE ppi.id_project_partners = Partnerships.id_project_partners 
+                                    AND pi.investment_status = 'confirmed'
+                                )`),
                                 'alreadyInvestedUnits'
                             ],
                         ],
@@ -41,9 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             {
                                 model: Project, as: 'Project',
                                 include: [
-                                    {
-                                        model: File, as: 'MainImage'
-                                    }
+                                    { model: File, as: 'MainImage' }
                                 ]
                             },
                             {
@@ -53,17 +52,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                     {
                                         model: ProjectInvestor,
                                         include: [
-                                            {
-                                                model: ProjectInvestmentBooking
-                                            }
+                                            { model: ProjectInvestmentBooking }
                                         ]
                                     }
                                 ]
-
                             }
-                        ]
-
-                    }],
+                        ],
+                        where: sequelize.literal(`partner_unit_capacity > (
+                            SELECT IFNULL(SUM(invested_unit),0)
+                            FROM project_partner_investors AS ppi
+                            LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                            WHERE ppi.id_project_partners = Partnerships.id_project_partners 
+                            AND pi.investment_status = "confirmed"
+                        )`)
+                    }
+                ],
             });
 
             return res.status(200).json({ success: true, data: result });
