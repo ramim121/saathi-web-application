@@ -51,7 +51,10 @@ export default async function handler(
                                     {
                                         model: ProjectInvestor,
                                         include: [
-                                            { model: ProjectInvestmentBooking },
+                                            {
+                                                model: ProjectInvestmentBooking,
+                                                where: { cancelled: 'no' }
+                                            },
                                             { model: User }
                                         ]
                                     }
