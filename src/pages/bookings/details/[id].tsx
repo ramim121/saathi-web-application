@@ -964,6 +964,7 @@ function Details() {
                                                                                         denyButtonColor: '#0dcaf0',
                                                                                         preConfirm: () => {
                                                                                             setLiveUpdateModalShow(true);
+                                                                                            setLiveUpdateFormData({ ...liveUpdateFormData, idProjectPartnerInvestors: partner.idProjectPartnerInvestors.toString() });
                                                                                         },
                                                                                         preDeny: () => {
                                                                                             fetchLiveUpdateList(partner.idProjectPartnerInvestors.toString());
