@@ -64,7 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
                             WHERE ppi.id_project_partners = Partnerships.id_project_partners 
                             AND pi.investment_status = "confirmed"
-                        )`)
+                        )`),
+                        required: false
                     }
                 ],
             });
