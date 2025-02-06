@@ -41,7 +41,7 @@ const schema = Joi.object({
     }),
     updateDate: Joi.date().required().messages({
         "any.required": "Update date is required",
-        "date.base": "Invalid date",
+        "date.base": "Update date is required",
     }),
     updateBody: Joi.string().required().messages({
         "any.required": "Update body is required",
@@ -112,8 +112,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const transaction = await sequelize.transaction();
             try {
-
-                console.log('data', data.liveWeight);
                 const liveUpdate = await ProjectPartnerInvestorUpdate.create({
                     idProjectPartnerInvestors: data.idProjectPartnerInvestors,
                     liveWeight: data.liveWeight ? data.liveWeight : null,
