@@ -8,9 +8,9 @@ import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
 import Image from "next/image";
 import { API_URL } from '@/config/constants';
-import Select from 'react-select';
+import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
-import { ChatDots } from 'react-bootstrap-icons';
+import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill, ChatDots } from 'react-bootstrap-icons';
 import Link from 'next/link';
 
 interface DetailsProps {
@@ -143,6 +143,46 @@ interface LiveUpdateListDataProps {
     imageThumbnail: string;
 }
 
+interface ProjectPartnersProps {
+    label: string;
+    value: number;
+    idProjectPartners: number;
+    partnerUnitCapacity: number;
+    alreadyInvestedUnits: number;
+    User: {
+        fullName: string;
+        phoneNumber: string;
+        ProfilePicture: {
+            fileName: string;
+        };
+    };
+    investorConfirmedBookingCount: number;
+    investorAlreadyBookedCount: number;
+}
+
+interface ChangePartnerFormDataProps {
+    idProjects: number;
+    idProjectPartnerInvestors: number;
+    idProjectPartners: number;
+}
+
+const CustomOptionPartner = ({ data, ...props }: { data: ProjectPartnersProps, [key: string]: any }) => (
+    // @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
+    <components.Option {...props}>
+        Name: {data.label}
+        <br />
+        Mobile: {data.User.phoneNumber}
+        <br />
+        Unit Capacity: {data.partnerUnitCapacity}
+        <br />
+        Confirmed Booking: {data.investorConfirmedBookingCount}
+        <br />
+        Already Booked: {data.investorAlreadyBookedCount}
+        <br />
+        Remaining Capacity: {data.partnerUnitCapacity - data.investorConfirmedBookingCount}
+    </components.Option>
+);
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
@@ -152,6 +192,7 @@ function Details() {
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
     const [liveUpdateModalShow, setLiveUpdateModalShow] = useState<boolean>(false);
     const [liveUpdateListModalShow, setLiveUpdateListModalShow] = useState<boolean>(false);
+    const [partnerChangeModalShow, setPartnerChangeModalShow] = useState<boolean>(false);
     const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
@@ -175,6 +216,12 @@ function Details() {
     });
     const [userBanks, setUserBanks] = useState<UserBanksProps[]>([]);
     const [liveUpdateListData, setLiveUpdateListData] = useState<LiveUpdateListDataProps[]>([]);
+    const [changePartnerFormData, setChangePartnerFormData] = useState<ChangePartnerFormDataProps>({
+        idProjects: 0,
+        idProjectPartnerInvestors: 0,
+        idProjectPartners: 0
+    });
+    const [projectPartners, setProjectPartners] = useState<ProjectPartnersProps[]>([]);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -212,6 +259,12 @@ function Details() {
             fetchUserBanks();
         }
     }, [details.idUsers])
+
+    useEffect(() => {
+        if (changePartnerFormData.idProjects !== 0) {
+            fetchProjectPartners();
+        }
+    }, [changePartnerFormData.idProjects])
 
     const fetchLiveUpdateList = async (idProjectPartnerInvestors: string) => {
         try {
@@ -265,6 +318,32 @@ function Details() {
             const data = await res.json();
             if (res.status === 200) {
                 setUserBanks(data.data);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                });
+            }
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message,
+            });
+        }
+    }
+
+    const fetchProjectPartners = async () => {
+        try {
+            const res = await fetch('/api/projects/project-partners/' + changePartnerFormData.idProjects, getRequestOptions());
+            const data = await res.json();
+            if (res.status === 200) {
+                const newItems = data.data.map(function (element: { User: { fullName: string }, idProjectPartners: number }) {
+                    return { ...element, label: element.User.fullName, value: element.idProjectPartners }
+                });
+                console.log(newItems);
+                setProjectPartners(newItems);
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -650,6 +729,15 @@ function Details() {
         });
     };
 
+    const handleChangePartner = async (idProjects: number, idProjectPartnerInvestors: number) => {
+        setChangePartnerFormData({
+            idProjects,
+            idProjectPartnerInvestors,
+            idProjectPartners: 0
+        });
+        setPartnerChangeModalShow(true);
+    }
+
     const paymentMethods = [
         { value: 'cheque', label: 'Cheque' },
         { value: 'beftn', label: 'BEFTN' },
@@ -857,27 +945,36 @@ function Details() {
                                                                                 {partner.ProjectPartner.User.fullName}
                                                                             </Link>
                                                                         </td>
-                                                                        <td className="text-end">
-                                                                            <Button className='btn btn-sm btn-primary' onClick={() => {
-                                                                                Swal.fire({
-                                                                                    title: 'Live Updates',
-                                                                                    showCancelButton: false,
-                                                                                    showDenyButton: true,
-                                                                                    confirmButtonText: 'Create',
-                                                                                    denyButtonText: 'List',
-                                                                                    denyButtonColor: '#0dcaf0',
-                                                                                    preConfirm: () => {
-                                                                                        setLiveUpdateModalShow(true);
-                                                                                    },
-                                                                                    preDeny: () => {
-                                                                                        fetchLiveUpdateList(partner.idProjectPartnerInvestors.toString());
-                                                                                        setLiveUpdateListModalShow(true);
-                                                                                    }
-                                                                                });
-                                                                            }} style={{ whiteSpace: 'nowrap' }}>
-                                                                                Live Updates
-                                                                            </Button>
-                                                                        </td>
+                                                                        {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
+                                                                            <td>
+                                                                                <Button className='btn btn-sm btn-warning' style={{ whiteSpace: 'nowrap' }} onClick={() => handleChangePartner(project.Project.idProjects, partner.idProjectPartnerInvestors)}>
+                                                                                    Change Partner
+                                                                                </Button>
+                                                                            </td>
+                                                                        }
+                                                                        {details.cancelled === 'no' &&
+                                                                            <td className="text-end">
+                                                                                <Button className='btn btn-sm btn-primary' onClick={() => {
+                                                                                    Swal.fire({
+                                                                                        title: 'Live Updates',
+                                                                                        showCancelButton: false,
+                                                                                        showDenyButton: true,
+                                                                                        confirmButtonText: 'Create',
+                                                                                        denyButtonText: 'List',
+                                                                                        denyButtonColor: '#0dcaf0',
+                                                                                        preConfirm: () => {
+                                                                                            setLiveUpdateModalShow(true);
+                                                                                        },
+                                                                                        preDeny: () => {
+                                                                                            fetchLiveUpdateList(partner.idProjectPartnerInvestors.toString());
+                                                                                            setLiveUpdateListModalShow(true);
+                                                                                        }
+                                                                                    });
+                                                                                }} style={{ whiteSpace: 'nowrap' }}>
+                                                                                    Live Updates
+                                                                                </Button>
+                                                                            </td>
+                                                                        }
                                                                     </tr>
                                                                 )
                                                             })
@@ -1165,6 +1262,75 @@ function Details() {
                             )}
                         </tbody>
                     </Table>
+                </Modal.Body>
+            </Modal>
+
+            <Modal show={partnerChangeModalShow} onHide={() => setPartnerChangeModalShow(false)} size='lg'>
+                <Modal.Header closeButton>
+                    <Modal.Title>Change Partner</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form.Group as={Row} className='mb-3'>
+                        <Form.Label column sm='4'>Select Partner <span className='text-danger'>*</span></Form.Label>
+                        <Col sm='8'>
+                            <Select
+                                options={projectPartners}
+                                isSearchable
+                                isClearable
+                                placeholder='Select Partner'
+                                onChange={(selectedOption: any) => setChangePartnerFormData({ ...changePartnerFormData, idProjectPartners: selectedOption.value })}
+                                value={projectPartners.find(partner => partner.value === changePartnerFormData.idProjectPartners) || null}
+                                components={{ Option: CustomOptionPartner }}
+                            />
+                        </Col>
+                    </Form.Group>
+                    <Row className='justify-content-center'>
+                        <Button className='w-50 mt-2' variant="primary" type="button" onClick={() => {
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'Do you want to change the partner?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes',
+                                cancelButtonText: 'No',
+                                showLoaderOnConfirm: true,
+                                allowOutsideClick: false,
+                                preConfirm: async () => {
+                                    try {
+                                        const res = await fetch(API_URL + 'api/bookings/change-partner', putRequestOptions(changePartnerFormData));
+
+                                        if (res.ok) {
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'Success',
+                                                text: 'Partner changed successfully!',
+                                            });
+                                            setReload(true);
+                                            setPartnerChangeModalShow(false);
+                                            setChangePartnerFormData({
+                                                idProjects: 0,
+                                                idProjectPartnerInvestors: 0,
+                                                idProjectPartners: 0
+                                            });
+                                        } else {
+                                            const errorResult = await res.json();
+                                            throw new Error(errorResult.message);
+                                        }
+                                    } catch (error) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: (error as Error).message || 'Something went wrong!',
+                                        });
+                                    }
+                                },
+                            });
+                        }}>
+                            Change Partner
+                        </Button>
+                    </Row>
+                    {/* <pre>{JSON.stringify(projectPartners, null, 2)}</pre>
+                    <pre>{JSON.stringify(changePartnerFormData, null, 2)}</pre> */}
                 </Modal.Body>
             </Modal>
         </Container>

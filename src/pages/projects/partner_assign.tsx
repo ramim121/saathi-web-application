@@ -82,7 +82,6 @@ function PartnerAssign() {
 	const [projectList, setProjectList] = useState<ProjectProps[]>([]);
 	const [selectedProject, setSelectedProject] = useState<ProjectProps | null>(null);
 	const [reload, setReload] = useState<boolean>(true);
-	const [reloadProject, setReloadProject] = useState<boolean>(true);
 
 	useEffect(() => {
 		const fetchPartnersList = async () => {

@@ -22,15 +22,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                         model: ProjectPartner,
                                         attributes: [
                                             'partnerUnitCapacity',
-                                            [
-                                                sequelize.literal(`(
-                                                    SELECT IFNULL(SUM(invested_unit), 0)
-                                                    FROM project_partner_investors AS ppi
-                                                    LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                                                    AND pi.investment_status = 'confirmed'
-                                                )`),
-                                                'alreadyInvestedUnits'
-                                            ],
+                                            'idProjectPartners',
+                                            // [
+                                            //     sequelize.literal(`(
+                                            //         SELECT IFNULL(SUM(invested_unit),0)
+                                            //         FROM project_partner_investors AS ppi
+                                            //         LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
+                                            //         WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
+                                            //         AND pi.investment_status = 'confirmed'
+                                            //     )`),
+                                            //     'alreadyInvestedUnits'
+                                            // ],
                                         ],
                                         include: [
                                             {
@@ -42,6 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                             }
                                         ],
                                     }
+                                ],
+                                attributes: [
+                                    'amountInvested',
+                                    'investedUnit',
+                                    'idProjectPartnerInvestors',
                                 ]
                             },
                             {
