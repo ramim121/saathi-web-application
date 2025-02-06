@@ -91,7 +91,7 @@ function Details() {
 
     return (
         <Container>
-            <h4 className="text-start"> Partner Details ({details.fullName})</h4>
+            <h4 className="text-start"> Partner Details ({details?.fullName})</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
                 <Tab eventKey="details" title="Details">
@@ -101,7 +101,7 @@ function Details() {
                                 <tbody>
                                     <tr>
                                         <td>Full Name</td>
-                                        <td>{details.fullName}</td>
+                                        <td>{details?.fullName}</td>
                                     </tr>
                                     <tr>
                                         <td>Phone Number</td>
