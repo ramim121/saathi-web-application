@@ -416,8 +416,11 @@ function Details() {
                             proofOfPaymentRef.current.value = '';
                         }
                     } else {
-                        const errorResult = await response.json();
-                        throw new Error(errorResult.message || 'File upload failed.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await response.json()).message,
+                        });
                     }
                 } catch (error) {
                     Swal.fire({
@@ -464,8 +467,11 @@ function Details() {
                         });
                         setReload(true);
                     } else {
-                        const errorResult = await res.json();
-                        throw new Error(errorResult.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
                     }
                 } catch (error) {
                     Swal.fire({
@@ -505,8 +511,11 @@ function Details() {
                         setReload(true);
                         setApproverModalShow(false);
                     } else {
-                        const errorResult = await res.json();
-                        throw new Error(errorResult.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
                     }
                 } catch (error) {
                     Swal.fire({
@@ -547,8 +556,11 @@ function Details() {
                         });
                         setReload(true);
                     } else {
-                        const errorResult = await res.json();
-                        throw new Error(errorResult.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
                     }
                 } catch (error) {
                     Swal.fire({
@@ -636,8 +648,11 @@ function Details() {
                         });
                         setReload(true);
                     } else {
-                        const result = await res.json();
-                        throw new Error(result.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
                     }
                 } catch (err) {
                     Swal.fire({
@@ -715,8 +730,11 @@ function Details() {
                         setReload(true);
                         setLiveUpdateModalShow(false);
                     } else {
-                        const errorResult = await res.json();
-                        throw new Error(errorResult.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
                     }
                 } catch (error) {
                     Swal.fire({
@@ -1314,8 +1332,11 @@ function Details() {
                                                 idProjectPartners: 0
                                             });
                                         } else {
-                                            const errorResult = await res.json();
-                                            throw new Error(errorResult.message);
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error',
+                                                html: (await res.json()).message,
+                                            });
                                         }
                                     } catch (error) {
                                         Swal.fire({
