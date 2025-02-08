@@ -482,7 +482,9 @@ UserList.getLayout = function PageLayout(page: any) {
 };
 
 export async function getServerSideProps() {
-    const users = await User.findAll();
+    const users = await User.findAll({
+        order: [['idUsers', 'DESC']], // Change this line to order by the desired field and order
+    });
     return {
         props: {
             users: JSON.parse(JSON.stringify(users)),
