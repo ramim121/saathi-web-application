@@ -77,12 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         });
 
-        if (partnerInfo && partnerInfo.partnerUnitCapacity !== 0) {
-            if (Number(alreadyInvested) + 1 > partnerInfo.partnerUnitCapacity) {
-                return res.status(400).json({ success: false, message: 'Partner unit capacity excedded' });
-            }
-        }
-
         const transaction = await sequelize.transaction();
         try {
 
@@ -96,6 +90,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (!booking) {
                 await transaction.rollback();
                 return res.status(400).json({ success: false, message: 'Booking not found' });
+            }
+
+            if (partnerInfo && partnerInfo.partnerUnitCapacity !== 0) {
+                if (Number(alreadyInvested) + booking.investedUnit > partnerInfo.partnerUnitCapacity) {
+                    return res.status(400).json({ success: false, message: 'Partner unit capacity excedded' });
+                }
             }
 
             await ProjectPartnerInvestor.update({
