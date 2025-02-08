@@ -10,7 +10,7 @@ import Image from "next/image";
 import { API_URL } from '@/config/constants';
 import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
-import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill, ChatDots } from 'react-bootstrap-icons';
+import { ChatDots } from 'react-bootstrap-icons';
 import Link from 'next/link';
 
 interface DetailsProps {
@@ -55,9 +55,13 @@ interface DetailsProps {
                     idUsers: number;
                     fullName: string;
                 };
+                partnerUnitCapacity: number;
+                remainingCapacity: number;
             };
             amountInvested: number;
             idProjectPartnerInvestors: number;
+            investedUnit: number;
+
         }[];
         idProjectInvestors: number;
         ProjectSpecialBookingReq?: {
@@ -342,7 +346,6 @@ function Details() {
                 const newItems = data.data.map(function (element: { User: { fullName: string }, idProjectPartners: number }) {
                     return { ...element, label: element.User.fullName, value: element.idProjectPartners }
                 });
-                console.log(newItems);
                 setProjectPartners(newItems);
             } else {
                 Swal.fire({
@@ -963,7 +966,7 @@ function Details() {
                                                                                 {partner.ProjectPartner.User.fullName}
                                                                             </Link>
                                                                         </td>
-                                                                        {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
+                                                                        {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' && partner.investedUnit > partner.ProjectPartner.remainingCapacity &&
                                                                             <td>
                                                                                 <Button className='btn btn-sm btn-warning' style={{ whiteSpace: 'nowrap' }} onClick={() => handleChangePartner(project.Project.idProjects, partner.idProjectPartnerInvestors)}>
                                                                                     Change Partner
