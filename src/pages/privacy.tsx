@@ -3,17 +3,17 @@ import React from 'react';
 const PrivacyPolicy = () => {
     return (
         <div style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6', margin: '20px', padding: '20px', backgroundColor: '#f4f4f4' }}>
-            <h1>Privacy Policy for Saathi App</h1>
+            <h1>Privacy Policy for Shathi App</h1>
             <p><strong>Last updated:</strong> October 1st, 2024</p>
 
-            <p>At DigiGram Ventures, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the Saathi App, our investment and e-commerce platform designed to empower rural women farmers. Please read this policy carefully to understand our practices regarding your personal data and how we will treat it.</p>
+            <p>At DigiGram Ventures, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the Shathi App, our investment and e-commerce platform designed to empower rural women farmers. Please read this policy carefully to understand our practices regarding your personal data and how we will treat it.</p>
 
             <h2>1. Information We Collect</h2>
             <p>We may collect and process the following types of information:</p>
             <ul>
                 <li><strong>Personal Identification Information:</strong> When you register on our app, we collect details such as your name, email address, phone number, date of birth, and National ID (NID) card information (including front and back photos of the NID).</li>
                 <li><strong>Financial Information:</strong> Information related to your investments, payments, and transactions within the app, including bank account details, transaction amounts, and history.</li>
-                <li><strong>Profile Data:</strong> This includes your profile information such as your investment interests, your activity within the platform, and information about your projects and orders from Saathi Mart.</li>
+                <li><strong>Profile Data:</strong> This includes your profile information such as your investment interests, your activity within the platform, and information about your projects and orders from Shathi Mart.</li>
                 <li><strong>Biometric Data:</strong> A facial photo may be required during registration to verify your identity, especially during the KYC (Know Your Customer) process.</li>
                 <li><strong>Device Information:</strong> We collect information about the device you use to access the app, such as device type, operating system, and IP address.</li>
             </ul>
@@ -21,7 +21,7 @@ const PrivacyPolicy = () => {
             <h2>2. How We Use Your Information</h2>
             <p>We use the information we collect to:</p>
             <ul>
-                <li><strong>Provide and Improve Our Services:</strong> This includes enabling you to invest in projects, shop from Saathi Mart, and interact with other users on the platform.</li>
+                <li><strong>Provide and Improve Our Services:</strong> This includes enabling you to invest in projects, shop from Shathi Mart, and interact with other users on the platform.</li>
                 <li><strong>User Verification:</strong> To verify your identity using your NID and biometric data (such as a facial photo) during registration.</li>
                 <li><strong>Payment Processing:</strong> To facilitate transactions, including investments and purchases within the app.</li>
                 <li><strong>Marketing and Communications:</strong> With your consent, we may send you promotional offers, updates about new features, or marketing information related to your use of the app.</li>
