@@ -48,7 +48,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             otp: generateOTP(),
             expiry: Date.now() + (OTP_EXPIRY as number)
         };
-        const message = `Welcome to SAATHI. Your OTP is ${otps[phone].otp}`;
+        const message = `Welcome to SHATHI. Your OTP is ${otps[phone].otp}`;
         await SendSms(message, phone);
 
         return res.status(200).json({ success: true, message: 'OTP sent successfully' });
