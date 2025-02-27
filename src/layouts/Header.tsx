@@ -70,6 +70,7 @@ function Header() {
                                     <NavDropdown.Item href="/setup/stat_panel">Stat Panel</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/project_category">Project Category</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/skill">Skill</NavDropdown.Item>
+                                    <NavDropdown.Item href="/setup/unit">Unit</NavDropdown.Item>
                                 </NavDropdown>
                                 <Nav.Link href="/notification">Notification</Nav.Link>
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">
@@ -83,6 +84,8 @@ function Header() {
                                 </NavDropdown>
                                 <NavDropdown title="Products" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/products/category">Category</NavDropdown.Item>
+                                    <NavDropdown.Item href="/products/create">Create</NavDropdown.Item>
+                                    <NavDropdown.Item href="/products/list">List</NavDropdown.Item>
                                 </NavDropdown>
                                 <NavDropdown title="Bookings" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/bookings/list">List</NavDropdown.Item>
