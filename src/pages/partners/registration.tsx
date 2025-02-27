@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
-import { Editor } from '@tinymce/tinymce-react';
+// import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
@@ -50,7 +50,7 @@ function Registration() {
         disability: 'no',
         partnerType: 'none'
     });
-    const bioRef = useRef<any>(null);
+    // const bioRef = useRef<any>(null);
     const profilePicRef = useRef<HTMLInputElement>(null);
     const featuredImagesRef = useRef<HTMLInputElement>(null);
     const [skills, setSkills] = useState<Skills[]>([]);

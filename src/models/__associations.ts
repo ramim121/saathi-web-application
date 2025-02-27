@@ -31,7 +31,7 @@ import NotificationQueue from "./NotificationQueue";
 import NotificationTemplate from "./NotificationTemplate";
 import ProductPartner from "./ProductPartner";
 import ProjectSpecialBookingReq from "./ProjectSpecialBookingReq";
-
+import Unit from "./Unit";
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -143,4 +143,5 @@ export {
 	NotificationTemplate,
 	ProductPartner,
 	ProjectSpecialBookingReq,
+	Unit
 };

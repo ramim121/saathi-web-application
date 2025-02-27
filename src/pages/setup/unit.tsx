@@ -6,29 +6,34 @@ import { API_URL } from '@/config/constants';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 
 interface FormDataType {
-    idSkills?: number
-    skillName: string
+    idUnit?: number
+    unitName: string
+    unitCode: string
 }
 
 interface FilterProps {
-    idSkills: string
-    skillName: string
+    idUnit: string
+    unitName: string
+    unitCode: string
     orderBy: string
     orderType: string
     page: number
     pageSize: number
 }
 
-function Skill() {
+function Unit() {
 
+    const [idUnit, setIdUnit] = useState<number>(0);
     const [formData, setFormData] = useState<FormDataType>({
-        skillName: '',
+        unitName: '',
+        unitCode: ''
     });
 
     const [filter, setFilter] = useState<FilterProps>({
-        idSkills: '',
-        skillName: '',
-        orderBy: 'idSkills',
+        idUnit: '',
+        unitName: '',
+        unitCode: '',
+        orderBy: 'idUnit',
         orderType: 'ASC',
         page: 1,
         pageSize: 10
@@ -37,18 +42,18 @@ function Skill() {
 
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
-    const [skillList, setSkillList] = useState<FormDataType[]>([]);
+    const [unitList, setUnitList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        const fetchSkillList = async () => {
+        const fetchUnitList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/skills/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/unit/list?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    setSkillList(data.data);
+                    setUnitList(data.data);
                     setTotal(data.total);
                     setTotalPages(data.totalPages);
                     setReload(false);
@@ -67,7 +72,7 @@ function Skill() {
                 });
             }
         }
-        fetchSkillList();
+        fetchUnitList();
     }, [filter, reload]);
 
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,12 +120,20 @@ function Skill() {
         })
     }
 
+    const handleEditChange = (unit: FormDataType) => () => {
+        setIdUnit(unit.idUnit ?? 0);
+        setFormData({
+            unitName: unit.unitName,
+            unitCode: unit.unitCode
+        });
+    }
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to create this skill!",
+            text: `You want to ${idUnit !== 0 ? 'update' : 'create'} this unit!`,
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
@@ -128,7 +141,8 @@ function Skill() {
         }).then(async (result) => {
             if (result.value) {
                 try {
-                    const res = await fetch(API_URL + 'api/skills/create', postRequestOptions(formData));
+                    const api = idUnit !== 0 ? `api/unit/update/${idUnit}` : 'api/unit/create';
+                    const res = await fetch(API_URL + api, postRequestOptions(formData));
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
@@ -136,8 +150,10 @@ function Skill() {
                             text: (await res.json()).message,
                         });
                         setReload(true);
+                        setIdUnit(0);
                         setFormData({
-                            skillName: '',
+                            unitName: '',
+                            unitCode: ''
                         });
 
                     } else {
@@ -167,13 +183,19 @@ function Skill() {
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h4 className="text-start">Skills</h4>
+                        <h4 className="text-start">Units</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Skill Name<span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4' className='mb-3'>Name<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" name="skillName" value={formData.skillName} onChange={(e) => setFormData({ ...formData, skillName: e.target.value })} required />
+                                    <Form.Control type="text" name="unitName" value={formData.unitName} onChange={(e) => setFormData({ ...formData, unitName: e.target.value })} required />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                <Form.Label column sm='4' className='mb-3'>Code<span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="text" name="unitCode" value={formData.unitCode} onChange={(e) => setFormData({ ...formData, unitCode: e.target.value })} required />
                                 </Col>
                             </Form.Group>
                             <Row>
@@ -194,38 +216,43 @@ function Skill() {
 
 
             <Container className='mt-5'>
-                <h4 className="text-start">Skills List</h4>
+                <h4 className="text-start">Unit List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Skill Name</th>
-                            {/* <th>Actions</th> */}
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th>Actions</th>
                         </tr>
                         <tr>
                             <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idSkills" onChange={handleInputOnChange} value={filter.idSkills} />
+                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idUnit" onChange={handleInputOnChange} value={filter.idUnit} />
                             </td>
                             <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="skillName" onChange={handleInputOnChange} value={filter.skillName} />
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="unitName" onChange={handleInputOnChange} value={filter.unitName} />
                             </td>
-                            {/* <td></td> */}
+                            <td>
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="unitCode" onChange={handleInputOnChange} value={filter.unitCode} />
+                            </td>
+                            <td></td>
 
                         </tr>
                     </thead>
                     <tbody>
-                        {skillList.length > 0 ? skillList.map((skill, index) => (
+                        {unitList.length > 0 ? unitList.map((unit, index) => (
                             <tr key={index}>
-                                <td>{skill.idSkills}</td>
-                                <td>{skill.skillName}</td>
-                                {/* <td>
-                                    <Button variant="primary" size="sm" onClick={handleEditChange(project)}>Edit</Button>
-                                </td> */}
+                                <td>{unit.idUnit}</td>
+                                <td>{unit.unitName}</td>
+                                <td>{unit.unitCode}</td>
+                                <td>
+                                    <Button variant="primary" size="sm" onClick={handleEditChange(unit)}>Edit</Button>
+                                </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={2} className="text-center">No Skill found</td>
+                                <td colSpan={4} className="text-center">No Unit found</td>
                             </tr>
                         )}
 
@@ -243,9 +270,9 @@ function Skill() {
     )
 }
 
-export default Skill;
+export default Unit;
 
-Skill.getLayout = function PageLayout(page: any) {
+Unit.getLayout = function PageLayout(page: any) {
     return (
         <MainLayout>
             {page}
