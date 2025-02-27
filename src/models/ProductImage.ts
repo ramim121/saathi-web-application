@@ -16,7 +16,11 @@ const ProductImage = sequelize.define<ProductImageModel>('ProductImage', {
     },
     imageNameOriginal: {
         type: DataTypes.STRING(255),
-        allowNull: true,
+        allowNull: false,
+    },
+    thumbnail: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
     },
     idProducts: {
         type: DataTypes.INTEGER,

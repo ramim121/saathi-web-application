@@ -4,6 +4,7 @@ export default interface ProductImage {
     idProductImages: number;
     imageName: string;
     imageNameOriginal: string;
+    thumbnail: string;
     idProducts: number;
     imageStatus: 'active' | 'deleted' | 'hidden';
     createdAt: Date;

@@ -4,8 +4,8 @@ import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/constants';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
-import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
+import { postRequestOptions } from "@/utils/Fetch";
 
 interface FormDataType {
     productName: string;
@@ -113,77 +113,50 @@ function ProductCreate() {
         });
     }
 
-    //    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    //         e.preventDefault();
-    //         // Set loading to true before the Swal confirmation
-    //         setLoading(true);
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
 
-    //         Swal.fire({
-    //             title: 'Are you sure?',
-    //             text: "You want to register this partner!",
-    //             icon: 'warning',
-    //             showCancelButton: true,
-    //             cancelButtonText: 'No',
-    //             confirmButtonText: 'Yes'
-    //         }).then(async (result) => {
-    //             if (result.value) {
-    //                 const newFormData = new FormData();
-    //                 newFormData.append('name', formData.name);
-    //                 newFormData.append('phoneNumber', formData.phoneNumber.toString());
-    //                 newFormData.append('age', formData.age.toString());
-    //                 newFormData.append('location', formData.location);
-    //                 newFormData.append('role', formData.role);
-    //                 newFormData.append('bio', formData.bio);
-    //                 newFormData.append('interestedIn', formData.interestedIn);
-    //                 newFormData.append('joiningDate', formData.joiningDate);
-    //                 newFormData.append('skills', formData.skills);
-    //                 newFormData.append('education', formData.education);
-    //                 newFormData.append('disability', formData.disability);
-    //                 newFormData.append('profilePicture', formData.profilePicture);
-    //                 newFormData.append('partnerType', formData.partnerType);
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to create this product!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then(async (result) => {
+            if (result.value) {
+                try {
+                    const res = await fetch(API_URL + 'api/products/create', postRequestOptions(formData));
 
-    //                 if (formData.featuredImages) {
-    //                     for (let i = 0; i < formData.featuredImages.length; i++) {
-    //                         newFormData.append('featuredImages', formData.featuredImages[i]);
-    //                     }
-    //                 }
-
-    //                 try {
-    //                     const res = await fetch(API_URL + 'api/partners/registration', {
-    //                         method: 'POST',
-    //                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
-    //                         body: newFormData,
-    //                     });
-
-    //                     if (res.status === 200) {
-    //                         Swal.fire({
-    //                             icon: 'success',
-    //                             title: 'Success',
-    //                             text: 'Partner successfully registered!',
-    //                         });
-    //                         router.push('/partners/details/' + (await res.json()).data.idUsers);
-    //                     } else {
-    //                         Swal.fire({
-    //                             icon: 'error',
-    //                             title: 'Error',
-    //                             html: (await res.json()).message,
-    //                         });
-    //                     }
-    //                 } catch (err) {
-    //                     Swal.fire({
-    //                         icon: 'error',
-    //                         title: 'Error',
-    //                         text: 'Something went wrong!',
-    //                     });
-    //                 } finally {
-    //                     setLoading(false);
-    //                 }
-    //             } else {
-    //                 setLoading(false);
-    //             }
-    //         });
-    //     };
-
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Product created successfully!',
+                        });
+                        router.push('/products/details/' + (await res.json()).data.idProducts);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
+            }
+        });
+    };
 
     return (
         <Container>
@@ -194,7 +167,7 @@ function ProductCreate() {
                     <hr />
                     <Row>
                         <Col md={8}>
-                            <Form>
+                            <Form onSubmit={handleSubmit}>
                                 <Form.Group as={Row}>
                                     <Form.Label column sm='4' className='mb-3'>Product Name<span className='text-danger'>*</span></Form.Label>
                                     <Col sm='8'>

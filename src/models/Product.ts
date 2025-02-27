@@ -14,14 +14,17 @@ const Product = sequelize.define<ProductModel>('Product', {
         type: DataTypes.STRING(255),
         allowNull: true,
     },
-    productCategories: {
-        type: DataTypes.STRING(512),
-        allowNull: true,
-        defaultValue: ',',
+    idProductCategories: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
     },
     idUnit: {
         type: DataTypes.INTEGER,
         allowNull: false,
+    },
+    productDescription: {
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     createdAt: {
         type: DataTypes.DATE,
