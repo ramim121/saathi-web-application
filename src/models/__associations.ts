@@ -109,6 +109,11 @@ Bank.hasMany(BankBranch, { foreignKey: 'idBanks' });
 
 ProjectProperty.belongsTo(Project, { foreignKey: 'idProjects' });
 
+Product.belongsTo(ProductCategory, { foreignKey: 'idProductCategories' });
+Product.belongsTo(Unit, { foreignKey: 'idUnit' });
+Product.hasMany(ProductImage, { foreignKey: 'idProducts' });
+
+
 export {
 	User,
 	ProjectCategory,
