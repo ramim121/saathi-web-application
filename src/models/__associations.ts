@@ -112,7 +112,10 @@ ProjectProperty.belongsTo(Project, { foreignKey: 'idProjects' });
 Product.belongsTo(ProductCategory, { foreignKey: 'idProductCategories' });
 Product.belongsTo(Unit, { foreignKey: 'idUnit' });
 Product.hasMany(ProductImage, { foreignKey: 'idProducts' });
+Product.hasMany(ProductPartner, { foreignKey: 'idProducts' });
 
+ProductPartner.belongsTo(Product, { foreignKey: 'idProducts' });
+ProductPartner.belongsTo(User, { foreignKey: 'idUsers' });
 
 export {
 	User,

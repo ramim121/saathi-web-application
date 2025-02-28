@@ -37,7 +37,7 @@ function ProductCreate() {
 
     const [productCategories, setProductCategories] = useState<ProductCategoryType[]>([]);
     const [units, setUnits] = useState<UnitType[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<boolean>(false);
 
 
     useEffect(() => {
