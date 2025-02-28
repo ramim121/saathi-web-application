@@ -8,7 +8,7 @@ const cors = Cors({
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type', 'environment'],
 });
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log(req.headers);
+
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
         try {
