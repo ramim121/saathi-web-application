@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User } from '@/models/__associations'
-import { Op, Sequelize } from 'sequelize'
+import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
@@ -18,21 +18,19 @@ export default async function handler(
         let userInfo = jwt.decode(token) as JWTPayload;
         if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
-        const idProducts = req.query.id as string;
-
         try {
             const result = await User.findAll({
                 where: {
                     userType: 'partner',
                     partnerType: { [Op.in]: ['product', 'both'] },
                     status: 'active',
-                    idUsers: {
-                        [Op.notIn]: Sequelize.literal(`(
-                        SELECT id_users
-                        FROM product_partners
-                        WHERE id_products = ${idProducts}
-                      )`)
-                    }
+                    // idUsers: {
+                    //     [Op.notIn]: Sequelize.literal(`(
+                    //     SELECT id_users
+                    //     FROM product_partners
+                    //     WHERE id_products = ${idProducts}
+                    //   )`)
+                    // }
                 }
             });
 

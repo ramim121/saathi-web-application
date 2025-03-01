@@ -3,7 +3,8 @@ import { Optional } from 'sequelize';
 export default interface ProductPacking {
     idProductPackings: number;
     packingName: string;
-    size: number;
+    size: string;
+    idProducts: number;
     createdAt: Date;
     updatedAt: Date;
 };
