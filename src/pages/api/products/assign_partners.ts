@@ -18,16 +18,25 @@ const schema = Joi.object({
         "number.base": "Sell rate must be a number",
         "number.greater": "Sell rate must be greater than 0",
     }),
-    partners: Joi.array().items(Joi.object({
+    partners: Joi.object({
         idUsers: Joi.number().greater(0).required().messages({
             "any.required": "Partner is required",
             "number.base": "Partner is required",
             "number.greater": "Partner must be selected",
         }),
-    }).unknown()).min(1).required().messages({
+    }).unknown().required().messages({
         "any.required": "Partner is required",
-        "array.min": "Partner is required",
     }),
+    packing: Joi.object({
+        idProductPackings: Joi.number().greater(0).required().messages({
+            "any.required": "Packing is required",
+            "number.base": "Packing is required",
+            "number.greater": "Packing must be selected",
+        }),
+    }).unknown().required().messages({
+        "any.required": "Packing is required",
+    }),
+
 }).unknown();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -40,12 +49,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let userInfo = jwt.decode(token) as JWTPayload;
         if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
-        const { idProducts, sellRate, partners } = req.body
+        const { idProducts, sellRate, partners, packing } = req.body
         const options = {
             abortEarly: false,
         };
 
-        const { error } = schema.validate({ idProducts, sellRate, partners }, options);
+        const { error } = schema.validate({ idProducts, sellRate, partners, packing }, options);
 
         if (error) {
             let errorMessage: string[] = [];
@@ -58,14 +67,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const transaction = await sequelize.transaction();
 
-        try {
-            for (let i = 0; i < partners.length; i++) {
-                await ProductPartner.create({
-                    idProducts,
-                    idUsers: partners[i].idUsers,
-                    sellRate
-                }, { transaction });
+        const productPartner = await ProductPartner.findOne({
+            where: {
+                idProducts,
+                idUsers: partners.idUsers,
+                idProductPackings: packing.idProductPackings
             }
+        });
+
+        if (productPartner) {
+            return res.status(400).json({ success: false, message: 'Product partner already exists' });
+        }
+
+        try {
+            await ProductPartner.create({
+                idProducts,
+                idUsers: partners.idUsers,
+                idProductPackings: packing.idProductPackings,
+                sellRate
+            }, { transaction });
+
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Product partner assigned successfully' })
         } catch (err) {

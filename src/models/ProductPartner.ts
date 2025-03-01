@@ -22,6 +22,10 @@ const ProductPartner = sequelize.define<ProductPartnerModel>('ProductPartner', {
         type: DataTypes.DOUBLE(12, 2),
         allowNull: false,
     },
+    idProductPackings: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: true,

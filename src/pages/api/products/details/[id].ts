@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Product, ProductCategory, Unit, ProductImage, ProductPartner, User } from '@/models/__associations';
+import { Product, ProductCategory, Unit, ProductImage, ProductPartner, User, ProductPacking } from '@/models/__associations';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
@@ -26,9 +26,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     {
                         model: ProductPartner,
                         include: [
-                            { model: User }
+                            { model: User },
+                            { model: ProductPacking }
                         ]
                     },
+                    {
+                        model: ProductPacking
+                    }
                 ],
             });
 

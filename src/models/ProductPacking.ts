@@ -15,8 +15,12 @@ const ProductPacking = sequelize.define<ProductPackingModel>('ProductPacking', {
         allowNull: false,
     },
     size: {
-        type: DataTypes.DECIMAL(10, 2),
+        type: DataTypes.STRING(255),
         allowNull: true,
+    },
+    idProducts: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
     },
     createdAt: {
         type: DataTypes.DATE,

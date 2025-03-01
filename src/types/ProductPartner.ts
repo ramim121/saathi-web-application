@@ -6,6 +6,7 @@ export default interface ProductPartner {
     idUsers: number;
     idProducts: number;
     sellRate: number;
+    idProductPackings: number;
     createdAt: Date;
     updatedAt: Date;
     User?: User;
