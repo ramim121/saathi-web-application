@@ -31,6 +31,11 @@ const ProductImage = sequelize.define<ProductImageModel>('ProductImage', {
         defaultValue: 'active',
         allowNull: false,
     },
+    default:{
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull:false
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: true,
