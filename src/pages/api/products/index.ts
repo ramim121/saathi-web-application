@@ -12,7 +12,7 @@ async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
-    const { limit, offset, idProductCategories, productName } = req.query;
+    const { limit, offset, idProductCategories, productName, idUsers } = req.query;
     let productsForMartQuery = db('product_partners')
         .select('users.full_name', 'users.id_users')
         .select('product_categories.product_category_name', 'product_categories.id_product_categories', 'product_categories.category_image')
@@ -41,6 +41,10 @@ async function handler(
 
     if (productName) {
         productsForMartQuery = productsForMartQuery.where('products.product_name', 'like', `%${productName}%`);
+    }
+
+    if (idUsers) {
+        productsForMartQuery = productsForMartQuery.where('product_partners.id_users', idUsers);
     }
 
     const productsForMart = await productsForMartQuery;
