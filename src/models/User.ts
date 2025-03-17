@@ -1,7 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
 import { UserAttributes } from '@/types/User';
-import google from '@/pages/api/auth/google';
 
 export interface UserModel extends UserAttributes, Model { }
 

@@ -35,6 +35,8 @@ import Unit from "./Unit";
 import District from "./District";
 import Division from "./Division";
 import PoliceStation from "./PoliceStation";
+import UserAddress from "./UserAddress";
+import { use } from "react";
 
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
@@ -43,6 +45,12 @@ User.hasMany(ProjectInvestor, { foreignKey: 'idUsers', as: 'Investments' });
 User.hasMany(ProjectInvestmentBooking, { foreignKey: 'idUsers' });
 User.hasMany(UserBank, { foreignKey: 'idUsers' });
 User.hasMany(AppFcmToken, { foreignKey: 'idUsers' });
+User.hasMany(UserAddress, { foreignKey: 'idUsers' });
+
+UserAddress.belongsTo(User, { foreignKey: 'idUsers' });
+UserAddress.belongsTo(District, { foreignKey: 'idDistricts' });
+UserAddress.belongsTo(Division, { foreignKey: 'idDivisions' });
+UserAddress.belongsTo(PoliceStation, { foreignKey: 'idPoliceStations' });
 
 User.hasOne(File, {
 	foreignKey: 'refId', as: 'ProfilePicture', scope: {
@@ -166,5 +174,6 @@ export {
 	Unit,
 	District,
 	Division,
-	PoliceStation
+	PoliceStation,
+	UserAddress
 };
