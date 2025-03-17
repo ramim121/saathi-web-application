@@ -7,9 +7,10 @@ import Joi from 'joi';
 import Cors from 'micro-cors';
 import Sequelize from 'sequelize';
 import { Op } from 'sequelize';
+import to from 'await-to-js';
 const cors = Cors({
     origin: '*',
-    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
@@ -131,6 +132,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         res.status(200).json({ success: true, address: newUserAddress, message: 'User Address created successfully' });
+        return;
+    }
+
+    if (req.method == 'DELETE') {
+        const { idUserAddresses } = req.body;
+        if (!idUserAddresses) { res.status(400).json({ success: false, message: 'Address ID is required' }); return; }
+
+        const existingAddress = await UserAddress.findByPk(idUserAddresses);
+        if (!existingAddress) { res.status(404).json({ success: false, message: 'Address not found' }); return; }
+
+        const [err, result] = await to(UserAddress.destroy({
+            where: {
+                idUserAddresses: idUserAddresses
+            }
+        }));
+
+        if (err) { res.status(500).json({ success: false, message: err.message }); return; }
+
+        res.status(200).json({ success: true, message: 'User Address deleted successfully' });
         return;
     }
 }
