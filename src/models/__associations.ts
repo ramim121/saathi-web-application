@@ -32,6 +32,10 @@ import NotificationTemplate from "./NotificationTemplate";
 import ProductPartner from "./ProductPartner";
 import ProjectSpecialBookingReq from "./ProjectSpecialBookingReq";
 import Unit from "./Unit";
+import District from "./District";
+import Division from "./Division";
+import PoliceStation from "./PoliceStation";
+
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
 User.hasMany(ProjectPartner, { foreignKey: 'idUsers', as: 'Partnerships' });
@@ -119,6 +123,12 @@ ProductPartner.belongsTo(Product, { foreignKey: 'idProducts' });
 ProductPartner.belongsTo(User, { foreignKey: 'idUsers' });
 ProductPartner.belongsTo(ProductPacking, { foreignKey: 'idProductPackings' });
 
+Division.hasMany(District, { foreignKey: 'idDivisions' });
+District.belongsTo(Division, { foreignKey: 'idDivisions' });
+
+District.hasMany(PoliceStation, { foreignKey: 'idDistricts' });
+PoliceStation.belongsTo(District, { foreignKey: 'idDistricts' });
+
 export {
 	User,
 	ProjectCategory,
@@ -153,5 +163,8 @@ export {
 	NotificationTemplate,
 	ProductPartner,
 	ProjectSpecialBookingReq,
-	Unit
+	Unit,
+	District,
+	Division,
+	PoliceStation
 };
