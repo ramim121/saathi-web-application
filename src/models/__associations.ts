@@ -36,7 +36,10 @@ import District from "./District";
 import Division from "./Division";
 import PoliceStation from "./PoliceStation";
 import UserAddress from "./UserAddress";
-import { use } from "react";
+import ProductOrder from "./ProductOrder";
+import ProductOrderItem from "./ProductOrderItem";
+import ProductOrderStatus from "./ProductOrderStatus";
+
 
 
 User.hasMany(Project, { foreignKey: 'createdBy', as: 'Projects' });
@@ -46,6 +49,7 @@ User.hasMany(ProjectInvestmentBooking, { foreignKey: 'idUsers' });
 User.hasMany(UserBank, { foreignKey: 'idUsers' });
 User.hasMany(AppFcmToken, { foreignKey: 'idUsers' });
 User.hasMany(UserAddress, { foreignKey: 'idUsers' });
+User.hasMany(ProductOrder, { foreignKey: 'orderedBy' });
 
 UserAddress.belongsTo(User, { foreignKey: 'idUsers' });
 UserAddress.belongsTo(District, { foreignKey: 'idDistricts' });
@@ -136,6 +140,16 @@ District.belongsTo(Division, { foreignKey: 'idDivisions' });
 
 District.hasMany(PoliceStation, { foreignKey: 'idDistricts' });
 PoliceStation.belongsTo(District, { foreignKey: 'idDistricts' });
+
+ProductOrder.belongsTo(User, { foreignKey: 'orderedBy', as: 'OrderedBy' });
+ProductOrder.belongsTo(UserAddress, { foreignKey: 'idUserAddresses' });
+ProductOrder.hasMany(ProductOrderItem, { foreignKey: 'idProductOrders' });
+ProductOrder.hasMany(ProductOrderStatus, { foreignKey: 'idProductOrders' });
+ProductOrderItem.belongsTo(ProductOrder, { foreignKey: 'idProductOrders' });
+ProductOrderItem.belongsTo(Product, { foreignKey: 'idProducts' });
+ProductOrderItem.belongsTo(ProductPartner, { foreignKey: 'idProductPartners' });
+ProductOrderStatus.belongsTo(ProductOrder, { foreignKey: 'idProductOrders' });
+ProductOrderStatus.belongsTo(User, { foreignKey: 'idUsers' });
 
 export {
 	User,

@@ -2,11 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import { JWT_SECRET } from '@/config/constants';
-import { User, Project, ProjectInvestor, ProjectPartner, UserBank, Bank, BankBranch, UserAddress, Division, District, PoliceStation } from '@/models/__associations';
+import { User, UserAddress, Division, District, PoliceStation } from '@/models/__associations';
 import Joi from 'joi';
 import Cors from 'micro-cors';
-import Sequelize from 'sequelize';
-import { Op } from 'sequelize';
 import to from 'await-to-js';
 const cors = Cors({
     origin: '*',
