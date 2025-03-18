@@ -8,7 +8,7 @@ import Joi from 'joi';
 import Cors from 'micro-cors';
 import to from 'await-to-js';
 import ProductOrder from '@/models/ProductOrder';
-import sequelize from '@/config/db';
+import sequelize, { db } from '@/config/db';
 import ProductOrderItem from '@/models/ProductOrderItem';
 import ProductOrderStatus from '@/models/ProductOrderStatus';
 
@@ -110,11 +110,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         await transaction.commit();
-        const orderData = await ProductOrder.findByPk(order!.idProductOrders!, {
-            include: [{ model: ProductOrderItem, include: [Product] }]
-        });
+        const orderData = await ProductOrder.findByPk(order!.idProductOrders!, { include: [UserAddress] });
+        const itemData = await db('product_order_items')
+            .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail')
+            .select('product_categories.product_category_name', 'product_categories.category_image')
+            .select('product_order_items.quantity', 'product_order_items.rate')
+            .select('unit.unit_name')
+            .select('users.id_users', 'users.full_name', 'users.profile_image')
+            .leftJoin('products', 'product_order_items.id_products', 'products.id_products')
+            .leftJoin('product_partners', 'product_order_items.id_product_partners', 'product_partners.id_product_partners')
+            .leftJoin('product_packings', 'product_partners.id_product_packings', 'product_packings.id_product_packings')
+            .leftJoin('product_categories', 'products.id_product_categories', 'product_categories.id_product_categories')
+            .leftJoin('users', 'product_partners.id_users', 'users.id_users')
+            .leftJoin('product_images', function () {
+                this.on('products.id_products', '=', 'product_images.id_products')
+                    .andOn('product_images.default', '=', db.raw('?', ['yes']))
+            })
+            .leftJoin('unit', 'products.id_unit', 'unit.id_unit')
+            .where('product_order_items.id_product_orders', order!.idProductOrders);
 
-        res.status(200).json({ success: true, message: 'Order placed successfully', order: orderData });
+
+        res.status(200).json({ success: true, message: 'Order placed successfully', order: orderData, items: itemData });
     }
     if (req.method == 'GET') {
         let tokenData = req.headers.authorization;
@@ -128,22 +144,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         if (!user) { res.status(404).json({ message: 'User not found' }); return; }
 
-        const orders = await ProductOrder.findAll({
-            where: {
-                orderedBy: userInfo!.idUsers
-            },
-            include: [
-                ProductOrderStatus,
-                UserAddress,
-                {
-                    model: ProductOrderItem, include: [
-                        Product,
-                        { model: ProductPartner, include: [ProductPacking] }
-                    ]
-                },
-            ]
+        const orderData = await ProductOrder.findAll({ include: [UserAddress] });
+        let orders = orderData.map((order) => order.toJSON());
 
-        });
+        for (let i = 0; i < orders.length; i++) {
+            const itemData = await db('product_order_items')
+                .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail')
+                .select('product_categories.product_category_name', 'product_categories.category_image')
+                .select('product_order_items.quantity', 'product_order_items.rate')
+                .select('unit.unit_name')
+                .select('users.id_users', 'users.full_name', 'users.profile_image')
+                .leftJoin('products', 'product_order_items.id_products', 'products.id_products')
+                .leftJoin('product_partners', 'product_order_items.id_product_partners', 'product_partners.id_product_partners')
+                .leftJoin('product_packings', 'product_partners.id_product_packings', 'product_packings.id_product_packings')
+                .leftJoin('product_categories', 'products.id_product_categories', 'product_categories.id_product_categories')
+                .leftJoin('users', 'product_partners.id_users', 'users.id_users')
+                .leftJoin('product_images', function () {
+                    this.on('products.id_products', '=', 'product_images.id_products')
+                        .andOn('product_images.default', '=', db.raw('?', ['yes']))
+                })
+                .leftJoin('unit', 'products.id_unit', 'unit.id_unit')
+                .where('product_order_items.id_product_orders', orders[i].idProductOrders);
+
+            orders[i].items = itemData;
+        }
 
         res.status(200).json({ success: true, orders });
     }

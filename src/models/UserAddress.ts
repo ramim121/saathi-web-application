@@ -18,6 +18,19 @@ const UserAddress = sequelize.define<UserAddressModel>('UserAddress', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    receiverName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    addressType: {
+        type: DataTypes.ENUM('home', 'office', 'other'),
+        allowNull: false
+    },
+    defaultAddress: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull: false
+    },
     idDivisions: {
         type: DataTypes.INTEGER,
         allowNull: true

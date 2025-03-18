@@ -6,6 +6,7 @@ import { User, UserAddress, Division, District, PoliceStation } from '@/models/_
 import Joi from 'joi';
 import Cors from 'micro-cors';
 import to from 'await-to-js';
+import { Op } from 'sequelize';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
@@ -18,6 +19,18 @@ const addressCreateSchema = Joi.object({
         "string.empty": "Address line 1 can not be empty",
     }),
     addressLine2: Joi.string().allow(null, ''),
+    receiverName: Joi.string().required().messages({
+        "any.required": "Receiver name is required",
+        "string.empty": "Receiver name can not be empty"
+    }),
+    addressType: Joi.string().valid('home', 'office', 'other').required().messages({
+        "any.required": "Address type is required",
+        "string.empty": "Address type can not be empty",
+    }),
+    defaultAddress: Joi.string().valid('yes', 'no').required().messages({
+        "any.required": "Default address is required",
+        "string.empty": "Default address can not be empty",
+    }),
     idDistricts: Joi.number().required().messages({
         "any.required": "District is required",
     }),
@@ -44,6 +57,18 @@ const addressUpdateSchema = Joi.object({
         "string.empty": "Address line 1 can not be empty",
     }),
     addressLine2: Joi.string().allow(null, ''),
+    receiverName: Joi.string().required().messages({
+        "any.required": "Receiver name is required",
+        "string.empty": "Receiver name can not be empty"
+    }),
+    addressType: Joi.string().valid('home', 'office', 'other').required().messages({
+        "any.required": "Address type is required",
+        "string.empty": "Address type can not be empty",
+    }),
+    defaultAddress: Joi.string().valid('yes', 'no').required().messages({
+        "any.required": "Default address is required",
+        "string.empty": "Default address can not be empty",
+    }),
     idDistricts: Joi.number().required().messages({
         "any.required": "District is required",
     }),
@@ -85,7 +110,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             include: [Division, District, PoliceStation],
             where: {
                 idUsers: userInfo!.idUsers
-            }
+            },
+            order: [['defaultAddress', 'ASC']]
         });
 
         res.status(200).json({ addresses: userAddresses }); return;
@@ -110,7 +136,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
         });
 
-        res.status(200).json({ success: true, address: updatedUserAddress, message: 'User Address updated successfully' });
+        if (req.body.defaultAddress === 'yes') {
+            await UserAddress.update({
+                defaultAddress: 'no'
+            }, {
+                where: {
+                    idUsers: userInfo!.idUsers,
+                    idUserAddresses: {
+                        [Op.ne]: existingAddress.idUserAddresses
+                    }
+                }
+            });
+        }
+
+        let userAddresses = await UserAddress.findAll({
+            include: [Division, District, PoliceStation],
+            where: {
+                idUsers: userInfo!.idUsers
+            },
+            order: [['defaultAddress', 'ASC']]
+        });
+
+        res.status(200).json({ success: true, addresses: userAddresses, message: 'User Address updated successfully' });
         return;
     }
 
@@ -124,12 +171,35 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: errorMessage });
         }
 
-        const newUserAddress = await UserAddress.create({
+        const [err, newUserAddress] = await to(UserAddress.create({
             ...req.body,
             idUsers: userInfo!.idUsers
+        }));
+
+        if (err) { res.status(500).json({ success: false, message: err.message }); return; }
+
+        if (req.body.defaultAddress === 'yes') {
+            await UserAddress.update({
+                defaultAddress: 'no'
+            }, {
+                where: {
+                    idUsers: userInfo!.idUsers,
+                    idUserAddresses: {
+                        [Op.ne]: newUserAddress.idUserAddresses
+                    }
+                }
+            });
+        }
+
+        let userAddresses = await UserAddress.findAll({
+            include: [Division, District, PoliceStation],
+            where: {
+                idUsers: userInfo!.idUsers
+            },
+            order: [['defaultAddress', 'ASC']]
         });
 
-        res.status(200).json({ success: true, address: newUserAddress, message: 'User Address created successfully' });
+        res.status(200).json({ success: true, addresses: userAddresses, message: 'User Address created successfully' });
         return;
     }
 

@@ -4,6 +4,9 @@ export default interface UserAddress {
     idUserAddresses: number;
     idUsers: number;
     phone: string | null;
+    receiverName: string;
+    addressType: 'home' | 'office' | 'other';
+    defaultAddress: 'yes' | 'no';
     idDivisions?: number | null;
     idDistricts?: number | null;
     idPoliceStations?: number | null;
