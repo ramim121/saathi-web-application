@@ -14,6 +14,10 @@ const ProductOrder = sequelize.define<ProductOrderModel>('ProductOrder', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    orderId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
     orderAmount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,

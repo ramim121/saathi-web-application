@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // If the user is not found, return a 404 Not Found response
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found 2' })
+                return res.status(404).json({ success: false, message: 'User not found' })
             }
 
             // Verify the password

@@ -76,6 +76,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             orderStatus: 'placed',
             specialInstructions: req.body.specialInstructions,
             idUserAddresses: req.body.idUserAddresses,
+            orderId: (new Date()).getFullYear() + (new Date()).getMonth() + (new Date()).getDate() + Math.floor(Math.random() * 1000000),
         }, { transaction }));
         if (err) {
             await transaction.rollback();
@@ -110,9 +111,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         await transaction.commit();
-        const orderData = await ProductOrder.findByPk(order!.idProductOrders!, { include: [UserAddress] });
+        const orderData = await ProductOrder.findByPk(order!.idProductOrders!, { include: [{ model: UserAddress, include: [Division, District, PoliceStation] }] });
         const itemData = await db('product_order_items')
-            .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail')
+            .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail', 'products.id_products')
             .select('product_categories.product_category_name', 'product_categories.category_image')
             .select('product_order_items.quantity', 'product_order_items.rate')
             .select('unit.unit_name')
@@ -142,14 +143,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         let userInfo = jwt.decode(token) as JWTPayload;
         const user = await User.findByPk(userInfo!.idUsers);
 
+        console.log(userInfo);
+
         if (!user) { res.status(404).json({ message: 'User not found' }); return; }
 
-        const orderData = await ProductOrder.findAll({ include: [UserAddress] });
+        const orderData = await ProductOrder.findAll(
+            {
+                include: [{
+                    model: UserAddress, include: [Division, District, PoliceStation],
+                }],
+                where: { orderedBy: userInfo!.idUsers },
+                order: [['createdAt', 'DESC']],
+            });
         let orders = orderData.map((order) => order.toJSON());
 
         for (let i = 0; i < orders.length; i++) {
             const itemData = await db('product_order_items')
-                .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail')
+                .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail', 'products.id_products')
                 .select('product_categories.product_category_name', 'product_categories.category_image')
                 .select('product_order_items.quantity', 'product_order_items.rate')
                 .select('unit.unit_name')
@@ -164,7 +174,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         .andOn('product_images.default', '=', db.raw('?', ['yes']))
                 })
                 .leftJoin('unit', 'products.id_unit', 'unit.id_unit')
-                .where('product_order_items.id_product_orders', orders[i].idProductOrders);
+                .where('product_order_items.id_product_orders', orders[i].idProductOrders)
 
             orders[i].items = itemData;
         }

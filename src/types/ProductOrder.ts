@@ -4,6 +4,7 @@ export default interface ProductOrder {
     idProductOrders: number;
     orderedBy: number;
     orderAmount: number;
+    orderId: string;
     orderStatus: 'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'paid' | 'returned';
     specialInstructions: string;
     idUserAddresses: number;
