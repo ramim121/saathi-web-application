@@ -111,7 +111,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         await transaction.commit();
-        const orderData = await ProductOrder.findByPk(order!.idProductOrders!, { include: [{ model: UserAddress, include: [Division, District, PoliceStation] }] });
+        const orderData = await ProductOrder.findOne(
+            {
+                include: [
+                    ProductOrderStatus,
+                    {
+                        model: UserAddress, include: [Division, District, PoliceStation],
+                    }
+                ],
+                where: { idProductOrders: order!.idProductOrders },
+                order: [['createdAt', 'DESC']],
+            });
+            
         const itemData = await db('product_order_items')
             .select('product_partners.id_product_partners', 'products.product_name', 'product_packings.packing_name', 'product_images.thumbnail', 'products.id_products')
             .select('product_categories.product_category_name', 'product_categories.category_image')
@@ -149,9 +160,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const orderData = await ProductOrder.findAll(
             {
-                include: [{
-                    model: UserAddress, include: [Division, District, PoliceStation],
-                }],
+                include: [
+                    ProductOrderStatus,
+                    {
+                        model: UserAddress, include: [Division, District, PoliceStation],
+                    }],
                 where: { orderedBy: userInfo!.idUsers },
                 order: [['createdAt', 'DESC']],
             });
