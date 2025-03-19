@@ -189,5 +189,8 @@ export {
 	District,
 	Division,
 	PoliceStation,
-	UserAddress
+	UserAddress,
+	ProductOrder,
+	ProductOrderItem,
+	ProductOrderStatus
 };
