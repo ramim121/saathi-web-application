@@ -90,6 +90,9 @@ function Header() {
                                 <NavDropdown title="Bookings" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/bookings/list">List</NavDropdown.Item>
                                 </NavDropdown>
+                                <NavDropdown title="Orders" id="basic-nav-dropdown">
+                                    <NavDropdown.Item href="/orders/list">List</NavDropdown.Item>
+                                </NavDropdown>
                                 <NavDropdown title="Blogs" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/blogs/create">Create</NavDropdown.Item>
                                     <NavDropdown.Item href="/blogs/list">List</NavDropdown.Item>
