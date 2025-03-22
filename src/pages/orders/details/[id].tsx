@@ -4,6 +4,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Form, Button, Spinner } from "react-bootstrap";
+import { API_URL } from '@/config/constants';
 import Swal from "sweetalert2";
 
 interface DetailsProps {
@@ -104,6 +105,69 @@ function Details() {
         setReload(false);
     }
 
+    const orderStatusChange = async (status: string) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You want to change status of this order!",
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes'
+        }).then((result) => {
+            if (result.value) {
+                try {
+                    const fetchData = async () => {
+                        const res = await fetch(API_URL + 'api/orders/status_change', postRequestOptions({ idProductOrders: id, status: status }));
+                        if (res.status === 200) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Order status changed successfully!',
+                            });
+                            setReload(true);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: (await res.json()).message,
+                            });
+                        }
+                    };
+                    fetchData();
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                }
+            }
+        });
+    }
+
+    const orderStatusActions = {
+        placed: [
+            { label: "Confirmed", variant: "primary", nextStatus: "confirmed" },
+            { label: "Cancelled", variant: "danger", nextStatus: "cancelled" }
+        ],
+        confirmed: [
+            { label: "Shipped", variant: "primary", nextStatus: "shipped" },
+            { label: "Cancelled", variant: "danger", nextStatus: "cancelled" }
+        ],
+        shipped: [
+            { label: "Delivered", variant: "primary", nextStatus: "delivered" },
+            { label: "Cancelled", variant: "danger", nextStatus: "cancelled" }
+        ],
+        delivered: [
+            { label: "Paid", variant: "primary", nextStatus: "paid" },
+            { label: "Returned", variant: "danger", nextStatus: "returned" }
+        ]
+    };
+
+    const actions = orderStatusActions[details?.orderStatus as keyof typeof orderStatusActions] || [];
+
+
     return (
         <Container>
             <h4 className="text-start"> Order Details ({details?.orderId})</h4>
@@ -203,6 +267,13 @@ function Details() {
                                 </tfoot>
                             </Table>
                         </Col>
+                    </Row>
+                    <Row className='justify-content-center mt-3'>
+                        {actions.map(({ label, variant, nextStatus }) => (
+                            <Button key={nextStatus} className='w-25' variant={variant} onClick={() => orderStatusChange(nextStatus)}>
+                                {label}
+                            </Button>
+                        ))}
                     </Row>
                 </Tab>
             </Tabs>
