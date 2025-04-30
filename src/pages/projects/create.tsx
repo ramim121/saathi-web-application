@@ -495,7 +495,7 @@ function Projects() {
 								<Form.Label column sm='4'>Project type</Form.Label>
 								<Col sm='8'>
 									<Select options={[
-										{ value: 'regu;ar', label: 'Regular' },
+										{ value: 'regular', label: 'Regular' },
 										{ value: 'special', label: 'Special' },
 									]} value={{ value: formData.projectType, label: formData.projectType === 'regular' ? 'Regular' : 'Special' }} onChange={(selectedOption: any) => setFormData({ ...formData, projectType: selectedOption.value })} />
 								</Col>
