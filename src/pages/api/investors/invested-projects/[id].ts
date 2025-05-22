@@ -44,16 +44,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             const enhancedResult = result.map((investment: any) => {
-                const investmentDate = new Date(investment.investmentDate); // Parse investmentDate
+                const investmentDate = investment?.ProjectInvestmentBooking?.paymentDate ? new Date(investment.ProjectInvestmentBooking.paymentDate) : new Date(investment.investmentDate);
                 const duration = investment.ProjectPartnerInvestors?.[0]?.ProjectPartner?.Project?.duration || 0;
                 const tenure = investment.ProjectPartnerInvestors?.[0]?.ProjectPartner?.Project?.tenure || 'months';
 
                 let projectStartDate = null;
                 let projectEndDate = null;
 
-                const endDate = investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt
-                    ? new Date(investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt)
-                    : null;
+                // const endDate = investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt
+                //     ? new Date(investment.ProjectInvestmentBooking?.ProjectInvestmentBookingStatuses?.[0]?.dataValues.createdAt)
+                //     : null;
+
+                const endDate = new Date(investmentDate);
 
                 if (endDate) {
                     if (tenure === 'months') {
