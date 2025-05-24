@@ -138,9 +138,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ProjectInvestors:
                         resultMain.ProjectInvestors.map((projectInvestor: any) => {
                             const projectInvestorMain = projectInvestor;
-                            const createdAtDate = new Date(projectInvestorMain.createdAt);
-                            createdAtDate.setMonth(createdAtDate.getMonth() + projectInvestorMain.Project.duration);
-                            projectInvestorMain.maturityDate = createdAtDate.toISOString(); // ISO format
+                            const investmentDate = resultMain.paymentDate ? new Date(resultMain.paymentDate) : new Date(projectInvestor.investmentDate);
+                            const duration = projectInvestor.Project.duration || 0;
+                            const tenure = projectInvestor.Project.tenure || 'months';
+                            let projectStartDate = null;
+                            let projectEndDate = null;
+                            const endDate = new Date(investmentDate);
+                            if (endDate) {
+                                if (tenure === 'months') {
+                                    endDate.setMonth(endDate.getMonth() + duration); // Add months to investmentDate
+                                    projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                                    projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                                } else if (tenure === 'years') {
+                                    endDate.setFullYear(endDate.getFullYear() + duration); // Add years to investmentDate
+                                    projectStartDate = investmentDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                                    projectEndDate = endDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+                                }
+                            }
+                            projectInvestorMain.projectStartDate = projectStartDate;
+                            projectInvestorMain.maturityDate = projectEndDate;
                             return projectInvestorMain;
                         })
                 }, history: mergedHistory

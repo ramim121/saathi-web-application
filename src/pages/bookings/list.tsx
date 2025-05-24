@@ -207,7 +207,13 @@ function List() {
                             <input type="text" className="form-control form-control-sm" placeholder="Search" name="investorName" onChange={handleInputOnChange} value={filter.investorName} />
                         </td>
                         <td>
-                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus} />
+                            <Form.Select className="form-control form-control-sm" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus}>
+                                <option value="">All</option>
+                                <option value="pending">Pending</option>
+                                <option value="uploaded">Uploaded</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="denied">Denied</option>
+                            </Form.Select>
                         </td>
                         <td></td>
                         <td></td>
