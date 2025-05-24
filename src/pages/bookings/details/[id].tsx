@@ -45,10 +45,16 @@ interface DetailsProps {
         Project: {
             idProjects: number;
             projectName: string;
+            duration: number;
+            tenure: string;
+            returnRangeMin: number;
+            returnRangeMax: number;
         };
         unitPurchased: number;
         investmentDate: string;
         investmentStatus: string;
+        projectStartDate: string;
+        maturityDate: string;
         ProjectPartnerInvestors: {
             ProjectPartner: {
                 User: {
@@ -936,6 +942,9 @@ function Details() {
                                         <th>Project Partners / Updates</th>
                                         <th>Unit Price</th>
                                         <th>Total Amount</th>
+                                        <th>Tenure</th>
+                                        <th>Start Date</th>
+                                        <th>Maturity Date</th>
                                         <th>Investment Status</th>
                                         <th>Special Booking Req</th>
                                         <th>Action</th>
@@ -1010,6 +1019,15 @@ function Details() {
                                             <td>
                                                 {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
                                             </td>
+                                            <td>
+                                                {project.Project.duration} {project.Project.tenure?.charAt(0).toUpperCase() + project.Project.tenure?.slice(1) + '(' + project.Project.returnRangeMin + '% -' + project.Project.returnRangeMax + '%'}
+                                            </td>
+                                            <td>
+                                                {project.projectStartDate}
+                                            </td>
+                                            <td>
+                                                {project.maturityDate}
+                                            </td>
                                             <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
                                             <td>
                                                 {project.ProjectSpecialBookingReq &&
@@ -1040,7 +1058,7 @@ function Details() {
                                         <td>
                                             {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
                                         </td>
-                                        <td colSpan={3}></td>
+                                        <td colSpan={6}></td>
                                     </tr>
                                 </tfoot>
                             </Table>
