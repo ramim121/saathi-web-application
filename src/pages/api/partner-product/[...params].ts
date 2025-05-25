@@ -23,19 +23,27 @@ async function handler(
         return;
     }
 
-    const productDetails = await Product.findAll({
+    const productDetails = await Product.findOne({
         include: [ProductImage, ProductCategory, {
             model: ProductPartner,
             include: [ProductPacking],
             where: { idUsers: idUsers }
         }],
-        where: { idProducts: idProducts },
-        order: [[ProductPartner, ProductPacking, 'size', 'ASC']]
+        where: { idProducts: idProducts }
     });
 
     if (!productDetails) {
         res.status(404).json({ success: false, message: 'Product not found' });
         return;
+    }
+
+    const partners = (productDetails as any)?.ProductPartners || (productDetails as any)?.ProductPartner || [];
+    if (Array.isArray(partners)) {
+        partners.sort((a: any, b: any) => {
+            const sizeA = Number(a?.ProductPacking?.size) || Infinity;
+            const sizeB = Number(b?.ProductPacking?.size) || Infinity;
+            return sizeA - sizeB; // Small size first
+        });
     }
 
 
