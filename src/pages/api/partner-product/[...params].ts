@@ -23,13 +23,14 @@ async function handler(
         return;
     }
 
-    const productDetails = await Product.findOne({
+    const productDetails = await Product.findAll({
         include: [ProductImage, ProductCategory, {
             model: ProductPartner,
             include: [ProductPacking],
             where: { idUsers: idUsers }
         }],
-        where: { idProducts: idProducts }
+        where: { idProducts: idProducts },
+        order: [[ProductPartner, ProductPacking, 'size', 'ASC']]
     });
 
     if (!productDetails) {
