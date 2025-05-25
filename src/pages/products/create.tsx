@@ -211,7 +211,7 @@ function ProductCreate() {
                                     <Col sm='4'></Col>
                                     <Col sm='8'>
                                         <Row className='justify-content-center'>
-                                            <Button className='w-50' variant="primary" type="submit" disabled={loading}>
+                                            <Button className='w-50 mt-2' variant="primary" type="submit" disabled={loading}>
                                                 {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
                                                 {loading ? 'Submitting...' : 'Submit'}
                                             </Button>
