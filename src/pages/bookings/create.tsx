@@ -260,76 +260,85 @@ function Create() {
                                 </Button>
                             </Col>
                         </Row>
-
-                        <Row>
-                            <Table striped bordered hover className="mt-3">
-                                <thead>
-                                    <tr>
-                                        <th>Sl</th>
-                                        <th>Project</th>
-                                        <th>Investment Type</th>
-                                        <th>Duration</th>
-                                        <th>Unit Investment Value</th>
-                                        <th>Total Remaining Units</th>
-                                        <th>Partners</th>
-                                        <th>Units Purchased</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {formData.projects.map((project, index) => {
-                                        const projData = projects.find((p) => p.idProjects === project.idProjects);
-                                        return (
-                                            <tr key={project.uid}>
-                                                <td>{index + 1}</td>
-                                                <td>{projData?.projectName || ""}</td>
-                                                <td>{projData?.investmentType || ""}</td>
-                                                <td>{projData?.duration || ""}</td>
-                                                <td>{projData?.unitInvestmentValue || ""}</td>
-                                                <td>{projData?.totalRemainingUnits || ""}</td>
-                                                <td>
-                                                    {project.projectPartners.map((pp, i) => (
-                                                        <span key={i}>
-                                                            {pp.label}
-                                                            {i < project.projectPartners.length - 1 && ", "}
-                                                        </span>
-                                                    ))}
-                                                </td>
-                                                <td>{project.unitPurchased}</td>
-                                                <td>
-                                                    <Button
-                                                        variant="danger"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveProject(project.uid)}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                </td>
+                        {formData.projects.length === 0 ? (
+                            <Row className="justify-content-center mt-3">
+                                <Col md={12} className="text-center">
+                                    <p className="text-muted">No projects added yet.</p>
+                                </Col>
+                            </Row>
+                        ) :
+                            <>
+                                <Row>
+                                    <Table striped bordered hover className="mt-3">
+                                        <thead>
+                                            <tr>
+                                                <th>Sl</th>
+                                                <th>Project</th>
+                                                <th>Investment Type</th>
+                                                <th>Duration</th>
+                                                <th>Unit Investment Value</th>
+                                                <th>Total Remaining Units</th>
+                                                <th>Partners</th>
+                                                <th>Units Purchased</th>
+                                                <th>Actions</th>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </Table>
-                        </Row>
-
-                        <Row className="justify-content-center">
-                            <Button className="w-25" variant="primary" type="submit" disabled={loading}>
-                                {loading && (
-                                    <Spinner
-                                        as="span"
-                                        animation="grow"
-                                        size="sm"
-                                        role="status"
-                                        aria-hidden="true"
-                                    />
-                                )}
-                                {loading ? "Submitting..." : "Submit"}
-                            </Button>
-                        </Row>
+                                        </thead>
+                                        <tbody>
+                                            {formData.projects.map((project, index) => {
+                                                const projData = projects.find((p) => p.idProjects === project.idProjects);
+                                                return (
+                                                    <tr key={project.uid}>
+                                                        <td>{index + 1}</td>
+                                                        <td>{projData?.projectName || ""}</td>
+                                                        <td>{projData?.investmentType || ""}</td>
+                                                        <td>{projData?.duration || ""}</td>
+                                                        <td>{projData?.unitInvestmentValue || ""}</td>
+                                                        <td>{projData?.totalRemainingUnits || ""}</td>
+                                                        <td>
+                                                            {project.projectPartners.map((pp, i) => (
+                                                                <span key={i}>
+                                                                    {pp.label}
+                                                                    {i < project.projectPartners.length - 1 && ", "}
+                                                                </span>
+                                                            ))}
+                                                        </td>
+                                                        <td>{project.unitPurchased}</td>
+                                                        <td>
+                                                            <Button
+                                                                variant="danger"
+                                                                size="sm"
+                                                                onClick={() => handleRemoveProject(project.uid)}
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </Table>
+                                </Row>
+                                <Row className="justify-content-center">
+                                    <Button className="w-25" variant="primary" type="submit" disabled={loading}>
+                                        {loading && (
+                                            <Spinner
+                                                as="span"
+                                                animation="grow"
+                                                size="sm"
+                                                role="status"
+                                                aria-hidden="true"
+                                            />
+                                        )}
+                                        {loading ? "Submitting..." : "Submit"}
+                                    </Button>
+                                </Row>
+                            </>
+                        }
                     </Form>
                 </Col>
                 <Col md={2} />
             </Row>
+            <pre>{JSON.stringify(formData, null, 2)}</pre>
 
             {/* Modal for Add Project */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered>
