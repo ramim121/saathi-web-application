@@ -13,17 +13,20 @@ interface BookingListProps {
         returnRangeMin: number;
         returnRangeMax: number;
         unitInvestmentValue: number;
-    }
+    };
     ProjectInvestmentBooking: {
         bookingId: string;
         paymentDate: string;
         User: {
             fullName: string;
-        }
-    }
+        };
+    };
     idProjectInvestmentBookings: number;
     investmentDate: string;
     unitPurchased: number;
+    totalReturnRange: string;
+    maturityDate: string;
+    remainingTimeFormatted: string;
 }
 
 interface FilterProps {
@@ -33,33 +36,21 @@ interface FilterProps {
     pageSize: number;
 }
 
-// Helper to calculate remaining days until maturity
-function getRemainingDays(booking: BookingListProps) {
-    const paymentDate = booking?.ProjectInvestmentBooking?.paymentDate;
-    const duration = booking?.Project?.duration;
-    const tenure = booking?.Project?.tenure?.toLowerCase();
-
-    if (!paymentDate || !duration || !tenure) return Number.MAX_SAFE_INTEGER;
-    const startDate = new Date(paymentDate);
-
-    if (tenure === "months" || tenure === "month") {
-        startDate.setMonth(startDate.getMonth() + duration);
-    } else if (tenure === "years" || tenure === "year") {
-        startDate.setFullYear(startDate.getFullYear() + duration);
-    } else if (tenure === "days" || tenure === "day") {
-        startDate.setDate(startDate.getDate() + duration);
-    } else {
-        return Number.MAX_SAFE_INTEGER;
-    }
-
-    const now = new Date();
-    const remainingTime = Math.max(0, startDate.getTime() - now.getTime());
-    const daysRemaining = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
-    return daysRemaining > 0 ? daysRemaining : 0;
+function formatDate(dateStr?: string): string {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString("en-GB", { month: "short" });
+    const year = date.getFullYear();
+    const j = day % 10, k = day % 100;
+    let suffix = "th";
+    if (j === 1 && k !== 11) suffix = "st";
+    else if (j === 2 && k !== 12) suffix = "nd";
+    else if (j === 3 && k !== 13) suffix = "rd";
+    return `${day}${suffix} ${month} ${year}`;
 }
 
 function ActiveBooking() {
-
     const [bookingList, setBookingList] = useState<BookingListProps[]>([]);
     const [filter, setFilter] = useState<FilterProps>({
         orderBy: 'idProjectInvestmentBookings',
@@ -67,7 +58,6 @@ function ActiveBooking() {
         page: 1,
         pageSize: 10
     });
-
     const [total, setTotal] = useState<number>(0);
 
     useEffect(() => {
@@ -77,85 +67,42 @@ function ActiveBooking() {
                 const res = await fetch(`/api/bookings/active-booking?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    // Sort by remaining days ascending (earliest first)
-                    const sortedData = [...data.data].sort(
-                        (a, b) => getRemainingDays(a) - getRemainingDays(b)
-                    );
-                    setBookingList(sortedData);
+                    setBookingList(data.data);
                     setTotal(data.total);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
-        }
+        };
         fetchBookingList();
     }, [filter]);
 
-    const pagesNumber = () => {
-        if (total === 0) return [];
+    const handlePageChange = (page: number) => setFilter({ ...filter, page });
 
-        const totalPageCount = Math.ceil(total / filter.pageSize);
-        const currentPage = filter.page;
+    const renderPagination = () => {
+        const totalPages = Math.ceil(total / filter.pageSize);
+        if (totalPages <= 1) return null;
 
-        let pagesArray = [];
-        pagesArray.push(1);
+        const pages: (number | string)[] = [1];
+        if (filter.page > 3) pages.push("...");
+        const start = Math.max(2, filter.page - 1);
+        const end = Math.min(totalPages - 1, filter.page + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        if (filter.page < totalPages - 2) pages.push("...");
+        if (totalPages > 1) pages.push(totalPages);
 
-        if (currentPage > 3) {
-            pagesArray.push("...");
-        }
-
-        let startPage = Math.max(2, currentPage - 1);
-        let endPage = Math.min(totalPageCount - 1, currentPage + 1);
-
-        for (let page = startPage; page <= endPage; page++) {
-            pagesArray.push(page);
-        }
-
-        if (currentPage < totalPageCount - 2) {
-            pagesArray.push("...");
-        }
-
-        if (totalPageCount > 1) {
-            pagesArray.push(totalPageCount);
-        }
-
-        return pagesArray;
+        return pages.map((p, i) =>
+            p === "..." ? (
+                <Pagination.Ellipsis key={i} />
+            ) : (
+                <Pagination.Item key={p} active={p === filter.page} onClick={() => handlePageChange(p as number)}>
+                    {p}
+                </Pagination.Item>
+            )
+        );
     };
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber, index) => {
-            if (pageNumber === "...") {
-                return <Pagination.Ellipsis key={`ellipsis-${index}`} />;
-            } else {
-                return (
-                    <Pagination.Item
-                        key={pageNumber}
-                        active={pageNumber === filter.page}
-                        onClick={() => handlePageChange(pageNumber as number)}
-                    >
-                        {pageNumber}
-                    </Pagination.Item>
-                );
-            }
-        });
-    };
-
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: page
-        })
-    }
 
     return (
         <Container>
@@ -163,15 +110,9 @@ function ActiveBooking() {
             <hr />
             <Row className="mt-3">
                 <Pagination className="d-flex justify-content-center">
-                    <Pagination.Prev
-                        onClick={() => handlePageChange(Math.max(1, filter.page - 1))}
-                        disabled={filter.page === 1}
-                    />
-                    {pageList()}
-                    <Pagination.Next
-                        onClick={() => handlePageChange(filter.page + 1)}
-                        disabled={filter.page === Math.ceil(total / filter.pageSize)}
-                    />
+                    <Pagination.Prev onClick={() => handlePageChange(Math.max(1, filter.page - 1))} disabled={filter.page === 1} />
+                    {renderPagination()}
+                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === Math.ceil(total / filter.pageSize)} />
                 </Pagination>
             </Row>
             <Table responsive striped bordered hover size="sm">
@@ -182,8 +123,9 @@ function ActiveBooking() {
                         <th>Investor Name</th>
                         <th>Project Name</th>
                         <th>Unit Purchased</th>
-                        <th>Unit Price</th>
                         <th>Return</th>
+                        <th>Unit Price</th>
+                        <th>Investment Amount</th>
                         <th>Returnable Amount</th>
                         <th>Tenure</th>
                         <th>Start Date</th>
@@ -193,83 +135,44 @@ function ActiveBooking() {
                     </tr>
                 </thead>
                 <tbody>
-                    {bookingList.length > 0 ? bookingList.map((booking, index) => (
-                        <tr key={index}>
-                            <td>{booking.idProjectInvestmentBookings}</td>
-                            <td>{booking?.ProjectInvestmentBooking?.bookingId}</td>
-                            <td>{booking?.ProjectInvestmentBooking?.User?.fullName}</td>
-                            <td>{booking?.Project?.projectName}</td>
-                            <td>{booking?.unitPurchased}</td>
-                            <td>{booking?.Project?.unitInvestmentValue}</td>
-                            <td>{`${booking.Project.returnRangeMin}% - ${booking.Project.returnRangeMax}%`}</td>
-                            <td>
-                                {booking?.unitPurchased && booking?.Project?.unitInvestmentValue && booking?.Project?.returnRangeMin !== undefined && booking?.Project?.returnRangeMax !== undefined
-                                    ? (
-                                        (() => {
-                                            const principal = booking.unitPurchased * booking.Project.unitInvestmentValue;
-                                            const minReturn = principal + (principal * (booking.Project.returnRangeMin / 100));
-                                            const maxReturn = principal + (principal * (booking.Project.returnRangeMax / 100));
-                                            return `${minReturn.toFixed(2)} - ${maxReturn.toFixed(2)}`;
-                                        })()
-                                    )
-                                    : "-"}
-                            </td>
-                            <td>
-                                {booking?.Project?.tenure ? `${booking?.Project?.duration} ${booking?.Project?.tenure}` : "-"}
-                            </td>
-                            <td>{booking?.ProjectInvestmentBooking?.paymentDate}</td>
-                            <td>
-                                {(() => {
-                                    const paymentDate = booking?.ProjectInvestmentBooking?.paymentDate;
-                                    const duration = booking?.Project?.duration;
-                                    const tenure = booking?.Project?.tenure?.toLowerCase();
-
-                                    if (!paymentDate || !duration || !tenure) return "-";
-                                    const date = new Date(paymentDate);
-
-                                    if (tenure === "months" || tenure === "month") {
-                                        date.setMonth(date.getMonth() + duration);
-                                    } else if (tenure === "years" || tenure === "year") {
-                                        date.setFullYear(date.getFullYear() + duration);
-                                    } else if (tenure === "days" || tenure === "day") {
-                                        date.setDate(date.getDate() + duration);
-                                    } else {
-                                        return "-";
-                                    }
-
-                                    return date.toISOString().split("T")[0];
-                                })()}
-                            </td>
-                            <td>
-                                {(() => {
-                                    const daysRemaining = getRemainingDays(booking);
-                                    return daysRemaining > 0 ? `${daysRemaining} days` : "Completed";
-                                })()}
-                            </td>
-                            <td>
-                                <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
-                                    <Button size="sm" variant="primary">Details</Button>
-                                </Link>
-                            </td>
-                        </tr>
-                    )) : (
+                    {bookingList.length > 0 ? bookingList.map((b, i) => {
+                        const { Project: p, ProjectInvestmentBooking: pib } = b;
+                        const investmentAmount = b.unitPurchased * p.unitInvestmentValue;
+                        return (
+                            <tr key={i}>
+                                <td>{b.idProjectInvestmentBookings}</td>
+                                <td>{pib?.bookingId}</td>
+                                <td>{pib?.User?.fullName}</td>
+                                <td>{p?.projectName}</td>
+                                <td>{b.unitPurchased}</td>
+                                <td>{`${p.returnRangeMin}% - ${p.returnRangeMax}%`}</td>
+                                <td>{p.unitInvestmentValue}</td>
+                                <td>{investmentAmount}</td>
+                                <td>{b.totalReturnRange}</td>
+                                <td>{p?.tenure ? `${p.duration} ${p.tenure}` : "-"}</td>
+                                <td>{formatDate(pib?.paymentDate)}</td>
+                                <td>{b.maturityDate !== '-' ? formatDate(b.maturityDate) : ''}</td>
+                                <td>{b.remainingTimeFormatted}</td>
+                                <td>
+                                    <Link href={`/bookings/details/${b.idProjectInvestmentBookings}`}>
+                                        <Button size="sm" variant="primary">Details</Button>
+                                    </Link>
+                                </td>
+                            </tr>
+                        );
+                    }) : (
                         <tr>
-                            <td colSpan={13} className="text-center">No Active Booking Found</td>
+                            <td colSpan={14} className="text-center">No Active Booking Found</td>
                         </tr>
                     )}
-
                 </tbody>
             </Table>
         </Container>
-    )
+    );
 }
 
 export default ActiveBooking;
 
 ActiveBooking.getLayout = function PageLayout(page: any) {
-    return (
-        <MainLayout>
-            {page}
-        </MainLayout>
-    )
-}
+    return <MainLayout>{page}</MainLayout>;
+};
