@@ -12,6 +12,7 @@ import Link from 'next/link';
 
 interface FormDataType {
     createdBy?: number;
+    targetUserIds: string;
     sendViaSms: string;
     smsBody: string;
     sendViaEmail: string;
@@ -50,6 +51,7 @@ interface FilterProps {
 function ManualNotification() {
     const { token, currentUser } = useContext(AppContext);
     const [formData, setFormData] = useState<FormDataType>({
+        targetUserIds: '',
         sendViaSms: 'no',
         smsBody: '',
         sendViaEmail: 'no',
@@ -87,6 +89,7 @@ function ManualNotification() {
                     formData.createdBy = currentUser?.idUsers || undefined;
                     const newFormData = new FormData();
                     newFormData.append('createdBy', formData.createdBy?.toString() || '');
+                    newFormData.append('targetUserIds', formData.targetUserIds);
                     newFormData.append('sendViaSms', formData.sendViaSms);
                     newFormData.append('smsBody', formData.smsBody);
                     newFormData.append('sendViaEmail', formData.sendViaEmail);
@@ -237,6 +240,21 @@ function ManualNotification() {
                         <h4 className="text-start">Manual Notification Create</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4' className='mb-3'>Target User IDs <small>(optional)</small></Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control 
+                                        type='text' 
+                                        name='targetUserIds' 
+                                        value={formData.targetUserIds} 
+                                        onChange={handleTextChange}
+                                        placeholder="Enter comma-separated user IDs (e.g., 1,2,3)"
+                                    />
+                                    <Form.Text className="text-muted">
+                                        Leave blank to send to all users, or enter specific user IDs separated by commas
+                                    </Form.Text>
+                                </Col>
+                            </Form.Group>
                             <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Send Via Sms<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>

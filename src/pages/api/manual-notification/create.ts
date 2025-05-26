@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ManualNotification } from '@/models/__associations';
+import { ManualNotification, User } from '@/models/__associations';
+import UserType from '@/types/User';
 import Joi from 'joi';
 import sequelize from '@/config/db';
 import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
@@ -34,6 +35,7 @@ export const config = {
 };
 
 const schema = Joi.object({
+    targetUserIds: Joi.string().optional(),
     sendViaSms: Joi.string().required().valid('yes', 'no').messages({
         "any.required": "Send Via Sms is required",
         "string.empty": "Send Via Sms can not be empty",
@@ -94,6 +96,7 @@ const schema = Joi.object({
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
+
         let tokenData = req.headers.authorization;
         let token = tokenData?.split(' ')[1];
 
@@ -110,6 +113,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const pushNotificationImage = files['pushNotificationImage'] ? files['pushNotificationImage'][0] as formidable.File : null;
             const data = {
+                targetUserIds: fields.targetUserIds ? fields.targetUserIds[0] : null,
                 sendViaSms: fields.sendViaSms ? fields.sendViaSms[0] : null,
                 smsBody: fields.smsBody ? fields.smsBody[0] : null,
                 sendViaEmail: fields.sendViaEmail ? fields.sendViaEmail[0] : null,
@@ -149,6 +153,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             };
 
             const transaction = await sequelize.transaction();
+            let targetUsers: UserType[] = [];
+
+            if (data.targetUserIds && data.targetUserIds !== null && data.targetUserIds !== undefined) {
+                const targetUserIdsArray = data.targetUserIds.split(',').map(id => id.trim());
+                console.log("UserArray", targetUserIdsArray);
+                if (targetUserIdsArray.length === 0) {
+                    await transaction.rollback();
+                    return res.status(400).json({ success: false, message: 'Target User IDs cannot be empty' });
+                }
+
+                targetUsers = await User.findAll({
+                    where: {
+                        idUsers: targetUserIdsArray
+                    },
+                    transaction,
+                    logging: console.log
+                }) as UserType[];
+            }
+
             try {
                 let pushNotificationImageName = null;
                 if (pushNotificationImage !== null) {
@@ -182,36 +205,74 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }, { transaction });
 
                 if (data.sendViaPush === 'yes') {
-                    await NotificationQueue.create({
-                        notificationType: 'push',
-                        receiver: null,
-                        notificationBody: JSON.stringify({
-                            title: data.pushNotificationTitle,
-                            body: data.pushNotificationBody,
-                            image: pushNotificationImageName ? `https://${S3_BUCKET_NAME}.s3.${S3_BUCKET_REGION}.amazonaws.com/push-notification/${pushNotificationImageName}` : null
-                        })
-                    }, { transaction });
+                    if (targetUsers.length === 0) {
+                        await NotificationQueue.create({
+                            notificationType: 'push',
+                            receiver: null,
+                            notificationBody: JSON.stringify({
+                                title: data.pushNotificationTitle,
+                                body: data.pushNotificationBody,
+                                image: pushNotificationImageName ? `https://${S3_BUCKET_NAME}.s3.${S3_BUCKET_REGION}.amazonaws.com/push-notification/${pushNotificationImageName}` : null
+                            })
+                        }, { transaction });
+                    } else {
+                        for (const user of targetUsers) {
+                            await NotificationQueue.create({
+                                notificationType: 'push',
+                                receiver: user.idUsers,
+                                notificationBody: JSON.stringify({
+                                    title: data.pushNotificationTitle,
+                                    body: data.pushNotificationBody,
+                                    image: pushNotificationImageName ? `https://${S3_BUCKET_NAME}.s3.${S3_BUCKET_REGION}.amazonaws.com/push-notification/${pushNotificationImageName}` : null
+                                })
+                            }, { transaction });
+                        }
+                    }
                 }
 
                 if (data.sendViaEmail === 'yes') {
-                    await NotificationQueue.create({
-                        notificationType: 'email',
-                        receiver: null,
-                        notificationBody: JSON.stringify({
-                            subject: data.emailSubject,
-                            body: data.emailBody
-                        })
-                    }, { transaction });
+                    if (targetUsers.length == 0) {
+                        await NotificationQueue.create({
+                            notificationType: 'email',
+                            receiver: null,
+                            notificationBody: JSON.stringify({
+                                subject: data.emailSubject,
+                                body: data.emailBody
+                            })
+                        }, { transaction });
+                    }
+                    else {
+                        for (const user of targetUsers) {
+                            await NotificationQueue.create({
+                                notificationType: 'email',
+                                receiver: user.email,
+                                notificationBody: JSON.stringify({
+                                    subject: data.emailSubject,
+                                    body: data.emailBody
+                                })
+                            }, { transaction });
+                        }
+                    }
                 }
 
                 if (data.sendViaSms === 'yes') {
-                    console.log('sms here');
-                    await NotificationQueue.create({
-                        notificationType: 'sms',
-                        receiver: null,
-                        notificationBody: data.smsBody
-                    }, { transaction });
+                    if (targetUsers.length === 0) {
+                        await NotificationQueue.create({
+                            notificationType: 'sms',
+                            receiver: null,
+                            notificationBody: data.smsBody
+                        }, { transaction });
+                    } else {
+                        for (const user of targetUsers) {
+                            await NotificationQueue.create({
+                                notificationType: 'sms',
+                                receiver: user.phoneNumber,
+                                notificationBody: data.smsBody
+                            }, { transaction });
+                        }
+                    }
                 }
+
 
                 await transaction.commit();
                 return res.status(200).json({ success: true, message: 'Manual Notification created successfully', data: notification });

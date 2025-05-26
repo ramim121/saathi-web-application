@@ -15,6 +15,8 @@ async function handler(
 ) {
     const [idUsers, idProducts] = req.query.params as string[];
 
+    console.log('Query Parameters:', req.query);
+
     const userData = await User.findOne({
         where: { idUsers: idUsers }
     });

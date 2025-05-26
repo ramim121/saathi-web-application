@@ -13,7 +13,7 @@ const sequelize = new Sequelize({
     username: DB_USER,
     password: DB_PASSWORD,
     database: DB_NAME,
-    logging: true
+    logging: false
 });// Example for postgres
 
 export default sequelize;
