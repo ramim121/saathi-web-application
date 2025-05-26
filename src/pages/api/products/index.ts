@@ -13,6 +13,9 @@ async function handler(
     res: NextApiResponse
 ) {
     const { limit, offset, idProductCategories, productName, idUsers } = req.query;
+
+    console.log('Query Parameters:', req.query);
+
     let productsForMartQuery = db('product_partners')
         .select('users.full_name', 'users.id_users')
         .select('product_categories.product_category_name', 'product_categories.id_product_categories', 'product_categories.category_image')
@@ -24,10 +27,15 @@ async function handler(
         .leftJoin('product_categories', 'products.id_product_categories', 'product_categories.id_product_categories')
         .leftJoin('unit', 'products.id_unit', 'unit.id_unit')
         .leftJoin('users', 'product_partners.id_users', 'users.id_users')
-        .leftJoin('product_packings', 'product_partners.id_product_packings', 'product_packings.id_product_packings')
+        .leftJoin('product_packings', function() {
+            this.on('product_packings.id_product_packings', '=', 
+                db.raw('(SELECT pp_min.id_product_packings FROM product_packings pp_min WHERE pp_min.id_products = products.id_products ORDER BY pp_min.size ASC LIMIT 1)')
+            );
+            this.on('product_packings.id_products', '=', 'products.id_products');
+        })
         .leftJoin('product_images', function () {
             this.on('products.id_products', '=', 'product_images.id_products')
-                .andOn('product_images.default', '=', db.raw('?', ['yes']))
+                .andOn('product_images.default', '=', db.raw('"yes"'))
         })
         .limit(parseInt(limit?.toString() || '10'))
         .offset(parseInt(offset?.toString() || '0'))

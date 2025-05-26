@@ -15,7 +15,7 @@ const ProductPacking = sequelize.define<ProductPackingModel>('ProductPacking', {
         allowNull: false,
     },
     size: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.INTEGER,
         allowNull: true,
     },
     idProducts: {
