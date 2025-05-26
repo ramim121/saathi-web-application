@@ -18,7 +18,7 @@ async function handler(
         .select('product_categories.product_category_name', 'product_categories.id_product_categories', 'product_categories.category_image')
         .select('products.product_name', 'products.id_products')
         .select('product_partners.sell_rate', 'product_partners.id_product_partners')
-        .select('product_packings.packing_name', 'product_packings.size')
+        .select('product_packings.packing_name')
         .select('product_images.image_name', 'product_images.thumbnail')
         .leftJoin('products', 'product_partners.id_products', 'products.id_products')
         .leftJoin('product_categories', 'products.id_product_categories', 'product_categories.id_product_categories')
@@ -32,7 +32,6 @@ async function handler(
         .limit(parseInt(limit?.toString() || '10'))
         .offset(parseInt(offset?.toString() || '0'))
         .groupBy(['product_partners.id_users', 'product_partners.id_products'])
-        .orderBy('product_packings.size', 'asc')
         .debug(true);
 
 
