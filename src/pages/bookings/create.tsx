@@ -1,27 +1,45 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Row, Spinner, Table } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
-import Select from 'react-select';
-import Swal from 'sweetalert2';
+import {
+    Button,
+    Col,
+    Container,
+    Form,
+    Modal,
+    Row,
+    Spinner,
+    Table,
+} from "react-bootstrap";
+import { API_URL } from "@/config/constants";
+import Select, { MultiValue, SingleValue } from "react-select";
+import Swal from "sweetalert2";
 
-interface FormDataType {
-    investmentDate: string;
-    investor: {
+interface InvestorType {
+    idUsers: number;
+    fullName: string;
+    label: string;
+    value: number;
+    phoneNumber: string;
+}
+
+interface ProjectPartnerSelectOption {
+    value: number;
+    label: string;
+}
+
+interface ProjectPartnerType {
+    idProjectPartners: number;
+    partnerUnitCapacity: number;
+    User: {
         idUsers: number;
         fullName: string;
-        label: string;
-        value: number;
-    },
-    projects: {
-        idProjects: number;
-        unitPurchased: number;
-        projectPartners: {
-            idProjectPartners: number;
-            amountInvested: number;
-            investedUnit: number;
-        }[]
-    }[]
+        phoneNumber: string;
+    };
+}
+
+interface ProjectCategoryType {
+    idProjectCategories: number;
+    categoryName: string;
 }
 
 interface ProjectDataType {
@@ -42,44 +60,45 @@ interface ProjectDataType {
     totalRemainingUnits: number;
     showInUpcoming: boolean;
     location: string;
-    ProjectCategory: {
-        idProjectCategories: number;
-        categoryName: string;
-    };
-    ProjectPartners: {
-        idProjectPartners: number;
-        partnerUnitCapacity: number;
-        User: {
-            idUsers: number;
-            fullName: string;
-            phoneNumber: string;
-        }
-    }[]
-};
+    ProjectCategory: ProjectCategoryType;
+    ProjectPartners: ProjectPartnerType[];
+}
+
+interface FormProjectType {
+    idProjects: number;
+    unitPurchased: number;
+    projectPartners: ProjectPartnerSelectOption[];
+    uid: string; // unique identifier for each row
+}
+
+interface FormDataType {
+    investmentDate: string;
+    investor: InvestorType;
+    projects: FormProjectType[];
+}
 
 function Create() {
-
     const [formData, setFormData] = useState<FormDataType>({
-        investmentDate: '',
+        investmentDate: "",
         investor: {
             idUsers: 0,
-            fullName: '',
-            label: '',
-            value: 0
+            fullName: "",
+            label: "",
+            value: 0,
+            phoneNumber: "",
         },
-        projects: [{
-            idProjects: 0,
-            unitPurchased: 0,
-            projectPartners: [{
-                idProjectPartners: 0,
-                amountInvested: 0,
-                investedUnit: 0
-            }]
-        }]
+        projects: [],
     });
     const [loading, setLoading] = useState<boolean>(false);
-    const [investors, setInvestors] = useState<{ idUsers: number; fullName: string; label: string; value: number; phoneNumber: string }[]>([]);
+    const [investors, setInvestors] = useState<InvestorType[]>([]);
     const [projects, setProjects] = useState<ProjectDataType[]>([]);
+
+    const [showModal, setShowModal] = useState(false);
+    const [modalProject, setModalProject] = useState<{
+        idProjects: number | null;
+        unitPurchased: number;
+        projectPartners: ProjectPartnerSelectOption[];
+    }>({ idProjects: null, unitPurchased: 0, projectPartners: [] });
 
     useEffect(() => {
         fetchInvestors();
@@ -88,60 +107,87 @@ function Create() {
 
     const fetchInvestors = async () => {
         try {
-            const res = await fetch(API_URL + 'api/user/investors');
+            const res = await fetch(API_URL + "api/user/investors");
             const data = await res.json();
             if (res.status === 200) {
                 setInvestors(data.data);
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message,
-                });
+                Swal.fire({ icon: "error", title: "Error", text: data.message });
             }
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong!',
-            });
+        } catch {
+            Swal.fire({ icon: "error", title: "Error", text: "Something went wrong!" });
         }
     };
 
     const fetchProjectsForInvestment = async () => {
         try {
-            const res = await fetch(API_URL + 'api/projects/get_projects_for_investment');
+            const res = await fetch(API_URL + "api/projects/get_projects_for_investment");
             const data = await res.json();
             if (res.status === 200) {
                 setProjects(data.data);
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message,
-                });
+                Swal.fire({ icon: "error", title: "Error", text: data.message });
             }
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong!',
-            });
+        } catch {
+            Swal.fire({ icon: "error", title: "Error", text: "Something went wrong!" });
         }
-    }
-
+    };
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleModalProjectChange = (
+        field: "idProjects" | "projectPartners",
+        value: any
+    ) => {
+        const updated = { ...modalProject, [field]: value } as typeof modalProject;
+        if (field === "projectPartners") {
+            updated.unitPurchased = (value as ProjectPartnerSelectOption[]).length;
+        }
+        setModalProject(updated);
+    };
+
+    const handleOpenModal = () => {
+        setShowModal(true);
+        setModalProject({ idProjects: null, unitPurchased: 0, projectPartners: [] });
+    };
+
+    const handleAddProject = () => {
+        if (!modalProject.idProjects || modalProject.projectPartners.length === 0) {
+            Swal.fire({
+                icon: "warning",
+                title: "Select a project and at least one partner.",
+            });
+            return;
+        }
+
+        const newEntry: FormProjectType = {
+            idProjects: modalProject.idProjects,
+            unitPurchased: modalProject.unitPurchased,
+            projectPartners: modalProject.projectPartners,
+            uid: `${modalProject.idProjects}-${Date.now()}`, // generate unique uid
+        };
+
+        setFormData((prev) => ({
+            ...prev,
+            projects: [...prev.projects, newEntry],
+        }));
+        setShowModal(false);
+        setModalProject({ idProjects: null, unitPurchased: 0, projectPartners: [] });
+    };
+
+    const handleRemoveProject = (uid: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            projects: prev.projects.filter((p) => p.uid !== uid),
+        }));
     };
 
     return (
         <Container>
             <Row>
-                <Col md={2}></Col>
+                <Col md={2} />
                 <Col md={8}>
                     <h4 className="text-start">Manual Booking Create</h4>
                     <hr />
@@ -149,44 +195,74 @@ function Create() {
                         <Row>
                             <Col md={12}>
                                 <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Investment Date<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="date" name="investmentDate" onChange={handleOnChange} value={formData.investmentDate} />
+                                    <Form.Label column sm="4" className="mb-3">
+                                        Investment Date<span className="text-danger">*</span>
+                                    </Form.Label>
+                                    <Col sm="8">
+                                        <Form.Control
+                                            type="date"
+                                            name="investmentDate"
+                                            onChange={handleOnChange}
+                                            value={formData.investmentDate}
+                                        />
                                     </Col>
                                 </Form.Group>
                             </Col>
                             <Col md={12}>
                                 <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Investor<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
+                                    <Form.Label column sm="4" className="mb-3">
+                                        Investor<span className="text-danger">*</span>
+                                    </Form.Label>
+                                    <Col sm="8">
                                         <Select
-                                            options={investors.map((investor) => ({
-                                                idUsers: investor.idUsers,
-                                                fullName: investor.fullName,
-                                                label: investor.fullName + ' (' + investor.phoneNumber + ')',
-                                                value: investor.idUsers
+                                            options={investors.map((inv) => ({
+                                                idUsers: inv.idUsers,
+                                                fullName: inv.fullName,
+                                                label: `${inv.fullName} (${inv.phoneNumber})`,
+                                                value: inv.idUsers,
+                                                phoneNumber: inv.phoneNumber,
                                             }))}
                                             name="investor"
                                             isSearchable
                                             isClearable
-                                            placeholder='Select investor'
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                investor: {
-                                                    idUsers: e!.idUsers,
-                                                    fullName: e!.fullName,
-                                                    label: e!.label,
-                                                    value: e!.value
-                                                }
-                                            })}
-                                            value={formData.investor}
+                                            placeholder="Select investor"
+                                            onChange={(e: SingleValue<InvestorType>) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    investor: e
+                                                        ? {
+                                                            idUsers: e.idUsers,
+                                                            fullName: e.fullName,
+                                                            label: e.label,
+                                                            value: e.value,
+                                                            phoneNumber: e.phoneNumber,
+                                                        }
+                                                        : {
+                                                            idUsers: 0,
+                                                            fullName: "",
+                                                            label: "",
+                                                            value: 0,
+                                                            phoneNumber: "",
+                                                        },
+                                                })
+                                            }
+                                            value={formData.investor.idUsers ? formData.investor : null}
                                         />
                                     </Col>
                                 </Form.Group>
                             </Col>
                         </Row>
+
                         <Row>
-                            <Table striped bordered hover className='mt-3'>
+                            <Col md={12} className="text-end">
+                                <Button variant="success" onClick={handleOpenModal}>
+                                    Add Project
+                                </Button>
+                            </Col>
+                        </Row>
+
+                        <Row>
+                            <Table striped bordered hover className="mt-3">
                                 <thead>
                                     <tr>
                                         <th>Sl</th>
@@ -195,172 +271,155 @@ function Create() {
                                         <th>Duration</th>
                                         <th>Unit Investment Value</th>
                                         <th>Total Remaining Units</th>
-                                        <th>Project Partners</th>
-                                        <th>Unit Purchased</th>
+                                        <th>Partners</th>
+                                        <th>Units Purchased</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {formData.projects.map((project, index) => (
-                                        <tr key={index}>
-                                            <td>{index + 1}</td>
-                                            <td>
-                                                <Select
-                                                    options={projects.map((p) => ({
-                                                        idProjects: p.idProjects,
-                                                        projectName: p.projectName,
-                                                        label: p.projectName + ' (' + p.ProjectCategory.categoryName + ')',
-                                                        value: p.idProjects
-                                                    }))}
-                                                    name={`projects[${index}].idProjects`}
-                                                    isSearchable
-                                                    isClearable
-                                                    placeholder='Select project'
-                                                    onChange={(e) => {
-                                                        const updatedProjects = [...formData.projects];
-                                                        updatedProjects[index].idProjects = e!.idProjects;
-                                                        setFormData({ ...formData, projects: updatedProjects });
-                                                    }}
-                                                    value={
-                                                        project.idProjects
-                                                            ? {
-                                                                idProjects: project.idProjects,
-                                                                projectName: projects.find(p => p.idProjects === project.idProjects)?.projectName || '',
-                                                                label:
-                                                                    (projects.find(p => p.idProjects === project.idProjects)?.projectName || '') +
-                                                                    ' (' +
-                                                                    (projects.find(p => p.idProjects === project.idProjects)?.ProjectCategory.categoryName || '') +
-                                                                    ')',
-                                                                value: project.idProjects
-                                                            }
-                                                            : null
-                                                    }
-                                                />
-                                            </td>
-                                            <td>{projects.find(p => p.idProjects === project.idProjects)?.investmentType}</td>
-                                            <td>{projects.find(p => p.idProjects === project.idProjects)?.duration}</td>
-                                            <td>{projects.find(p => p.idProjects === project.idProjects)?.unitInvestmentValue}</td>
-                                            <td>{projects.find(p => p.idProjects === project.idProjects)?.totalRemainingUnits}</td>
-                                            <td>
-                                                <Select
-                                                    isMulti
-                                                    options={
-                                                        projects.find(p => p.idProjects === project.idProjects)?.ProjectPartners.map((partner) => ({
-                                                            label: `${partner.User.fullName} (${partner.partnerUnitCapacity})`,
-                                                            value: partner.idProjectPartners,
-                                                            partnerUnitCapacity: partner.partnerUnitCapacity
-                                                        })) || []
-                                                    }
-                                                    name={`projects[${index}].projectPartners`}
-                                                    placeholder="Select partners"
-                                                    value={
-                                                        project.projectPartners
-                                                            .map(pp => {
-                                                                const proj = projects.find(p => p.idProjects === project.idProjects);
-                                                                const partner = proj?.ProjectPartners.find(pt => pt.idProjectPartners === pp.idProjectPartners);
-                                                                return partner
-                                                                    ? {
-                                                                        label: `${partner.User.fullName} (${partner.partnerUnitCapacity})`,
-                                                                        value: partner.idProjectPartners,
-                                                                        partnerUnitCapacity: partner.partnerUnitCapacity
-                                                                    }
-                                                                    : null;
-                                                            })
-                                                            .filter(Boolean)
-                                                    }
-                                                    onChange={(selected) => {
-                                                        const updatedProjects = [...formData.projects];
-                                                        updatedProjects[index].projectPartners = (selected as any[] || []).map(sel => ({
-                                                            idProjectPartners: sel.value,
-                                                            amountInvested: 0,
-                                                            investedUnit: 1 // default to 1 unit per selected partner
-                                                        }));
-                                                        updatedProjects[index].unitPurchased = updatedProjects[index].projectPartners.length;
-                                                        setFormData({ ...formData, projects: updatedProjects });
-                                                    }}
-                                                />
-                                            </td>
-                                            <td>
-                                                <Form.Control
-                                                    type="number"
-                                                    name={`projects[${index}].unitPurchased`}
-                                                    value={project.unitPurchased}
-                                                    onChange={(e) => {
-                                                        const updatedProjects = [...formData.projects];
-                                                        updatedProjects[index].unitPurchased = parseInt(e.target.value);
-                                                        setFormData({ ...formData, projects: updatedProjects });
-                                                    }}
-                                                />
-                                            </td>
-                                            <td>
-                                                {/* {index !== 0 &&
+                                    {formData.projects.map((project, index) => {
+                                        const projData = projects.find((p) => p.idProjects === project.idProjects);
+                                        return (
+                                            <tr key={project.uid}>
+                                                <td>{index + 1}</td>
+                                                <td>{projData?.projectName || ""}</td>
+                                                <td>{projData?.investmentType || ""}</td>
+                                                <td>{projData?.duration || ""}</td>
+                                                <td>{projData?.unitInvestmentValue || ""}</td>
+                                                <td>{projData?.totalRemainingUnits || ""}</td>
+                                                <td>
+                                                    {project.projectPartners.map((pp, i) => (
+                                                        <span key={i}>
+                                                            {pp.label}
+                                                            {i < project.projectPartners.length - 1 && ", "}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                                <td>{project.unitPurchased}</td>
+                                                <td>
                                                     <Button
                                                         variant="danger"
-                                                        onClick={() => {
-                                                            const updatedProjects = [...formData.projects];
-                                                            updatedProjects.splice(index, 1);
-                                                            setFormData({ ...formData, projects: updatedProjects });
-                                                        }}
+                                                        size="sm"
+                                                        onClick={() => handleRemoveProject(project.uid)}
                                                     >
                                                         Remove
                                                     </Button>
-                                                }
-                                                <Button
-                                                    variant="success"
-                                                    onClick={() => {
-                                                        setFormData({
-                                                            ...formData,
-                                                            projects: [
-                                                                ...formData.projects,
-                                                                {
-                                                                    idProjects: 0,
-                                                                    unitPurchased: 0,
-                                                                    projectPartners: [{
-                                                                        idProjectPartners: 0,
-                                                                        amountInvested: 0,
-                                                                        investedUnit: 0
-                                                                    }]
-                                                                }
-                                                            ]
-                                                        });
-                                                    }}
-                                                >
-                                                    Add Project
-                                                </Button> */}
-
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </Table>
                         </Row>
-                        <Row className='justify-content-center'>
-                            <Button className='w-25' variant="primary" type="submit" disabled={loading}>
-                                {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                {loading ? 'Submitting...' : 'Submit'}
+
+                        <Row className="justify-content-center">
+                            <Button className="w-25" variant="primary" type="submit" disabled={loading}>
+                                {loading && (
+                                    <Spinner
+                                        as="span"
+                                        animation="grow"
+                                        size="sm"
+                                        role="status"
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                {loading ? "Submitting..." : "Submit"}
                             </Button>
                         </Row>
                     </Form>
                 </Col>
-                <Col md={2}></Col>
+                <Col md={2} />
             </Row>
-            <pre>
-                {JSON.stringify(formData, null, 2)}
-                <br />
-                {JSON.stringify(projects, null, 2)}
-            </pre>
+
+            {/* Modal for Add Project */}
+            <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Invest in Project</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form>
+                        <Form.Group>
+                            <Form.Label>
+                                Select Project<span className="text-danger">*</span>
+                            </Form.Label>
+                            <Select
+                                options={projects.map((p) => ({
+                                    value: p.idProjects,
+                                    label: `${p.projectName} (${p.ProjectCategory.categoryName})`,
+                                }))}
+                                value={
+                                    modalProject.idProjects
+                                        ? {
+                                            value: modalProject.idProjects,
+                                            label:
+                                                projects.find((p) => p.idProjects === modalProject.idProjects)
+                                                    ?.projectName +
+                                                " (" +
+                                                (projects.find((p) => p.idProjects === modalProject.idProjects)
+                                                    ?.ProjectCategory.categoryName || "") +
+                                                ")",
+                                        }
+                                        : null
+                                }
+                                onChange={(opt: SingleValue<{ value: number; label: string }>) =>
+                                    handleModalProjectChange("idProjects", opt ? opt.value : null)
+                                }
+                                placeholder="Select Project"
+                            />
+                        </Form.Group>
+
+                        <Form.Group>
+                            <Form.Label>
+                                Project Partners<span className="text-danger">*</span>
+                            </Form.Label>
+                            <Select
+                                isMulti
+                                options={
+                                    modalProject.idProjects
+                                        ? projects
+                                            .find((p) => p.idProjects === modalProject.idProjects)
+                                            ?.ProjectPartners.map((pt) => ({
+                                                value: pt.idProjectPartners,
+                                                label: `${pt.User.fullName} (${pt.partnerUnitCapacity})`,
+                                            })) || []
+                                        : []
+                                }
+                                value={modalProject.projectPartners}
+                                onChange={(sel: MultiValue<ProjectPartnerSelectOption>) =>
+                                    handleModalProjectChange("projectPartners", sel)
+                                }
+                                placeholder="Select Partners"
+                            />
+                        </Form.Group>
+
+                        <Form.Group>
+                            <Form.Label>
+                                Unit Purchased<span className="text-danger">*</span>
+                            </Form.Label>
+                            <Form.Control
+                                type="number"
+                                min={modalProject.projectPartners.length}
+                                value={modalProject.unitPurchased}
+                                disabled
+                            />
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleAddProject}>
+                        Add
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
-
-    )
-
+    );
 }
 
 export default Create;
 
-Create.getLayout = function PageLayout(page: any) {
-    return (
-        <MainLayout>
-            {page}
-        </MainLayout>
-    )
-}
+Create.getLayout = function PageLayout(page: React.ReactNode) {
+    return <MainLayout>{page}</MainLayout>;
+};

@@ -37,6 +37,15 @@ async function handler(
         return;
     }
 
+    const partners = (productDetails as any)?.ProductPartners || (productDetails as any)?.ProductPartner || [];
+    if (Array.isArray(partners)) {
+        partners.sort((a: any, b: any) => {
+            const sizeA = Number(a?.ProductPacking?.size) || Infinity;
+            const sizeB = Number(b?.ProductPacking?.size) || Infinity;
+            return sizeA - sizeB; // Small size first
+        });
+    }
+
 
     res.status(200).send({ product: productDetails, user: userData });
 }
