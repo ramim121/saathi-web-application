@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { Project, ProjectPartner, ProjectCategory, User, ProjectProperty } from '@/models/__associations'
+import { Project, ProjectCategory, ProjectProperty } from '@/models/__associations'
 import sequelize from '@/config/db';
 import { Op } from 'sequelize';
 
@@ -13,17 +13,6 @@ export default async function handler(
             const result = await Project.findAll({
                 include: [
                     ProjectProperty,
-                    {
-                        model: ProjectPartner, as: 'ProjectPartners', required: true,
-                        include: [
-                            {
-                                model: User,
-                                as: 'User',
-                                attributes: ['idUsers', 'fullName', 'phoneNumber']
-                            }
-                        ]
-
-                    },
                     {
                         model: ProjectCategory,
                         as: 'ProjectCategory'
@@ -53,15 +42,6 @@ export default async function handler(
                                 END
                             `),
                             'totalRemainingUnits'
-                        ],
-                        [
-                            sequelize.literal(`(
-                                SELECT COUNT(*)
-                                FROM project_investors AS ppi
-                                WHERE ppi.id_projects = Project.id_projects
-                                AND ppi.investment_status = 'confirmed'
-                            )`),
-                            'investorCount'
                         ]
                     ]
                 },
@@ -74,8 +54,7 @@ export default async function handler(
                     (totalAvailableUnits = 0 OR totalInvestedUnits < totalAvailableUnits)
                 `),
                 order: [
-                    [sequelize.literal(`CASE WHEN projectType = 'special' THEN 0 ELSE 1 END`), 'ASC'],
-                    [sequelize.literal('investorCount'), 'DESC']
+                    [sequelize.literal(`CASE WHEN projectType = 'special' THEN 0 ELSE 1 END`), 'ASC']
                 ]
             })
 

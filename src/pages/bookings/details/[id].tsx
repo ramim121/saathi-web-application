@@ -193,6 +193,20 @@ const CustomOptionPartner = ({ data, ...props }: { data: ProjectPartnersProps, [
     </components.Option>
 );
 
+function formatDate(dateStr?: string): string {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString("en-GB", { month: "short" });
+    const year = date.getFullYear();
+    const j = day % 10, k = day % 100;
+    let suffix = "th";
+    if (j === 1 && k !== 11) suffix = "st";
+    else if (j === 2 && k !== 12) suffix = "nd";
+    else if (j === 3 && k !== 13) suffix = "rd";
+    return `${day}${suffix} ${month} ${year}`;
+}
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
@@ -940,11 +954,13 @@ function Details() {
                                         <th>Projects</th>
                                         <th>Unit Purchased</th>
                                         <th>Project Partners / Updates</th>
+                                        <th>Range</th>
                                         <th>Unit Price</th>
-                                        <th>Total Amount</th>
-                                        <th>Tenure</th>
+                                        <th>Invested Amount</th>
+                                        <th>Return</th>
                                         <th>Start Date</th>
                                         <th>Maturity Date</th>
+                                        <th>Remaining</th>
                                         <th>Investment Status</th>
                                         <th>Special Booking Req</th>
                                         <th>Action</th>
@@ -1014,19 +1030,38 @@ function Details() {
                                                 </Table>
                                             </td>
                                             <td>
+                                                {project.Project.duration} {project.Project.tenure?.charAt(0).toUpperCase() + project.Project.tenure?.slice(1) + '(' + project.Project.returnRangeMin + '% -' + project.Project.returnRangeMax + '%'}
+                                            </td>
+                                            <td>
                                                 {project.ProjectPartnerInvestors[0]?.amountInvested}
                                             </td>
                                             <td>
                                                 {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
                                             </td>
                                             <td>
-                                                {project.Project.duration} {project.Project.tenure?.charAt(0).toUpperCase() + project.Project.tenure?.slice(1) + '(' + project.Project.returnRangeMin + '% -' + project.Project.returnRangeMax + '%'}
+                                                {(() => {
+                                                    const totalInvested = project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0);
+                                                    const minReturn = totalInvested + (totalInvested * project.Project.returnRangeMin / 100);
+                                                    const maxReturn = totalInvested + (totalInvested * project.Project.returnRangeMax / 100);
+                                                    return `${minReturn.toLocaleString()} - ${maxReturn.toLocaleString()}`;
+                                                })()}
                                             </td>
                                             <td>
-                                                {project.projectStartDate}
+                                                {formatDate(project.projectStartDate)}
                                             </td>
                                             <td>
-                                                {project.maturityDate}
+                                                {formatDate(project.maturityDate)}
+                                            </td>
+                                            <td>
+                                                {(() => {
+                                                    if (!project.maturityDate) return "-";
+                                                    const maturity = new Date(project.maturityDate);
+                                                    const now = new Date();
+                                                    const diff = maturity.getTime() - now.getTime();
+                                                    if (isNaN(diff)) return "-";
+                                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                                    return days > 0 ? `${days} days` : "Matured";
+                                                })()}
                                             </td>
                                             <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
                                             <td>
@@ -1052,13 +1087,13 @@ function Details() {
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'right' }}>
+                                        <td colSpan={7} style={{ textAlign: 'right' }}>
                                             <strong> Total Payable Amount:</strong>
                                         </td>
                                         <td>
                                             {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
                                         </td>
-                                        <td colSpan={6}></td>
+                                        <td colSpan={7}></td>
                                     </tr>
                                 </tfoot>
                             </Table>
