@@ -129,7 +129,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         imageNameOriginal: file.originalFilename,
                         thumbnail: productImageThumbFileName,
                         idProducts: data.idProducts,
-                        imageStatus: 'active'
+                        imageStatus: 'active',
+                        default: 'yes'
                     }, { transaction });
                 }
 
