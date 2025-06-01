@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         let tokenData = req.headers.authorization;

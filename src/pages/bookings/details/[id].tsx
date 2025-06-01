@@ -596,6 +596,48 @@ function Details() {
         });
     };
 
+    const handleManualNotification = async (notificationType: string, idProjectInvestors: number) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You want to send ${notificationType} weeks notification!`,
+            icon: 'warning',
+            showCancelButton: true,
+            cancelButtonText: 'No',
+            confirmButtonText: 'Yes',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                try {
+                    const formData = {
+                        idProjectInvestors,
+                        notificationType
+                    };
+                    const res = await fetch(API_URL + 'api/bookings/manual_notification', putRequestOptions(formData));
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: `${notificationType.charAt(0).toUpperCase() + notificationType.slice(1)} weeks notification sent successfully!`,
+                        });
+                        setReload(true);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: (err as Error).message || 'Something went wrong!',
+                    });
+                }
+            },
+        });
+    }
+
 
     const handleCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
         Swal.fire({
@@ -1076,9 +1118,25 @@ function Details() {
                                             </td>
                                             <td>
                                                 {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
-                                                    <Button className='btn btn-sm btn-primary' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
+                                                    <Button className='btn btn-sm btn-primary m-2' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
                                                         Ready For Withdrawal
                                                     </Button>
+                                                }
+                                                {details.cancelled === 'no' &&
+                                                    project.investmentStatus !== 'cancelled' &&
+                                                    project.investmentStatus !== 'withdrawn' &&
+                                                    project.investmentStatus !== 'reinvested_full' &&
+                                                    project.investmentStatus !== 'reinvested_capital' &&
+                                                    project.investmentStatus !== 'reinvested_profit' &&
+
+                                                    <>
+                                                        <Button className='btn btn-sm btn-secondary m-2' onClick={() => handleManualNotification('2', project.idProjectInvestors)}>
+                                                            2 weeks maturity notification
+                                                        </Button>
+                                                        <Button className='btn btn-sm btn-secondary m-2' onClick={() => handleManualNotification('1', project.idProjectInvestors)}>
+                                                            1 weeks maturity notification
+                                                        </Button>
+                                                    </>
                                                 }
                                             </td>
                                         </tr>

@@ -26,7 +26,7 @@ const NotificationTemplate = sequelize.define<NotificationTemplateModel>('Notifi
         type: DataTypes.TEXT,
         allowNull: true
     },
-    push_notification_title: {
+    pushNotificationTitle: {
         type: DataTypes.STRING,
         allowNull: true
     },

@@ -14,6 +14,10 @@ import ejs from 'ejs';
 
 // Picks notifications from the queue and sends them
 const runNotificationQueue = async () => {
+<<<<<<< HEAD
+=======
+    // return;
+>>>>>>> 923ae7e (Notification updated)
     const unsentNotifications = await NotificationQueue.findAll({
         where: {
             status: ['pending', 'failed'],
@@ -156,6 +160,7 @@ export async function generateNotification(notificationName: string, notificatio
         }
 
         if (notificationTemplate?.pushNotificationTemplate) {
+            console.log(notificationTemplate);
             const fcmTokens = await AppFcmToken.findAll({ where: { idUsers: receiver.idUsers } });
             fcmTokens.forEach(async (token) => {
                 await NotificationQueue.create({
@@ -170,7 +175,6 @@ export async function generateNotification(notificationName: string, notificatio
         }
 
         if (notificationTemplate?.emailTemplate && receiver.email && receiver.emailVerified === 'yes') {
-            console.log(notificationData);
             // Open email template file
             const filePath = path.join(process.cwd(), 'src', 'notifications', 'email_templates', notificationTemplate.emailTemplate);
             const emailBody = fs.readFileSync(filePath, 'utf8');
