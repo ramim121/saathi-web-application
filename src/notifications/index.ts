@@ -14,10 +14,6 @@ import ejs from 'ejs';
 
 // Picks notifications from the queue and sends them
 const runNotificationQueue = async () => {
-<<<<<<< HEAD
-=======
-    // return;
->>>>>>> 923ae7e (Notification updated)
     const unsentNotifications = await NotificationQueue.findAll({
         where: {
             status: ['pending', 'failed'],
