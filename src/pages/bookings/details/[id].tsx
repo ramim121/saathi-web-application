@@ -55,6 +55,8 @@ interface DetailsProps {
         investmentStatus: string;
         projectStartDate: string;
         maturityDate: string;
+        actualProfitPercentage: number;
+        actualProfitAmount: number;
         ProjectPartnerInvestors: {
             ProjectPartner: {
                 User: {
@@ -563,14 +565,70 @@ function Details() {
             showLoaderOnConfirm: true,
             allowOutsideClick: false,
             preConfirm: async () => {
+                const { value: formValues } = await Swal.fire({
+                    title: 'Enter Actual Profit',
+                    html: `
+                        <div class="container text-start">
+                            <div class="row mb-3">
+                                <label class="col-sm-4 col-form-label">Percentage<span class='text-danger'>*</span></label>
+                                <div class="col-sm-8">
+                                    <div class="input-group">
+                                        <input id="swal-input1" type="number" class="form-control form-control-sm" placeholder="Enter profit %" step="any" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <label class="col-sm-4 col-form-label">Amount<span class='text-danger'>*</span></label>
+                                <div class="col-sm-8">
+                                    <div class="input-group">
+                                        <input id="swal-input2" type="number" class="form-control form-control-sm" placeholder="Enter amount" step="any" />
+                                        <span class="input-group-text">Tk.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit',
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: false,
+                    preConfirm: () => {
+                        const actualProfitPercentage = (document.getElementById('swal-input1') as HTMLInputElement)?.value;
+                        const actualProfitAmount = (document.getElementById('swal-input2') as HTMLInputElement)?.value;
+                        if (!actualProfitPercentage || !actualProfitAmount) {
+                            Swal.showValidationMessage('Both Actual Profit Percentage and Actual Profit Amount are required.');
+                            return false;
+                        }
+                        return {
+                            actualProfitPercentage: parseFloat(actualProfitPercentage),
+                            actualProfitAmount: parseFloat(actualProfitAmount),
+                        };
+                    }
+                });
+
+                if (!formValues) return false;
+
+                // Show loader while waiting for API
+                Swal.fire({
+                    title: 'Processing...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 const formData = {
                     idProjectInvestors,
                     investmentStatus,
+                    actualProfitPercentage: formValues.actualProfitPercentage,
+                    actualProfitAmount: formValues.actualProfitAmount,
                 };
 
                 try {
                     const res = await fetch(API_URL + 'api/bookings/investment_status_change', putRequestOptions(formData));
-
                     if (res.ok) {
                         Swal.fire({
                             icon: 'success',
@@ -595,6 +653,7 @@ function Details() {
             },
         });
     };
+
 
     const handleManualNotification = async (notificationType: string, idProjectInvestors: number) => {
         Swal.fire({
@@ -1004,6 +1063,8 @@ function Details() {
                                         <th>Maturity Date</th>
                                         <th>Remaining</th>
                                         <th>Investment Status</th>
+                                        <th>Actual Profit Amount</th>
+                                        <th>Actual Profit Percentage</th>
                                         <th>Special Booking Req</th>
                                         <th>Action</th>
                                     </tr>
@@ -1106,6 +1167,8 @@ function Details() {
                                                 })()}
                                             </td>
                                             <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
+                                            <td>{project.actualProfitPercentage !== null ? `${project.actualProfitPercentage} %` : null} </td>
+                                            <td>{project.actualProfitAmount}</td>
                                             <td>
                                                 {project.ProjectSpecialBookingReq &&
                                                     <>

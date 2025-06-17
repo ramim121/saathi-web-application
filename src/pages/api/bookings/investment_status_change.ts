@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let userInfo = jwt.decode(token) as JWTPayload;
         if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
-        const { idProjectInvestors, investmentStatus } = req.body
+        const { idProjectInvestors, investmentStatus, actualProfitAmount, actualProfitPercentage } = req.body
 
         const transaction = await sequelize.transaction();
         try {
@@ -30,6 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(404).json({ success: false, message: 'Project investor not found' });
             }
             investor.investmentStatus = investmentStatus;
+            investor.actualProfitAmount = actualProfitAmount;
+            investor.actualProfitPercentage = actualProfitPercentage;
             await investor.save({ transaction });
 
             if (investmentStatus === 'cancelled') {

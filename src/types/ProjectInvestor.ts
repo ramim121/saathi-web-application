@@ -13,6 +13,8 @@ export default interface ProjectInvestor {
     investmentDate: string;
     createdAt?: string;
     updatedAt?: string;
+    actualProfitPercentage: number;
+    actualProfitAmount: number;
     Project: Project;
     User: User;
     ProjectPartnerInvestors: ProjectPartnerInvestor[];
