@@ -39,6 +39,14 @@ const ProjectInvestor = sequelize.define<ProjectInvestorModel>('ProjectInvestor'
     updatedAt: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    actualProfitPercentage: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    actualProfitAmount: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
     }
 }, {
     tableName: 'project_investors',
