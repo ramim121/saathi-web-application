@@ -23,3 +23,13 @@ export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGL
 export const SES_AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : 'AKIA4MTWJKAAYBQFWJ3L';
 export const SES_AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_SECRET_ACCESS_KEY : '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';
 export const SES_AWS_REGION = process.env.AWS_REGION ? process.env.AWS_REGION : 'ap-northeast-1';
+
+export const APPLE_CLIENT_ID      = "com.digigram.saathi";      // e.g. com.yourcompany.app.signin
+export const APPLE_TEAM_ID        = "Q2AU97NY2Z";        // your 10-char Team ID
+export const APPLE_KEY_ID         = "576Y8AWU3L";         // the key’s ID from Apple
+export const APPLE_PRIVATE_KEY    = `-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgvPTOPaLE88ze8K4H
+O1CSIneRoDs3xLhy5eGhixz0SAWgCgYIKoZIzj0DAQehRANCAARYWboLUDBgJN5F
+xBui4TxOao+f/NpVLj/Fj8xzNeZEwgwfdq3TTE4uenWujlV7vlhk/+vL50/MgdWQ
+LOZYS7d6
+-----END PRIVATE KEY-----`; // your private key in PEM format

@@ -40,6 +40,8 @@ export default interface User {
     partnerType: 'none' | 'project' | 'product' | 'both';
     googleId: string | null;
     googleLogin: 'yes' | 'no';
+    appleId: string | null;
+    appleLogin: 'yes' | 'no';
     UserBank?: UserBank[];
     ProfilePicture?: File;
     FeaturedImages?: File[];

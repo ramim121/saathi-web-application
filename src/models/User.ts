@@ -84,7 +84,16 @@ const User = sequelize.define<UserModel>('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    appleId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     googleLogin: {
+        type: DataTypes.ENUM('yes', 'no'),
+        defaultValue: 'no',
+        allowNull: false
+    },
+    appleLogin: {
         type: DataTypes.ENUM('yes', 'no'),
         defaultValue: 'no',
         allowNull: false

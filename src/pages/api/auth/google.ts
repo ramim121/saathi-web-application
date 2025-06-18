@@ -16,16 +16,10 @@ const s3Client = new S3Client({
     }
 });
 import { generateNotification } from '@/notifications';
+import { Op } from 'sequelize';
 
 // Initialize the Google OAuth2 client
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-
-interface GoogleUser {
-    email: string;
-    name: string;
-    picture: string;
-    googleId: string;
-}
 
 const cors = Cors({
     origin: '*',
@@ -62,7 +56,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         let user = await User.findOne({
             where: {
                 email: email,
-                googleLogin: 'yes'
+                [Op.or]: {
+                    googleLogin: 'yes',
+                    appleLogin: 'yes',
+                    emailVerified: 'yes'
+                }
             },
             include: [
                 { model: ProjectInvestor, as: 'Investments', include: [Project] },
