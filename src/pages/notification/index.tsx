@@ -418,7 +418,7 @@ function ManualNotification() {
                                         <td>{notification.formattedSendOn}</td>
                                         <td>{notification?.User?.fullName}</td>
                                         <td style={{ whiteSpace: 'nowrap' }}>
-                                            <Link href={`/manualNotification/details/${notification.idManualNotifications}`}>
+                                            <Link href={`/notification/${notification.idManualNotifications}`}>
                                                 <Button size='sm' variant="primary" className="me-2">Details</Button>
                                             </Link>
                                         </td>

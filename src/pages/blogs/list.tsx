@@ -3,7 +3,6 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button } from "react-bootstrap";
 import { getRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 import { API_URL } from '@/config/constants';
 import Link from "next/link";
@@ -111,7 +110,7 @@ function List() {
                             <td>{blog.writtenBy}</td>
                             <td>{blog.writtenDate}</td>
                             <td>
-                                {blog.featuredImage && <Image src={`${S3_URL}blog-featured-images/${blog.featuredImage}`} alt={blog.featuredImage} width={100} height={100} />}
+                                {blog.featuredImage && <img src={`${S3_URL}blog-featured-images/${blog.featuredImage}`} alt={blog.featuredImage} width={100} height={100} />}
                             </td>
                             <td style={{ whiteSpace: 'nowrap' }}>
                                 <Button variant="danger" size="sm" onClick={() => handleDelete(blog.idBlogs)} className="me-2">Delete</Button>

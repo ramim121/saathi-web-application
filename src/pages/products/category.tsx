@@ -5,7 +5,6 @@ import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -285,9 +284,9 @@ function Category() {
                             </Col>
                             <Col md={4}>
                                 {(formData.idProductCategories && typeof (formData.categoryImage) === 'string') ?
-                                    <Image src={`${S3_URL}product-category-image/${formData.categoryImage}`} alt={formData.categoryImage} width={200} height={200} />
+                                    <img src={`${S3_URL}product-category-image/${formData.categoryImage}`} alt={formData.categoryImage} width={200} height={200} />
                                     : formData.categoryImage !== '' &&
-                                    <Image
+                                    <img
                                         src={URL.createObjectURL(formData.categoryImage)}
                                         alt={formData.categoryImage.name}
                                         width={200}
@@ -342,7 +341,7 @@ function Category() {
                                 <td>{product.productCategoryName}</td>
                                 <td>{product.productCategoryId}</td>
                                 <td>
-                                    {product.categoryImage && <Image src={`${S3_URL}product-category-image/${product.categoryImage}`} alt={product.categoryImage} width={100} height={100} />}
+                                    {product.categoryImage && <img src={`${S3_URL}product-category-image/${product.categoryImage}`} alt={product.categoryImage} width={100} height={100} />}
 
                                 </td>
                                 <td>{product.status.charAt(0).toUpperCase() + product.status.slice(1)}</td>

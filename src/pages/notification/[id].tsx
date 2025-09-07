@@ -6,7 +6,6 @@ import { Container, Row, Col, Table } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
-import Image from 'next/image';
 
 interface DetailsProps {
     idManualNotifications: number;
@@ -114,7 +113,7 @@ function Details() {
                                         <tr>
                                             <td>Push Notification Image</td>
                                             <td>
-                                                <Image src={`${S3_URL}push-notification/${details.pushNotificationImage}`} alt="Push Notification Image" width={100} height={100} />
+                                                <img src={`${S3_URL}push-notification/${details.pushNotificationImage}`} alt="Push Notification Image" width={100} height={100} />
                                             </td>
                                         </tr>
                                     }

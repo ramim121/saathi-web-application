@@ -5,7 +5,6 @@ import Swal from 'sweetalert2';
 import { API_URL } from '@/config/constants';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -319,7 +318,7 @@ function StatPanel() {
                                 <td>{panel.statLabel}</td>
                                 <td>
                                     {(panel.statType === 'image' && typeof panel.statValue === 'string') ? (
-                                        <Image src={`${S3_URL}stat-panel/${panel.statValue}`} alt={panel.statValue} width={100} height={100} />
+                                        <img src={`${S3_URL}stat-panel/${panel.statValue}`} alt={panel.statValue} width={100} height={100} />
                                     ) : (
                                         typeof panel.statValue === 'string' || typeof panel.statValue === 'number' ? panel.statValue : null
                                     )}

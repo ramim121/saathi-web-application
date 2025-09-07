@@ -8,7 +8,6 @@ import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
 import { getRequestOptions } from "@/utils/Fetch";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -473,7 +472,7 @@ function PartnerEdit() {
                                             {(formData.profilePicture !== undefined || formData.profilePicture !== null) && (
                                                 <>
                                                     {formData.profilePicture?.idFiles !== undefined ? (
-                                                        <Image
+                                                        <img
                                                             src={`${S3_URL}profile-picture/${id}/${formData.profilePicture?.fileName}`}
                                                             alt={formData.profilePicture?.originalFileName}
                                                             width={100}
@@ -481,7 +480,7 @@ function PartnerEdit() {
                                                         />
                                                     ) : (
                                                         formData.profilePicture && formData.profilePicture instanceof File && (
-                                                            <Image
+                                                            <img
                                                                 src={URL.createObjectURL(formData.profilePicture)}
                                                                 alt={formData.profilePicture.name}
                                                                 width={100}
