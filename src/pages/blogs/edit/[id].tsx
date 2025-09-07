@@ -7,7 +7,6 @@ import { Editor } from '@tinymce/tinymce-react';
 import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
 import { getRequestOptions } from "@/utils/Fetch";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -205,9 +204,9 @@ function Blogs() {
                         </Form.Group>
                         <Row>
                             {(id && typeof (formData.featuredImage) === 'string') ?
-                                <Image src={`${S3_URL}blog-featured-images/${formData.featuredImage}`} alt={formData.featuredImage} width={200} height={200} />
+                                <img src={`${S3_URL}blog-featured-images/${formData.featuredImage}`} alt={formData.featuredImage} width={200} height={200} />
                                 : formData.featuredImage !== null &&
-                                <Image
+                                <img
                                     src={URL.createObjectURL(formData.featuredImage)}
                                     alt={formData.featuredImage.name}
                                     width={200}

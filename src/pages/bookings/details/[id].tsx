@@ -6,7 +6,6 @@ import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdo
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/constants';
-import Image from "next/image";
 import { API_URL } from '@/config/constants';
 import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
@@ -967,12 +966,12 @@ function Details() {
                                         <td>
                                             {details.proofOfPayment !== null && (
                                                 <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
-                                                    <Image
+                                                    <img
                                                         src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
                                                         alt={details.proofOfPayment}
                                                         width={100}
                                                         height={100}
-                                                        layout="fixed"
+                                                        style={{objectFit: "contain"}}
                                                     />
                                                 </a>
                                             )}
@@ -1439,12 +1438,12 @@ function Details() {
                                         <td>
                                             {liveUpdate.updateImage !== null &&
                                                 <a href={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.updateImage}`} target="_blank" rel="noopener noreferrer">
-                                                    <Image
+                                                    <img
                                                         src={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.imageThumbnail}`}
                                                         alt={liveUpdate.updateImage}
                                                         width={100}
                                                         height={100}
-                                                        layout="fixed"
+                                                        style={{objectFit: "contain"}}
                                                     />
                                                 </a>
                                             }

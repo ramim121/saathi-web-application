@@ -4,7 +4,6 @@ import { Container, Table, Button, Pagination } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface ListProps {
@@ -208,7 +207,7 @@ function List() {
 						<tr key={index}>
 							<td>{partner.idUsers}</td>
 							<td>
-								{partner.ProfilePicture && <Image src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.ProfilePicture?.fileName}`} alt={partner.ProfilePicture?.originalFileName} width={100} height={100} loading="lazy" />}
+								{partner.ProfilePicture && <img src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.ProfilePicture?.fileName}`} alt={partner.ProfilePicture?.originalFileName} width={100} height={100} loading="lazy" />}
 
 							</td>
 							<td>{partner.fullName}</td>

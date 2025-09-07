@@ -8,7 +8,6 @@ import { Editor } from '@tinymce/tinymce-react';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from "@/utils/Fetch";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -481,7 +480,7 @@ function Projects() {
 											{(formData.mainImage !== undefined || formData.mainImage !== null) && (
 												<>
 													{formData.mainImage?.idFiles !== undefined ? (
-														<Image
+														<img
 															src={`${S3_URL}project-main-image/${id}/${formData.mainImage?.fileName}`}
 															alt={formData.mainImage?.originalFileName}
 															width={100}
@@ -489,7 +488,7 @@ function Projects() {
 														/>
 													) : (
 														formData.mainImage && formData.mainImage instanceof File && (
-															<Image
+															<img
 																src={URL.createObjectURL(formData.mainImage)}
 																alt={formData.mainImage.name}
 																width={100}

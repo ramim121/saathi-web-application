@@ -3,7 +3,6 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs } from "react-bootstrap";
-import Image from "next/image";
 import Carousel from 'react-bootstrap/Carousel';
 import { S3_URL } from '@/config/constants';
 import Swal from "sweetalert2";
@@ -126,7 +125,7 @@ function Details() {
                                     <tr>
                                         <td>Profile Picture</td>
                                         <td className="text-center">
-                                            {details.ProfilePicture && <Image src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
+                                            {details.ProfilePicture && <img src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -182,7 +181,7 @@ function Details() {
                                 <tr key={index}>
                                     <td>{index + 1}</td>
                                     <td>
-                                        <Image src={`${S3_URL}project-main-image/${project.Project.idProjects}/${project.Project?.MainImage?.fileName}`} alt={project.Project?.MainImage?.originalFileName} width={100} height={100} loading="lazy" />
+                                        <img src={`${S3_URL}project-main-image/${project.Project.idProjects}/${project.Project?.MainImage?.fileName}`} alt={project.Project?.MainImage?.originalFileName} width={100} height={100} loading="lazy" />
                                     </td>
                                     <td>{project.Project?.projectName}</td>
                                     <td>{project.Project?.location}</td>
@@ -217,7 +216,7 @@ function Details() {
                         <Carousel>
                             {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
                                 <Carousel.Item key={index}>
-                                    <Image src={`${S3_URL}featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
+                                    <img src={`${S3_URL}featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
                                 </Carousel.Item>
                             ))}
                         </Carousel>

@@ -6,7 +6,6 @@ import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 import Carousel from 'react-bootstrap/Carousel';
 import { API_URL } from '@/config/constants';
@@ -249,7 +248,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                     <tr key={index}>
                                         <td>{index + 1}</td>
                                         <td className="text-center">
-                                            {partner.User?.ProfilePicture !== null && <Image src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.User?.ProfilePicture?.fileName}`} alt={partner.User!.ProfilePicture?.originalFileName || ""} width={100} height={100} />}
+                                            {partner.User?.ProfilePicture !== null && <img src={`${S3_URL}profile-picture/${partner.idUsers}/${partner.User?.ProfilePicture?.fileName}`} alt={partner.User!.ProfilePicture?.originalFileName || ""} width={100} height={100} />}
                                         </td>
                                         <td>{partner.User!.fullName}</td>
                                         <td>{partner.User!.phoneNumber}</td>

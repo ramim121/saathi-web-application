@@ -6,7 +6,6 @@ import Swal from "sweetalert2";
 import { User } from "@/models/__associations";
 import UserType from "@/types/User";
 import { S3_URL } from "@/config/constants";
-import Image from "next/image";
 import { NextPage } from "next";
 import { API_URL } from "@/config/constants";
 import { Form } from "react-bootstrap";
@@ -309,7 +308,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                 <td>{user.idUsers}</td>
                                 <td>
                                     {user.profileImage ? (
-                                        <Image
+                                        <img
                                             alt="profile"
                                             height="50"
                                             width="50"
@@ -321,7 +320,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                             style={{ cursor: "pointer" }}
                                         />
                                     ) : (
-                                        <Image
+                                        <img
                                             alt="profile"
                                             height="50"
                                             width="50"
@@ -385,7 +384,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                     <Modal.Body>
                         <Row>
                             <Col md={4}>
-                                <Image
+                                <img
                                     alt="profile"
                                     height="150"
                                     width="150"

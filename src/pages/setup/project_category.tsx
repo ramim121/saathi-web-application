@@ -5,7 +5,6 @@ import Swal from 'sweetalert2';
 import { API_URL } from '@/config/constants';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import Image from "next/image";
 import { S3_URL } from '@/config/constants';
 
 interface FormDataType {
@@ -267,7 +266,7 @@ function ProjectCategory() {
                                 <td>{project.idProjectCategories}</td>
                                 <td>{project.categoryName}</td>
                                 <td>
-                                    {project.categoryImage && <Image src={`${S3_URL}project-category-image/${project.categoryImage}`} alt={project.categoryName} width={100} height={100} />}
+                                    {project.categoryImage && <img src={`${S3_URL}project-category-image/${project.categoryImage}`} alt={project.categoryName} width={100} height={100} />}
 
                                 </td>
                                 {/* <td>
