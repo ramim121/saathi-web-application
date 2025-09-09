@@ -28,7 +28,7 @@ export default async function handler(
                             include: [
                                 [
                                     sequelize.literal(`(
-                                        SELECT COUNT(*)
+                                        SELECT IFNULL(SUM(invested_unit),0)
                                         FROM project_partner_investors AS ppi
                                         JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
                                         WHERE ppi.id_project_partners = Partnerships.id_project_partners
