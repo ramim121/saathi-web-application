@@ -13,7 +13,7 @@
     "@aws-sdk/client-ses": "^3.699.0",
     "@aws-sdk/lib-storage": "^3.670.0",
     "@react-native-google-signin/google-signin": "^13.1.0",
-    "@tinymce/tinymce-react": "^5.0.1",
+    "@tinymce/tinymce-react": "^6.3.0",
     "apple-signin-auth": "^2.0.0",
     "await-to-js": "^3.0.0",
     "axios": "^1.7.7",
