@@ -35,7 +35,7 @@ export const config = {
 };
 
 const schema = Joi.object({
-    targetUserIds: Joi.string().optional(),
+    targetUserIds: Joi.string().optional().allow('', null),
     sendViaSms: Joi.string().required().valid('yes', 'no').messages({
         "any.required": "Send Via Sms is required",
         "string.empty": "Send Via Sms can not be empty",
