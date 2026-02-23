@@ -12,13 +12,11 @@ interface ListProps {
 	returnRangeMin: number,
 	returnRangeMax: number,
 	investmentType: string,
-	returnType: string,
 	duration: number,
+	returnType: string,
 	tenure: string,
-	location: string,
 	unitInvestmentValue: number,
 	projectStatus: string,
-	showInUpcoming: string,
 	ProjectPartners: {
 		User: {
 			fullName: string
@@ -46,12 +44,9 @@ interface FilterProps {
 	returnRangeMin: string,
 	returnRangeMax: string,
 	investmentType: string,
-	returnType: string,
 	duration: string,
-	location: string,
 	unitInvestmentValue: string,
 	projectStatus: string,
-	showInUpcoming: string,
 	partnersName: string,
 	createdBy: string,
 	categoryName: string,
@@ -71,12 +66,9 @@ function List() {
 		returnRangeMin: '',
 		returnRangeMax: '',
 		investmentType: '',
-		returnType: '',
 		duration: '',
-		location: '',
 		unitInvestmentValue: '',
 		projectStatus: '',
-		showInUpcoming: '',
 		partnersName: '',
 		createdBy: '',
 		categoryName: '',
@@ -178,12 +170,9 @@ function List() {
 						<th>Project Name</th>
 						<th>Category</th>
 						<th>Investment Type</th>
-						<th>Return Type</th>
 						<th>Share / Unit</th>
 						<th>Return</th>
 						<th>Tenure</th>
-						<th>Location</th>
-						<th>Upcoming</th>
 						<th>Total Available Units</th>
 						<th>Already Invested</th>
 						<th>Remaining Units</th>
@@ -206,9 +195,6 @@ function List() {
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="investmentType" onChange={handleInputOnChange} value={filter.investmentType} />
 						</td>
 						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="returnType" onChange={handleInputOnChange} value={filter.returnType} />
-						</td>
-						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="unitInvestmentValue" onChange={handleInputOnChange} value={filter.unitInvestmentValue} />
 						</td>
 						<td>
@@ -216,12 +202,6 @@ function List() {
 						</td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="duration" onChange={handleInputOnChange} value={filter.duration} />
-						</td>
-						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="location" onChange={handleInputOnChange} value={filter.location} />
-						</td>
-						<td>
-							<input type="text" className="form-control form-control-sm" placeholder="Search" name="showInUpcoming" onChange={handleInputOnChange} value={filter.showInUpcoming} />
 						</td>
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="totalAvailableUnits" onChange={handleInputOnChange} value={filter.totalAvailableUnits} />
@@ -248,14 +228,11 @@ function List() {
 							<td>{project.projectName}</td>
 							<td>{project.ProjectCategory?.categoryName}</td>
 							<td>{project.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
-							<td>{project.returnType.charAt(0).toUpperCase() + project.returnType.slice(1)}</td>
 							<td>{project.unitInvestmentValue}</td>
 							<td>
 								{project.returnType === 'Fixed' ? `${project.returnRangeMin}%` : `${project.returnRangeMin}% - ${project.returnRangeMax}%`}
 							</td>
 							<td>{project.duration} {project.tenure}</td>
-							<td>{project.location}</td>
-							<td>{project.showInUpcoming.charAt(0).toUpperCase() + project.showInUpcoming.slice(1)}</td>
 							<td>{project.totalAvailableUnits}</td>
 							<td>{project.alreadyInvested}</td>
 							<td>{project.totalRemainingUnits}</td>
@@ -272,7 +249,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={19} className="text-center">No projects found</td>
+							<td colSpan={14} className="text-center">No projects found</td>
 						</tr>
 					)}
 
