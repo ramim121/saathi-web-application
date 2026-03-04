@@ -43,8 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 model: Project, as: 'Project',
                                 where: { projectStatus: 'created' },
                                 include: [
-                                    { model: File, as: 'MainImage' }
-                                ]
+                                    { model: File, as: 'MainImage' },
+                                    { model: File, as: 'FeaturedImages'}                               ]
                             },
                             {
                                 model: ProjectPartnerInvestor,
