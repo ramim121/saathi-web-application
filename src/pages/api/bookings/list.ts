@@ -39,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 	const limit = parseInt(pageSize as string) || 10;
 	const offset = (parseInt(page as string) - 1) * limit || 0;
 
-	try {
+		try {
 		const result = await ProjectInvestmentBooking.findAndCountAll({
 			where: whereClause,
 			include: [
@@ -53,7 +53,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 					include: [
 						{
 							model: Project,
-							attributes: ['idProjects', 'projectName'],
+							attributes: ['idProjects', 'projectName', 'duration', 'tenure'],
 						},
 						{
 							model: ProjectPartnerInvestor,
@@ -78,9 +78,48 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 			order: [[orderBy as string || 'createdAt', orderType === 'DESC' ? 'DESC' : 'ASC']],
 		});
 
+		const rowsWithMaturity = result.rows.map((booking: any) => {
+			const bookingPlain = booking.get ? booking.get({ plain: true }) : booking;
+
+			if (bookingPlain.ProjectInvestors) {
+				bookingPlain.ProjectInvestors = bookingPlain.ProjectInvestors.map((projectInvestor: any) => {
+					const investmentDate = bookingPlain.paymentDate
+						? new Date(bookingPlain.paymentDate)
+						: projectInvestor.investmentDate
+							? new Date(projectInvestor.investmentDate)
+							: null;
+
+					const duration = projectInvestor.Project?.duration || 0;
+					const tenure = projectInvestor.Project?.tenure || 'months';
+
+					let projectStartDate = null;
+					let maturityDate = null;
+
+					if (investmentDate) {
+						const endDate = new Date(investmentDate);
+						if (tenure === 'months') {
+							endDate.setMonth(endDate.getMonth() + duration);
+						} else if (tenure === 'years') {
+							endDate.setFullYear(endDate.getFullYear() + duration);
+						}
+						projectStartDate = investmentDate.toISOString().split('T')[0];
+						maturityDate = endDate.toISOString().split('T')[0];
+					}
+
+					return {
+						...projectInvestor,
+						projectStartDate,
+						maturityDate,
+					};
+				});
+			}
+
+			return bookingPlain;
+		});
+
 		res.status(200).json({
 			success: true,
-			data: result.rows,
+			data: rowsWithMaturity,
 			total: result.count,
 			currentPage: page ? parseInt(page as string) : 1,
 			totalPages: Math.ceil(result.count / limit),

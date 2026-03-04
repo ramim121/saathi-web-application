@@ -41,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         include: [
                             {
                                 model: Project, as: 'Project',
+                                where: { projectStatus: 'created' },
                                 include: [
                                     { model: File, as: 'MainImage' }
                                 ]

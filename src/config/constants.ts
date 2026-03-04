@@ -16,7 +16,7 @@ export const S3_URL = process.env.S3_URL ? process.env.S3_URL : 'https://saathi-
 export const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'saathi_db';
 export const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'saathi_admin';
 export const DB_PASSWORD = process.env.DB_PASSWORD ? process.env.DB_PASSWORD : 'w607kTcCngWiq8U';
-export const DB_HOST = process.env.DB_HOST ? process.env.DB_HOST : 'saathi-db.cla6si4uaanu.ap-southeast-1.rds.amazonaws.com';
+export const DB_HOST = process.env.DB_HOST ? process.env.DB_HOST : 'saathi-db-new.cdo24s2o84z2.ap-southeast-1.rds.amazonaws.com';
 
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID : '1055024852778-23tb7da8pka2vnatqiej8emuv2t01qem.apps.googleusercontent.com';
 
