@@ -18,6 +18,7 @@ interface BookingListProps {
         };
         unitPurchased: number;
         investmentDate: string;
+        maturityDate: string;
         investmentStatus: string;
     }[];
     cancelled: string;
@@ -192,6 +193,7 @@ function List() {
                         <th>Project Status</th>
                         <th>Unit Purchased</th>
                         <th>Investment Date</th>
+                        <th>Maturity Date</th>
                         <th>Cancelled</th>
                         <th>Actions</th>
 
@@ -215,6 +217,7 @@ function List() {
                                 <option value="denied">Denied</option>
                             </Form.Select>
                         </td>
+                        <td></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -269,6 +272,14 @@ function List() {
                                     }
                                 </ul>
                             </td>
+                            <td>
+                                <ul>
+                                    {booking.ProjectInvestors.map((invest, index) => (
+                                        <li key={index}>{invest.maturityDate}</li>
+                                    ))
+                                    }
+                                </ul>
+                            </td>
                             <td>{booking.cancelled?.charAt(0).toUpperCase() + booking.cancelled?.slice(1)}</td>
                             <td>
                                 <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
@@ -278,7 +289,7 @@ function List() {
                         </tr>
                     )) : (
                         <tr>
-                            <td colSpan={10} className="text-center">No booking found</td>
+                            <td colSpan={11} className="text-center">No booking found</td>
                         </tr>
                     )}
 
