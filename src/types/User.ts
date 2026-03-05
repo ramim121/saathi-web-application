@@ -42,7 +42,7 @@ export default interface User {
     googleLogin: 'yes' | 'no';
     appleId: string | null;
     appleLogin: 'yes' | 'no';
-    UserBank?: UserBank[];
+    UserBanks?: UserBank[];
     ProfilePicture?: File;
     FeaturedImages?: File[];
 }
