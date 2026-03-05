@@ -2,49 +2,38 @@ import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL } from '@/config/constants';
+import { API_URL, S3_URL } from '@/config/constants';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import { S3_URL } from '@/config/constants';
 
-interface FormDataType {
-    idAppStatPanel?: number
-    statType: string
-    statLabel: string
-    statValue: string | number | File
-    priority: number | null
+interface PartnershipFormData {
+    idPartnerships?: number;
+    name: string;
+    image: string | File;
+    priority: number | null;
 }
 
 interface FilterProps {
-    idAppStatPanel: string
-    statLabel: string
-    statValue: string
-    statType: string
-    priority: number | null
-    orderBy: string
-    orderType: string
-    page: number
-    pageSize: number
+    idPartnerships: string;
+    name: string;
+    orderBy: string;
+    orderType: string;
+    page: number;
+    pageSize: number;
 }
 
-function StatPanel() {
-
-    const [formData, setFormData] = useState<FormDataType>({
-        idAppStatPanel: undefined,
-        statType: 'text',
-        statLabel: '',
-        statValue: '',
+function PartnershipPage() {
+    const [formData, setFormData] = useState<PartnershipFormData>({
+        idPartnerships: undefined,
+        name: '',
+        image: '',
         priority: null
     });
 
     const [filter, setFilter] = useState<FilterProps>({
-
-        idAppStatPanel: '',
-        statLabel: '',
-        statValue: '',
-        statType: '',
-        priority: null,
-        orderBy: 'idAppStatPanel',
+        idPartnerships: '',
+        name: '',
+        orderBy: 'idPartnerships',
         orderType: 'DESC',
         page: 1,
         pageSize: 10
@@ -52,20 +41,20 @@ function StatPanel() {
 
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
-    const [statPanelList, setStatPanelList] = useState<FormDataType[]>([]);
+    const [partnershipList, setPartnershipList] = useState<PartnershipFormData[]>([]);
     const [reload, setReload] = useState<boolean>(true);
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const fetchAppStatPanelList = async () => {
+        const fetchPartnershipList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/stat-panels/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/partnerships/list?${query}`, getRequestOptions());
                 const data = await res.json();
                 if (res.status === 200) {
-                    setStatPanelList(data.data);
+                    setPartnershipList(data.data);
                     setTotal(data.total);
                     setTotalPages(data.totalPages);
                     setReload(false);
@@ -84,7 +73,7 @@ function StatPanel() {
                 });
             }
         }
-        fetchAppStatPanelList();
+        fetchPartnershipList();
     }, [filter, reload]);
 
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,11 +92,11 @@ function StatPanel() {
         if (from < 1) {
             from = 1;
         }
-        let to = from + 4 * 2
+        let to = from + 4 * 2;
         if (to >= Math.ceil(total / 10)) {
             to = Math.ceil(total / 10)
         }
-        let pagesArray = []
+        const pagesArray = [];
 
         for (let page = from; page <= to; page++) {
             pagesArray.push(page)
@@ -132,17 +121,13 @@ function StatPanel() {
         })
     }
 
-    const handleStatTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFormData({ ...formData, statType: e.target.value, statValue: '' });
-    }
-
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             const fileType = file.type;
             const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
             if (validImageTypes.includes(fileType)) {
-                setFormData({ ...formData, statValue: file });
+                setFormData({ ...formData, image: file });
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -155,11 +140,11 @@ function StatPanel() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setLoading(true); // Set loading to true before the Swal confirmation
+        setLoading(true);
 
         Swal.fire({
             title: 'Are you sure?',
-            text: isEditing ? "You want to update this stat!" : "You want to create this stat!",
+            text: isEditing ? "You want to update this partnership!" : "You want to create this partnership!",
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
@@ -167,55 +152,46 @@ function StatPanel() {
         }).then(async (result) => {
             if (result.value) {
                 const newFormData = new FormData();
-                if (isEditing && formData.idAppStatPanel) {
-                    newFormData.append('idAppStatPanel', formData.idAppStatPanel.toString());
+                if (isEditing && formData.idPartnerships) {
+                    newFormData.append('idPartnerships', formData.idPartnerships.toString());
                 }
-                newFormData.append('statType', formData.statType);
-                newFormData.append('statLabel', formData.statLabel);
-
-                // Append statValue based on statType
-                if (formData.statType === 'number') {
-                    newFormData.append('statValue', formData.statValue.toString());
-                } else if (formData.statType === 'image') {
-                    // Only send a file when a new image is selected.
-                    if (formData.statValue instanceof File) {
-                        newFormData.append('statValue', formData.statValue);
-                    }
-                } else {
-                    newFormData.append('statValue', formData.statValue as string);
+                newFormData.append('name', formData.name);
+                if (formData.image instanceof File) {
+                    newFormData.append('image', formData.image);
                 }
                 newFormData.append('priority', formData.priority?.toString() || '');
                 try {
-                    const url = isEditing ? API_URL + 'api/stat-panels/update' : API_URL + 'api/stat-panels/create';
+                    const url = isEditing ? API_URL + 'api/partnerships/update' : API_URL + 'api/partnerships/create';
                     const res = await fetch(url, {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: newFormData,
                     });
 
+                    const data = await res.json();
+
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: (await res.json()).message,
+                            text: data.message,
                         });
                         setReload(true);
                         setFormData({
-                            idAppStatPanel: undefined,
-                            statType: 'text',
-                            statLabel: '',
-                            statValue: '',
+                            idPartnerships: undefined,
+                            name: '',
+                            image: '',
                             priority: null
                         });
                         setIsEditing(false);
                         if (fileInputRef.current) {
-                            fileInputRef.current.value = '';  // Clear file input
+                            fileInputRef.current.value = '';
                         }
                     } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            html: (await res.json()).message,
+                            html: data.message,
                         });
                     }
                 } catch (err) {
@@ -233,14 +209,12 @@ function StatPanel() {
         });
     };
 
-    const handleEdit = (panel: FormDataType) => {
+    const handleEdit = (item: PartnershipFormData) => {
         setFormData({
-            idAppStatPanel: panel.idAppStatPanel,
-            statType: panel.statType,
-            statLabel: panel.statLabel,
-            // For image, keep existing filename so we can show a preview.
-            statValue: panel.statType === 'image' ? panel.statValue : (panel.statValue ?? ''),
-            priority: panel.priority
+            idPartnerships: item.idPartnerships,
+            name: item.name,
+            image: item.image,
+            priority: item.priority
         });
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -253,7 +227,7 @@ function StatPanel() {
 
         Swal.fire({
             title: 'Are you sure?',
-            text: "You want to delete this stat!",
+            text: "You want to delete this partnership!",
             icon: 'warning',
             showCancelButton: true,
             cancelButtonText: 'No',
@@ -261,7 +235,7 @@ function StatPanel() {
         }).then(async (result) => {
             if (result.value) {
                 try {
-                    const res = await fetch(API_URL + `api/stat-panels/delete?idAppStatPanel=${id}`, {
+                    const res = await fetch(API_URL + `api/partnerships/delete?idPartnerships=${id}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                     });
@@ -291,70 +265,52 @@ function StatPanel() {
         });
     };
 
-
     return (
         <>
             <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
-                        <h4 className="text-start">Stat Panel</h4>
+                        <h4 className="text-start">Partnerships</h4>
                         <hr />
                         <Form onSubmit={handleSubmit}>
                             <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Type<span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4' className='mb-3'>Name<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Select name='investmentType' onChange={handleStatTypeChange} value={formData.statType}>
-                                        <option>Select stat type</option>
-                                        <option value="text">Text</option>
-                                        <option value="number">Number</option>
-                                        <option value="image">Image</option>
-                                    </Form.Select>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Enter partnership name"
+                                        name="name"
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        value={formData.name}
+                                    />
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Label<span className='text-danger'>*</span></Form.Label>
+                                <Form.Label column sm='4' className='mb-3'>Image<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter stat label" name="statLabel" onChange={(e) => setFormData({ ...formData, statLabel: e.target.value })} value={formData.statLabel} />
+                                    <Form.Control type="file" name="image" onChange={handleFileUpload} ref={fileInputRef} />
+                                    {typeof formData.image === 'string' && formData.image && (
+                                        <div className="mt-2">
+                                            <img
+                                                src={`${S3_URL}partnerships/${formData.image}`}
+                                                alt={formData.image}
+                                                width={100}
+                                                height={100}
+                                            />
+                                        </div>
+                                    )}
                                 </Col>
                             </Form.Group>
-                            {formData.statType === 'number' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="number" placeholder="Enter stat value" name="statValue" onChange={(e) => setFormData({ ...formData, statValue: e.target.value })} value={formData.statValue as string} />
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            {formData.statType === 'image' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="file" name="statValue" onChange={handleFileUpload} ref={fileInputRef} />
-                                        {typeof formData.statValue === 'string' && formData.statValue && (
-                                            <div className="mt-2">
-                                                <img
-                                                    src={`${S3_URL}stat-panel/${formData.statValue}`}
-                                                    alt={formData.statValue}
-                                                    width={100}
-                                                    height={100}
-                                                />
-                                            </div>
-                                        )}
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            {formData.statType === 'text' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="Enter stat value" name="statValue" onChange={(e) => setFormData({ ...formData, statValue: e.target.value })} value={formData.statValue as string} />
-                                    </Col>
-                                </Form.Group>
-                            )}
                             <Form.Group as={Row}>
                                 <Form.Label column sm='4' className='mb-3'>Priority<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
-                                    <Form.Control type="number" placeholder="Enter priority" name="priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })} value={formData.priority || ''} />
+                                    <Form.Control
+                                        type="number"
+                                        placeholder="Enter priority"
+                                        name="priority"
+                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })}
+                                        value={formData.priority || ''}
+                                    />
                                 </Col>
                             </Form.Group>
                             <Row>
@@ -369,71 +325,58 @@ function StatPanel() {
                                 </Col>
                             </Row>
                         </Form>
-                        {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
                     </Col>
                 </Row>
             </Container>
             <Container className='mt-5'>
-                <h4 className="text-start">Stat Panel List</h4>
+                <h4 className="text-start">Partnership List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Stat Label</th>
-                            <th>Stat Value</th>
-                            <th>Stat Type</th>
+                            <th>Name</th>
+                            <th>Image</th>
                             <th>Priority</th>
                             <th>Actions</th>
                         </tr>
                         <tr>
                             <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idAppStatPanel" onChange={handleInputOnChange} value={filter.idAppStatPanel} />
+                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idPartnerships" onChange={handleInputOnChange} value={filter.idPartnerships} />
                             </td>
                             <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statLabel" onChange={handleInputOnChange} value={filter.statLabel} />
+                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="name" onChange={handleInputOnChange} value={filter.name} />
                             </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statValue" onChange={handleInputOnChange} value={filter.statValue} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statType" onChange={handleInputOnChange} value={filter.statType} />
-                            </td>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="priority" onChange={handleInputOnChange} value={filter.priority || ''} />
-                            </td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                         </tr>
                     </thead>
                     <tbody>
-                        {statPanelList.length > 0 ? statPanelList.map((panel, index) => (
+                        {partnershipList.length > 0 ? partnershipList.map((item, index) => (
                             <tr key={index}>
-                                <td>{panel.idAppStatPanel}</td>
-                                <td>{panel.statLabel}</td>
+                                <td>{item.idPartnerships}</td>
+                                <td>{item.name}</td>
                                 <td>
-                                    {(panel.statType === 'image' && typeof panel.statValue === 'string') ? (
-                                        <img src={`${S3_URL}stat-panel/${panel.statValue}`} alt={panel.statValue} width={100} height={100} />
-                                    ) : (
-                                        typeof panel.statValue === 'string' || typeof panel.statValue === 'number' ? panel.statValue : null
+                                    {typeof item.image === 'string' && item.image && (
+                                        <img src={`${S3_URL}partnerships/${item.image}`} alt={item.name} width={100} height={100} />
                                     )}
                                 </td>
-                                <td>{panel.statType.charAt(0).toUpperCase() + panel.statType.slice(1)}</td>
-                                <td>{panel.priority}</td>
+                                <td>{item.priority}</td>
                                 <td>
-                                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(panel)}>
+                                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(item)}>
                                         Edit
                                     </Button>
-                                    <Button variant="danger" size="sm" onClick={() => handleDelete(panel.idAppStatPanel)}>
+                                    <Button variant="danger" size="sm" onClick={() => handleDelete(item.idPartnerships)}>
                                         Delete
                                     </Button>
                                 </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={6} className="text-center">No Stat Panel found</td>
+                                <td colSpan={5} className="text-center">No Partnership found</td>
                             </tr>
                         )}
-
                     </tbody>
                 </Table>
                 <Pagination>
@@ -448,12 +391,13 @@ function StatPanel() {
     )
 }
 
-export default StatPanel;
+export default PartnershipPage;
 
-StatPanel.getLayout = function PageLayout(page: any) {
+PartnershipPage.getLayout = function PageLayout(page: any) {
     return (
         <MainLayout>
             {page}
         </MainLayout>
     )
 }
+

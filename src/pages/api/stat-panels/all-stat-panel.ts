@@ -14,13 +14,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         try {
             const { q } = req.query;
 
-            const queryOptions: any = q ? {
-                where: {
+            const queryOptions: any = {
+                order: [['priority', 'ASC']],
+            };
+
+            if (q) {
+                queryOptions.where = {
                     statType: {
                         [Op.like]: `%${q}%`
                     }
-                }
-            } : {};
+                };
+            }
 
             const result = await AppStatPanel.findAll(queryOptions);
 

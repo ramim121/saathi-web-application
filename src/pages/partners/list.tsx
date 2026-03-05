@@ -27,7 +27,14 @@ interface ListProps {
 		Project: {
 			projectName: string
 		}
-	}[]
+	}[],
+	PartnerAdditionalInfo?: {
+		gender: 'Male' | 'Female' | 'Other',
+		household_size: string,
+		dependents_size: string,
+		livelihood_activity: string,
+		primary_goal: string
+	}
 }
 
 interface FilterProps {
@@ -41,6 +48,7 @@ interface FilterProps {
 	idUsers: string,
 	disability: string,
 	partnerType: string,
+	gender: string,
 	orderBy: string,
 	orderType: string,
 	page: number,
@@ -60,6 +68,7 @@ function List() {
 		idUsers: '',
 		disability: '',
 		partnerType: '',
+		gender: '',
 		orderBy: 'idUsers',
 		orderType: 'DESC',
 		page: 1,
@@ -159,6 +168,11 @@ function List() {
 						<th>Skills</th>
 						<th>Disability</th>
 						<th>Partner Type</th>
+						<th>Gender</th>
+						<th>Household Size</th>
+						<th>Dependents Size</th>
+						<th>Livelihood Activity</th>
+						<th>Primary Goal</th>
 						<th>Affiliated Projects</th>
 						<th>Unit Capacity</th>
 						<th>Already Invested</th>
@@ -196,6 +210,13 @@ function List() {
 						<td>
 							<input type="text" className="form-control form-control-sm" placeholder="Search" name="partnerType" onChange={handleInputOnChange} value={filter.partnerType} />
 						</td>
+						<td>
+							<input type="text" className="form-control form-control-sm" placeholder="Search" name="gender" onChange={handleInputOnChange} value={filter.gender} />
+						</td>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
 						<td></td>
 						<td></td>
 						<td></td>
@@ -219,6 +240,11 @@ function List() {
 							<td>{partner.skills}</td>
 							<td>{partner.disability.charAt(0).toUpperCase() + partner.disability.slice(1)}</td>
 							<td>{partner.partnerType.charAt(0).toUpperCase() + partner.partnerType.slice(1)}</td>
+							<td>{partner.PartnerAdditionalInfo?.gender || ''}</td>
+							<td>{partner.PartnerAdditionalInfo?.household_size || ''}</td>
+							<td>{partner.PartnerAdditionalInfo?.dependents_size || ''}</td>
+							<td>{partner.PartnerAdditionalInfo?.livelihood_activity || ''}</td>
+							<td>{partner.PartnerAdditionalInfo?.primary_goal || ''}</td>
 							<td>
 								<ul>
 									{partner.Partnerships.map((project, index) => (
@@ -251,7 +277,7 @@ function List() {
 						</tr>
 					)) : (
 						<tr>
-							<td colSpan={15} className="text-center">No partners found</td>
+							<td colSpan={20} className="text-center">No partners found</td>
 						</tr>
 					)}
 

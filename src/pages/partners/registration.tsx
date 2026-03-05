@@ -23,7 +23,12 @@ interface FormDataType {
     profilePicture: any,
     featuredImages: any,
     disability: string,
-    partnerType: string
+    partnerType: string,
+    gender: 'Male' | 'Female' | 'Other',
+    household_size: string,
+    dependents_size: string,
+    livelihood_activity: string,
+    primary_goal: string
 }
 
 interface Skills {
@@ -48,7 +53,12 @@ function Registration() {
         profilePicture: '',
         featuredImages: '',
         disability: 'no',
-        partnerType: 'none'
+        partnerType: 'none',
+        gender: 'Male',
+        household_size: '',
+        dependents_size: '',
+        livelihood_activity: '',
+        primary_goal: ''
     });
     // const bioRef = useRef<any>(null);
     const profilePicRef = useRef<HTMLInputElement>(null);
@@ -163,6 +173,11 @@ function Registration() {
                 newFormData.append('disability', formData.disability);
                 newFormData.append('profilePicture', formData.profilePicture);
                 newFormData.append('partnerType', formData.partnerType);
+                newFormData.append('gender', formData.gender);
+                newFormData.append('household_size', formData.household_size);
+                newFormData.append('dependents_size', formData.dependents_size);
+                newFormData.append('livelihood_activity', formData.livelihood_activity);
+                newFormData.append('primary_goal', formData.primary_goal);
 
                 if (formData.featuredImages) {
                     for (let i = 0; i < formData.featuredImages.length; i++) {
@@ -398,6 +413,70 @@ function Registration() {
                                         ]}
                                         value={{ value: formData.partnerType, label: formData.partnerType === 'none' ? 'None' : formData.partnerType === 'project' ? 'Project' : formData.partnerType === 'product' ? 'Product' : 'Both' }}
                                         onChange={(selectedOption: any) => setFormData({ ...formData, partnerType: selectedOption.value })}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Gender <span className='text-danger'>*</span></Form.Label>
+                                <Col sm='8'>
+                                    <Select
+                                        id="gender"
+                                        instanceId="gender"
+                                        options={[
+                                            { value: 'Male', label: 'Male' },
+                                            { value: 'Female', label: 'Female' },
+                                            { value: 'Other', label: 'Other' }
+                                        ]}
+                                        value={{ value: formData.gender, label: formData.gender }}
+                                        onChange={(selectedOption: any) => setFormData({ ...formData, gender: selectedOption.value })}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Household Size</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter household size"
+                                        name="household_size"
+                                        onChange={handleOnChange}
+                                        value={formData.household_size}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Dependents Size</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter dependents size"
+                                        name="dependents_size"
+                                        onChange={handleOnChange}
+                                        value={formData.dependents_size}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Livelihood Activity</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type='text'
+                                        placeholder="Enter livelihood activity"
+                                        name="livelihood_activity"
+                                        onChange={handleOnChange}
+                                        value={formData.livelihood_activity}
+                                    />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className='mb-3'>
+                                <Form.Label column sm='4'>Primary Goal</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        as="textarea"
+                                        placeholder="Enter primary goal"
+                                        name="primary_goal"
+                                        onChange={handleOnChange}
+                                        value={formData.primary_goal}
                                     />
                                 </Col>
                             </Form.Group>

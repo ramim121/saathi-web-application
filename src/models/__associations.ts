@@ -19,6 +19,7 @@ import ProductImage from "./ProductImage";
 import ProductStock from "./ProductStock";
 import ProductPacking from "./ProductPacking";
 import AppStatPanel from "./AppStatPanel";
+import Partnership from "./Partnership";
 import ManualNotification from "./ManualNotification";
 import ProjectInvestmentBookingStatus from "./ProjectInvestmentBookingStatus";
 import ProjectProperty from "./ProjectProperty";
@@ -39,6 +40,7 @@ import UserAddress from "./UserAddress";
 import ProductOrder from "./ProductOrder";
 import ProductOrderItem from "./ProductOrderItem";
 import ProductOrderStatus from "./ProductOrderStatus";
+import PartnerAdditionalInfo from "./PartnerAdditionalInfo";
 
 
 
@@ -50,11 +52,13 @@ User.hasMany(UserBank, { foreignKey: 'idUsers' });
 User.hasMany(AppFcmToken, { foreignKey: 'idUsers' });
 User.hasMany(UserAddress, { foreignKey: 'idUsers' });
 User.hasMany(ProductOrder, { foreignKey: 'orderedBy' });
+User.hasOne(PartnerAdditionalInfo, { foreignKey: 'idUsers', as: 'PartnerAdditionalInfo' });
 
 UserAddress.belongsTo(User, { foreignKey: 'idUsers' });
 UserAddress.belongsTo(District, { foreignKey: 'idDistricts' });
 UserAddress.belongsTo(Division, { foreignKey: 'idDivisions' });
 UserAddress.belongsTo(PoliceStation, { foreignKey: 'idPoliceStations' });
+PartnerAdditionalInfo.belongsTo(User, { foreignKey: 'idUsers' });
 
 User.hasOne(File, {
 	foreignKey: 'refId', as: 'ProfilePicture', scope: {
@@ -192,5 +196,7 @@ export {
 	UserAddress,
 	ProductOrder,
 	ProductOrderItem,
-	ProductOrderStatus
+	ProductOrderStatus,
+	Partnership,
+	PartnerAdditionalInfo
 };

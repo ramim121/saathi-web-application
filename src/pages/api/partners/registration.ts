@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File } from '@/models/__associations';
+import { User, File, PartnerAdditionalInfo } from '@/models/__associations';
 import Joi from 'joi';
 import { S3_BUCKET_ACCESS_KEY, S3_BUCKET_SECRET_KEY, S3_BUCKET_REGION, S3_BUCKET_NAME } from '@/config/constants';
 import { generateHash } from '@/utils/GenerateHash';
@@ -66,7 +66,11 @@ const schema = Joi.object({
     skills: Joi.string().required().messages({
         "any.required": "Skills is required",
         "string.empty": "At least one skill is required",
-    })
+    }),
+    gender: Joi.string().valid('Male', 'Female', 'Other').required().messages({
+        "any.required": "Gender is required",
+        "any.only": "Gender must be Male, Female or Other"
+    }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -100,7 +104,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 skills: fields.skills ? fields.skills[0] : null,
                 education: fields.education ? fields.education[0] : null,
                 disability: fields.disability ? fields.disability[0] : null,
-                partnerType: fields.partnerType ? fields.partnerType[0] : null
+                partnerType: fields.partnerType ? fields.partnerType[0] : null,
+                gender: fields.gender ? fields.gender[0] : null,
+                household_size: fields.household_size ? fields.household_size[0] : null,
+                dependents_size: fields.dependents_size ? fields.dependents_size[0] : null,
+                livelihood_activity: fields.livelihood_activity ? fields.livelihood_activity[0] : null,
+                primary_goal: fields.primary_goal ? fields.primary_goal[0] : null
             }
 
             const options = {
@@ -160,6 +169,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     education: data.education,
                     disability: data.disability,
                     partnerType: data.partnerType
+                }, { transaction });
+
+                await PartnerAdditionalInfo.create({
+                    idUsers: partner.idUsers,
+                    gender: data.gender,
+                    household_size: data.household_size,
+                    dependents_size: data.dependents_size,
+                    livelihood_activity: data.livelihood_activity,
+                    primary_goal: data.primary_goal
                 }, { transaction });
 
                 if (profilePicture !== null) {

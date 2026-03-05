@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project, File } from '@/models/__associations'
+import { User, ProjectPartner, Project, File, PartnerAdditionalInfo } from '@/models/__associations'
 import { Op } from 'sequelize'
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -19,7 +19,7 @@ export default async function handler(
 		let userInfo = jwt.decode(token) as JWTPayload;
 		if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
 
-		const { fullName, phoneNumber, age, location, role, joiningDate, skills, idUsers, disability, partnerType, orderBy, orderType, page, pageSize } = req.query
+		const { fullName, phoneNumber, age, location, role, joiningDate, skills, idUsers, disability, partnerType, gender, orderBy, orderType, page, pageSize } = req.query
 
 		let whereClause: { userType: string; fullName?: { [Op.like]: string }; phoneNumber?: { [Op.like]: string }; age?: { [Op.like]: string }; location?: { [Op.like]: string }; idUsers?: { [Op.like]: string }; skills?: { [Op.like]: string }; role?: { [Op.like]: string }; joiningDate?: { [Op.like]: string }; disability?: { [Op.like]: string }; partnerType?: { [Op.like]: string } } = { userType: 'partner' };
 
@@ -92,7 +92,13 @@ export default async function handler(
 					],
 
 				},
-				{ model: File, as: 'ProfilePicture', required: false }],
+				{ model: File, as: 'ProfilePicture', required: false },
+				{
+					model: PartnerAdditionalInfo,
+					as: 'PartnerAdditionalInfo',
+					required: false,
+					where: gender ? { gender: { [Op.like]: `%${gender}%` } } : undefined
+				}],
 
 				where: whereClause,
 				limit,

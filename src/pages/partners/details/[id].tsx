@@ -22,6 +22,13 @@ interface DetailsProps {
     bio: string,
     education: string,
     partnerType: string,
+    PartnerAdditionalInfo?: {
+        gender: 'Male' | 'Female' | 'Other',
+        household_size: string,
+        dependents_size: string,
+        livelihood_activity: string,
+        primary_goal: string
+    },
     Partnerships?: {
         Project: {
             projectName: string,
@@ -127,6 +134,26 @@ function Details() {
                                         <td className="text-center">
                                             {details.ProfilePicture && <img src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
                                         </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Gender</td>
+                                        <td>{details.PartnerAdditionalInfo?.gender}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Household Size</td>
+                                        <td>{details.PartnerAdditionalInfo?.household_size}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dependents Size</td>
+                                        <td>{details.PartnerAdditionalInfo?.dependents_size}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Livelihood Activity</td>
+                                        <td>{details.PartnerAdditionalInfo?.livelihood_activity}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Primary Goal</td>
+                                        <td>{details.PartnerAdditionalInfo?.primary_goal}</td>
                                     </tr>
                                 </tbody>
                             </Table>
