@@ -345,7 +345,7 @@ function PartnerAssign() {
 														.filter(Boolean)}
 												</td>
 												<td>
-													{project.alreadyInvested === 0 && <Button variant="danger" size="sm" onClick={() => handleDelete(project.idProjectPartners)}>Delete</Button>}
+													{Number(project.alreadyInvested) === 0 && <Button variant="danger" size="sm" onClick={() => handleDelete(project.idProjectPartners)}>Delete</Button>}
 												</td>
 
 											</tr>

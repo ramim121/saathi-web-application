@@ -5,6 +5,7 @@ export default interface AppStatPanel {
     statLabel: string;
     statValue: string;
     statType: 'text' | 'number' | 'image';
+    priority: number;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { User, ProjectPartner, Project, File, ProjectCategory } from '@/models/__associations'
+import { User, ProjectPartner, Project, File, ProjectCategory, PartnerAdditionalInfo } from '@/models/__associations'
 import { Op } from 'sequelize'
 
 export default async function handler(
@@ -79,6 +79,10 @@ export default async function handler(
 					{
 						model: File,
 						as: 'FeaturedImages'
+					},
+					{
+						model: PartnerAdditionalInfo,
+						as: 'PartnerAdditionalInfo',
 					}
 				],
 				order: [[{ model: File, as: 'ProfilePicture' }, 'fileName', 'DESC']],

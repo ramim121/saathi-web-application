@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner } from '@/models/__associations';
+import { User, File, ProjectPartner, PartnerAdditionalInfo } from '@/models/__associations';
 import sequelize from 'sequelize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -17,7 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     {
                         model: User,
                         include: [
-                            { model: File, as: 'ProfilePicture' }
+                            { model: File, as: 'ProfilePicture' },
+                            { model: PartnerAdditionalInfo, as: 'PartnerAdditionalInfo' }
                         ]
                     }
                 ],

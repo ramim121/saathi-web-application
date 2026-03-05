@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor, ProjectInvestmentBooking } from '@/models/__associations';
+import { User, File, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor, ProjectInvestmentBooking, PartnerAdditionalInfo } from '@/models/__associations';
 import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -23,6 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 include: [
                     { model: File, as: 'ProfilePicture' },
                     { model: File, as: 'FeaturedImages' },
+                    { model: PartnerAdditionalInfo, as: 'PartnerAdditionalInfo' },
                     {
                         model: ProjectPartner, as: 'Partnerships',
                         attributes: [

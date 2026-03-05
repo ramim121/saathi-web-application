@@ -1,30 +1,34 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
-import { AppStatPanelAttributes } from '@/types/AppStatPanel';
+import { InvestorTestimonialAttributes } from '@/types/InvestorTestimonial';
 
-interface AppStatPanelModel extends AppStatPanelAttributes, Model { }
+interface InvestorTestimonialModel extends InvestorTestimonialAttributes, Model { }
 
-const AppStatPanel = sequelize.define<AppStatPanelModel>('AppStatPanel', {
-    idAppStatPanel: {
+const InvestorTestimonial = sequelize.define<InvestorTestimonialModel>('InvestorTestimonial', {
+    idInvestorTestimonials: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
-    statLabel: {
+    name: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    statValue: {
+    image: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    statType: {
-        type: DataTypes.ENUM('text', 'number', 'image'),
+    rating: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    testimonial: {
+        type: DataTypes.TEXT,
         allowNull: false
     },
     priority: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -35,9 +39,9 @@ const AppStatPanel = sequelize.define<AppStatPanelModel>('AppStatPanel', {
         allowNull: false
     }
 }, {
-    tableName: 'app_stat_panel',
+    tableName: 'investor_testimonials',
     underscored: true,
     timestamps: true,
 });
 
-export default AppStatPanel;
+export default InvestorTestimonial;

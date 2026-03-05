@@ -1,25 +1,21 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
-import { AppStatPanelAttributes } from '@/types/AppStatPanel';
+import { PartnershipAttributes } from '@/types/Partnership';
 
-interface AppStatPanelModel extends AppStatPanelAttributes, Model { }
+interface PartnershipModel extends PartnershipAttributes, Model { }
 
-const AppStatPanel = sequelize.define<AppStatPanelModel>('AppStatPanel', {
-    idAppStatPanel: {
+const Partnership = sequelize.define<PartnershipModel>('Partnership', {
+    idPartnerships: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
-    statLabel: {
+    image: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    statValue: {
+    name: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    statType: {
-        type: DataTypes.ENUM('text', 'number', 'image'),
         allowNull: false
     },
     priority: {
@@ -35,9 +31,9 @@ const AppStatPanel = sequelize.define<AppStatPanelModel>('AppStatPanel', {
         allowNull: false
     }
 }, {
-    tableName: 'app_stat_panel',
+    tableName: 'partnerships',
     underscored: true,
     timestamps: true,
 });
 
-export default AppStatPanel;
+export default Partnership;
