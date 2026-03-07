@@ -369,24 +369,13 @@ function InvestorTestimonialSetup() {
                             <Form.Group as={Row}>
                                 <Form.Label column sm='3' className='mb-3'>Testimonial<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='9'>
-                                    <Editor
-                                        apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                        onInit={(evt, editor) => testimonialRef.current = editor}
-                                        id='investorTestimonial'
-                                        initialValue={formData.testimonial}
-                                        init={{
-                                            height: 300,
-                                            plugins: [
-                                                'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-                                                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                                'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                                            ],
-                                            toolbar: 'undo redo | blocks | ' +
-                                                'bold italic backcolor | alignleft aligncenter ' +
-                                                'alignright alignjustify | bullist numlist outdent indent | ' +
-                                                'removeformat | help',
-                                            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                                        }}
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={5}
+                                        placeholder="Enter testimonial"
+                                        name="testimonial"
+                                        value={formData.testimonial}
+                                        onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
                                     />
                                 </Col>
                             </Form.Group>
