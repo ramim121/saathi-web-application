@@ -11,7 +11,7 @@ export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME ? process.env.S3_BUCKET
 export const S3_BUCKET_REGION = process.env.S3_BUCKET_REGION ? process.env.S3_BUCKET_REGION : 'ap-southeast-1';
 export const S3_BUCKET_ACCESS_KEY = process.env.S3_BUCKET_ACCESS_KEY ? process.env.S3_BUCKET_ACCESS_KEY : 'AKIA4MTWJKAASBQ5ENWP';
 export const S3_BUCKET_SECRET_KEY = process.env.S3_BUCKET_SECRET_KEY ? process.env.S3_BUCKET_SECRET_KEY : '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';
-export const S3_URL = process.env.S3_URL ? process.env.S3_URL : 'https://saathi-files.s3.ap-southeast-1.amazonaws.com/';
+export const S3_URL = process.env.S3_URL ? process.env.S3_URL : 'https://saathi-files-new.s3.ap-southeast-1.amazonaws.com/';
 
 export const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'saathi_db';
 export const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'saathi_admin';

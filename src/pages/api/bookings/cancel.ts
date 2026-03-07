@@ -5,8 +5,17 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import Cors from 'micro-cors';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+const cors = Cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+});
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'PUT') {
         let tokenData = req.headers.authorization;
         let token = tokenData?.split(' ')[1];
@@ -17,13 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         let userInfo = jwt.decode(token) as JWTPayload;
-        if (userInfo.userType !== 'admin') {
-            res.status(403).json({ success: false, message: 'Access denied' });
-            return;
+        // if (userInfo.userType !== 'admin') {
+        //     res.status(403).json({ success: false, message: 'Access denied' });
+        //     return;
+        // }
+
+        let { idProjectInvestmentBookings, remarks } = req.body;
+        if (!remarks) {
+            remarks = 'Booking cancelled by user';
         }
-
-        const { idProjectInvestmentBookings, remarks } = req.body;
-
         const transaction = await sequelize.transaction();
         try {
             const booking = await ProjectInvestmentBooking.findByPk(idProjectInvestmentBookings);
@@ -65,3 +76,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
+export default cors(handler as any);
