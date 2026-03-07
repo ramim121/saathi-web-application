@@ -37,7 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 },
                                 required: false
                             }
-                        ]
+                        ],
+                        where: {
+                            cancelled: 'no'
+                        }
                     }
                 ],
                 order: [['idProjectInvestmentBookings', 'DESC']]
