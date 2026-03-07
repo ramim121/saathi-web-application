@@ -3,7 +3,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button, Modal, Row, Col, Pagination } from "react-bootstrap";
 import { postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { User } from "@/models/__associations";
+import { User, UserBank, Bank, BankBranch } from "@/models/__associations";
 import UserType from "@/types/User";
 import { S3_URL } from "@/config/constants";
 import { NextPage } from "next";
@@ -19,6 +19,8 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     const [filteredUsers, setFilteredUsers] = useState<UserType[]>(users);
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
     const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+    const [showBankModal, setShowBankModal] = useState(false);
+    const [bankModalUser, setBankModalUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [filters, setFilters] = useState({
         name: "",
@@ -299,6 +301,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         <th>Disability</th>
                         <th>status</th>
                         <th>Documents</th>
+                        <th>Bank</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -364,11 +367,28 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                     <br />
                                     Email Verified: {user.emailVerified === "yes" ? "Yes" : "No"}
                                 </td>
+                                <td>
+                                    {user.UserBanks && user.UserBanks.length > 0 ? (
+                                        <Button
+                                            variant="link"
+                                            className="p-0"
+                                            style={{ whiteSpace: "nowrap" }}
+                                            onClick={() => {
+                                                setBankModalUser(user);
+                                                setShowBankModal(true);
+                                            }}
+                                        >
+                                            Bank Information
+                                        </Button>
+                                    ) : (
+                                        <span className="text-muted">—</span>
+                                    )}
+                                </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={10} className="text-center">
+                            <td colSpan={11} className="text-center">
                                 No data found
                             </td>
                         </tr>
@@ -469,6 +489,34 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                     </Modal.Body>
                 </Modal>
             )}
+            {bankModalUser && bankModalUser.UserBanks && (
+                <Modal
+                    size="lg"
+                    show={showBankModal}
+                    onHide={() => setShowBankModal(false)}
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title>Bank Information — {bankModalUser.fullName}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {bankModalUser.UserBanks.map((ub, i) => (
+                            <div key={i} className={i > 0 ? "mt-4 pt-4 border-top" : ""}>
+                                <p className="my-1"><strong>Account Name:</strong> {ub.accountHolderName}</p>
+                                <p className="my-1"><strong>Account Number:</strong> {ub.accountNumber}</p>
+                                {ub.Bank && (
+                                    <p className="my-1"><strong>Bank:</strong> {ub.Bank.bankNameFull} ({ub.Bank.bankNameShort})</p>
+                                )}
+                                {ub.BankBranch && (
+                                    <>
+                                        <p className="my-1"><strong>Branch:</strong> {ub.BankBranch.branchName}</p>
+                                        <p className="my-1"><strong>Routing Number:</strong> {ub.BankBranch.routingNumber}</p>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </Modal.Body>
+                </Modal>
+            )}
         </Container>
     );
 };
@@ -482,7 +530,16 @@ UserList.getLayout = function PageLayout(page: any) {
 
 export async function getServerSideProps() {
     const users = await User.findAll({
-        order: [['idUsers', 'DESC']], // Change this line to order by the desired field and order
+        order: [['idUsers', 'DESC']],
+        include: [
+            {
+                model: UserBank,
+                include: [
+                    { model: Bank },
+                    { model: BankBranch },
+                ],
+            },
+        ],
     });
     return {
         props: {
