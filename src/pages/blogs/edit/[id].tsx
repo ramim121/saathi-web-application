@@ -166,7 +166,7 @@ function Blogs() {
                             <Col sm='10'>
                                 <Editor
                                     apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                    onInit={(evt, editor) => descriptionRef.current = editor}
+                                    onInit={(_evt: any, editor: any) => descriptionRef.current = editor}
                                     id='painPoints'
                                     init={{
                                         height: 400,

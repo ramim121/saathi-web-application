@@ -423,7 +423,7 @@ function Projects() {
 										<Col sm='8'>
 											<Editor
 												apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-												onInit={(evt, editor) => editorRef.current = editor}
+												onInit={(_evt: any, editor: any) => editorRef.current = editor}
 												id='summary'
 												init={{
 													height: 350,

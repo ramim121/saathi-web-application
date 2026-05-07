@@ -374,7 +374,7 @@ function Registration() {
                                 <Col sm='8' style={{ zIndex: '0' }}>
                                     {/* <Editor
                                         apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                        onInit={(evt, editor) => bioRef.current = editor}
+                                        onInit={(_evt: any, editor: any) => bioRef.current = editor}
                                         id='painPoints'
                                         init={{
                                             height: 360,
