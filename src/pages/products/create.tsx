@@ -159,7 +159,7 @@ function ProductCreate() {
     };
 
     return (
-        <Container>
+        <Container fluid>
             <Row>
                 <Col md={2}></Col>
                 <Col md={8}>

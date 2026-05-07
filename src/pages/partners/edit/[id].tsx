@@ -291,7 +291,7 @@ function PartnerEdit() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <h4 className="text-start">Partner Edit</h4>
                 <hr />
                 <Form onSubmit={handleSubmit}>

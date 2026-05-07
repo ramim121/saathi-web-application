@@ -47,9 +47,9 @@ function Header() {
                 <meta content="width=device-width, initial-scale=1" name="viewport" />
                 <meta name="description" content="Saathi is an investment management application" />
             </Head>
-            <div className="page-top mb-3" style={{ resize: "block", backgroundRepeat: "no-repeat", backgroundSize: "1920px", backgroundImage: "url(/assets/images/background-main.png)" }}>
+            <div className="page-top mb-3" style={{ backgroundRepeat: "no-repeat", backgroundSize: "cover", backgroundPosition: "center", backgroundImage: "url(/assets/images/background-main.png)" }}>
                 <Navbar expand="lg" bg="none" className='text-light'>
-                    <Container style={{ maxWidth: "1140px" }}>
+                    <Container fluid className="px-3 px-md-4 px-xl-5">
                         <Navbar.Brand href="/">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img

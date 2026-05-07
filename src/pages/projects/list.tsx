@@ -159,7 +159,7 @@ function List() {
 
 
 	return (
-		<Container>
+		<Container fluid>
 			<h4 className="text-start">Projects List</h4>
 			<hr />
 			<Table responsive striped bordered hover size="sm">

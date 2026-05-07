@@ -74,7 +74,7 @@ const LoginPage = () => {
 		<div style={{ height: "95vh" }} className="App">
 			<div className="h-100 d-flex justify-content-center align-items-center">
 
-				<Container>
+				<Container fluid>
 					<Row className="justify-content-md-center">
 						<Col md="4">
 							{/* eslint-disable-next-line @next/next/no-img-element */}

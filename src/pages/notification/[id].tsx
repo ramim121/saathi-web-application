@@ -59,7 +59,7 @@ function Details() {
 
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start"> Manual Notification Details</h4>
             <hr />
             <Row>

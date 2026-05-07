@@ -326,7 +326,7 @@ function InvestorTestimonialSetup() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row className="justify-content-center">
                     <Col md={8}>
                         <h4 className="text-start">Investor Testimonial</h4>
@@ -406,7 +406,7 @@ function InvestorTestimonialSetup() {
                     </Col>
                 </Row>
             </Container>
-            <Container className='mt-5'>
+            <Container fluid className='mt-5'>
                 <h4 className="text-start">Investor Testimonial List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

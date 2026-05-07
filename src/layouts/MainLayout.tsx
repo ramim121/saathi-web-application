@@ -13,7 +13,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <>
             <AppContextProvider>
                 <Header />
-                <Container style={{ maxWidth: "1140px", minHeight: "80vh" }}>
+                <Container fluid className="px-3 px-md-4 px-xl-5" style={{ minHeight: "80vh" }}>
                     <main id='main-content'>
                         {children}
                     </main>

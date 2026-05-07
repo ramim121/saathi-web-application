@@ -68,7 +68,7 @@ function Registration() {
 
 
     return (
-        <Container>
+        <Container fluid>
             <Row className="justify-content-center">
                 <Col md={6}>
                     <h2 className="text-center mt-2">Admin Registration</h2>

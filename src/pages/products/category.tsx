@@ -231,7 +231,7 @@ function Category() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row>
                     <Col md={2}></Col>
                     <Col md={8}>
@@ -302,7 +302,7 @@ function Category() {
                 </Row>
             </Container>
 
-            <Container className='mt-5'>
+            <Container fluid className='mt-5'>
                 <h4 className="text-start">Product Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

@@ -144,7 +144,7 @@ function Investment() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Investment Setup</h4>
@@ -224,7 +224,7 @@ function Investment() {
                 </Row>
             </Container>
 
-            <Container className='mt-5'>
+            <Container fluid className='mt-5'>
                 <h4 className="text-start">Investment Setup List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

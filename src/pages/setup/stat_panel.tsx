@@ -294,7 +294,7 @@ function StatPanel() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Stat Panel</h4>
@@ -373,7 +373,7 @@ function StatPanel() {
                     </Col>
                 </Row>
             </Container>
-            <Container className='mt-5'>
+            <Container fluid className='mt-5'>
                 <h4 className="text-start">Stat Panel List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

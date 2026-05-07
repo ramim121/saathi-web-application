@@ -278,7 +278,7 @@ function ProjectAssign() {
     };
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start">Project Assign</h4>
             <hr />
             <Form onSubmit={handleSubmit}>

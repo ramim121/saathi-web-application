@@ -296,7 +296,7 @@ function Create() {
     };
 
     return (
-        <Container>
+        <Container fluid>
             <Row>
                 <Col md={2} />
                 <Col md={8}>

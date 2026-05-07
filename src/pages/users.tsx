@@ -184,7 +184,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
 
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start">User List</h4>
             <p>Total Users: {filteredUsers.length}</p>
             <hr />

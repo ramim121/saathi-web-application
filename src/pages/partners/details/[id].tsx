@@ -96,7 +96,7 @@ function Details() {
     }, [id])
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start"> Partner Details ({details?.fullName})</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">

@@ -302,7 +302,7 @@ function Projects() {
 
 	return (
 		<>
-			<Container>
+			<Container fluid>
 				<h4 className="text-start">Project Edit</h4>
 				<hr />
 				<Form onSubmit={handleSubmit}>

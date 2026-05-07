@@ -169,7 +169,7 @@ function Details() {
 
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start"> Order Details ({details?.orderId})</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">

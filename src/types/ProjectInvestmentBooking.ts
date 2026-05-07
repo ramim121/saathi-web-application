@@ -23,6 +23,9 @@ export default interface ProjectInvestmentBooking {
     collectionDate?: string | null;
     collectionLocation?: string | null;
     cancelled: 'yes' | 'no';
+    bookingType?: 'fresh' | 'reinvestment';
+    reinvestedAmount?: number;
+    idSourceProjectInvestors?: number | null;
     ProjectInvestors?: ProjectInvestor[];
 }
 

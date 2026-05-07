@@ -149,7 +149,7 @@ function Blogs() {
     }
 
     return (
-        <Container>
+        <Container fluid>
             <Row className="justify-content-center">
                 <Col md={10}>
                     <h4 className="text-start">Blog Create</h4>

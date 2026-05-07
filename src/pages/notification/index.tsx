@@ -234,7 +234,7 @@ function ManualNotification() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row className="justify-content-center">
                     <Col md={12}>
                         <h4 className="text-start">Manual Notification Create</h4>

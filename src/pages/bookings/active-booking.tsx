@@ -105,7 +105,7 @@ function ActiveBooking() {
     };
 
     return (
-        <Container>
+        <Container fluid>
             <h4 className="text-start">Active Booking List</h4>
             <hr />
             <Row className="mt-3">

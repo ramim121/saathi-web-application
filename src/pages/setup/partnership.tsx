@@ -267,7 +267,7 @@ function PartnershipPage() {
 
     return (
         <>
-            <Container>
+            <Container fluid>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Partnerships</h4>
@@ -328,7 +328,7 @@ function PartnershipPage() {
                     </Col>
                 </Row>
             </Container>
-            <Container className='mt-5'>
+            <Container fluid className='mt-5'>
                 <h4 className="text-start">Partnership List</h4>
                 <hr />
                 <Table responsive striped bordered hover>
