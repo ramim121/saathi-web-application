@@ -125,11 +125,75 @@ for (const s of rendered) {
     const tdOpen = (s.html.match(/<td[\s>]/g) ?? []).length;
     const tdClose = (s.html.match(/<\/td>/g) ?? []).length;
     if (tdOpen !== tdClose) problems.push(`${s.name}: ${tdOpen} <td> vs ${tdClose} </td>`);
+
+    /*
+     * Phone-width checks.
+     *
+     * These exist because the mobile break was found by eye, not by this
+     * harness: detail-row labels were `white-space: nowrap`, and in a booking
+     * summary the label is a project name, so the table forced the whole email
+     * wider than the screen. Nothing here would have caught it.
+     */
+    /*
+     * Comments are stripped first. The first version of this check matched the
+     * CSS comment that *explains* the nowrap fix, so every template failed for
+     * describing the bug rather than having it.
+     */
+    const markup = s.html.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    if (/white-space:\s*nowrap/.test(markup)) {
+        problems.push(`${s.name}: nowrap present — it will force horizontal scroll on a phone`);
+    }
+    if (!s.html.includes('@media only screen and (max-width: 600px)')) {
+        problems.push(`${s.name}: no phone-width rules`);
+    }
+    for (const hook of ['sh-h1', 'sh-p', 'sh-pad']) {
+        if (!s.html.includes(`class="${hook}"`) && !s.html.includes(`class="${hook} `)) {
+            problems.push(`${s.name}: missing .${hook} hook, so phone sizing will not apply`);
+        }
+    }
+    // A fixed pixel width wider than the smallest common viewport cannot shrink.
+    // Array.from rather than for-of: the project targets a TS lib without
+    // downlevelIteration, so iterating the matchAll iterator directly is an error.
+    Array.from(s.html.matchAll(/width\s*[:=]\s*"?(\d{3,})px?"?/g)).forEach((m) => {
+        const px = Number(m[1]);
+        if (px > 600) problems.push(`${s.name}: fixed width ${px}px exceeds the 600px shell`);
+    });
+}
+
+/*
+ * Inline the logo for the preview only.
+ *
+ * The real emails link the logo over https, which is correct — several clients
+ * (Outlook among them) refuse data: URIs for images, so a remote URL is the
+ * only thing that renders everywhere. But the preview page is served under a
+ * Content-Security-Policy that blocks every external host, so in the preview
+ * the remote logo silently fails and every template looks broken.
+ *
+ * Swapping it for a data: URI here shows what actually lands in an inbox.
+ * Nothing that ships is changed.
+ */
+const LOGO_REMOTE = 'https://api.digigramventures.com/assets/images/email-logo-header.png';
+const logoB64Path = path.join(__dirname, 'email-logo.b64');
+const LOGO_INLINE = fs.existsSync(logoB64Path)
+    ? `data:image/png;base64,${fs.readFileSync(logoB64Path, 'utf8').trim()}`
+    : null;
+
+if (!LOGO_INLINE) {
+    console.warn('! db/email-logo.b64 missing — previews will show a broken logo. Regenerate it from ' + LOGO_REMOTE);
 }
 
 for (const s of rendered) {
     fs.writeFileSync(path.join(outDir, `${s.name}.html`), s.html, 'utf8');
     fs.writeFileSync(path.join(outDir, `${s.name}.txt`), s.text, 'utf8');
+}
+
+for (const s of rendered) {
+    if (!LOGO_INLINE) break;
+    fs.writeFileSync(
+        path.join(outDir, `${s.name}.preview.html`),
+        s.html.split(LOGO_REMOTE).join(LOGO_INLINE),
+        'utf8',
+    );
 }
 
 fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(rendered.map(({ html, text, ...rest }) => ({ ...rest, bytes: html.length, textBytes: text.length })), null, 2), 'utf8');
