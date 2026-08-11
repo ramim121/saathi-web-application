@@ -37,6 +37,8 @@ const schema = Joi.object({
         'string.empty': 'Category Name is required',
         'any.required': 'Category Name is required'
     }),
+    // Bangla counterpart — optional; null falls back to the English name.
+    categoryNameBn: Joi.string().optional().allow(null, ''),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -60,6 +62,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const data = {
                 categoryName: fields['categoryName'] ? fields['categoryName'][0].toString() : '',
+                categoryNameBn: fields['categoryNameBn'] ? fields['categoryNameBn'][0].toString() : '',
             }
 
             const options = {
@@ -117,6 +120,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 const category = await ProjectCategory.create({
                     categoryName: data.categoryName,
+                    categoryNameBn: data.categoryNameBn || null,
                     categoryImage: categoryImage !== null ? categoryImageFileName : null
                 }, { transaction });
 

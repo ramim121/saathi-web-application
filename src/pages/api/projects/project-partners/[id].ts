@@ -14,7 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 include: [
                     {
                         model: User,
-                        attributes: ['fullName', 'phoneNumber'],
+                        // SECURITY: this route is unauthenticated and `phoneNumber` was in the
+                        // projection. No caller reads it — the three admin callers use
+                        // fullName / idProjectPartners / partnerUnitCapacity only.
+                        // The route is not locked to admin because bookings/create.tsx calls it
+                        // without a token; fix that caller first if you want to gate it.
+                        attributes: ['fullName'],
                         include: [
                             {
                                 model: File, as: 'ProfilePicture',

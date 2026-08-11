@@ -26,6 +26,15 @@ const InvestorTestimonial = sequelize.define<InvestorTestimonialModel>('Investor
         type: DataTypes.TEXT,
         allowNull: false
     },
+    // Bangla counterparts — migration 002_bangla_columns.sql.
+    nameBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    testimonialBn: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     priority: {
         type: DataTypes.INTEGER,
         allowNull: false

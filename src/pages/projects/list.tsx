@@ -4,7 +4,7 @@ import { Container, Table, Button, Pagination } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface ListProps {
 	idProjects: number,

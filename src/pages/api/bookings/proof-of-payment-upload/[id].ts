@@ -21,6 +21,7 @@ const s3Client = new S3Client({
     }
 });
 import Cors from 'micro-cors';
+import { PROOF_SUBMITTED_WRITE_VALUE } from '@/utils/bookingStatus';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -83,6 +84,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(404).json({ success: false, message: 'Booking not found' });
         }
 
+        // SECURITY: the token was verified above, but the booking id comes from the
+        // URL and was never checked against it — so any signed-in user could attach a
+        // proof-of-payment file, a payment method and a bank account to somebody
+        // else's booking. Admins keep the override because the admin panel records
+        // offline payments on behalf of investors.
+        if (userInfo.userType !== 'admin' && booking.idUsers !== userInfo.idUsers) {
+            await transaction.rollback();
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
 
         form.parse(req, async (err, fields, files) => {
@@ -124,7 +135,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const params: any = {
                 Bucket: S3_BUCKET_NAME,
                 ContentType: proofOfPaymentFile.mimetype!,
-                ACL: 'public-read',
+                // No public ACL. These are bank receipts, deposit slips and cheque
+
+                // images; they are read through /api/files/proof-of-payment/{bookingId},
+
+                // which checks ownership and issues a five-minute presigned URL.
                 Body: fs.createReadStream(proofOfPaymentFile.filepath),
                 Key: 'proof-of-payment/' + proofOfPaymentFileName
             };
@@ -149,7 +164,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 booking.idUserBanks = data.idUserBanks ? Number(data.idUserBanks) : undefined;
             }
             booking.proofOfPayment = proofOfPaymentFileName;
-            booking.paymentConfirmationStatus = 'uploaded';
+            booking.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
             booking.collectionRequired = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'yes' : 'no';
             booking.collectionStatus = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'pending' : null;
             booking.collectionDate = (data.paymentMethod === 'cheque' || data.paymentMethod === 'cash') && data.collectionDate ? new Date(new Date(data.collectionDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString() : null;

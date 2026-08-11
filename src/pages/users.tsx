@@ -5,9 +5,10 @@ import { postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { User, UserBank, Bank, BankBranch } from "@/models/__associations";
 import UserType from "@/types/User";
-import { S3_URL } from "@/config/constants";
-import { NextPage } from "next";
-import { API_URL } from "@/config/constants";
+import { S3_URL } from '@/config/public';
+import { NextPage, GetServerSidePropsContext } from "next";
+import { API_URL } from '@/config/public';
+import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
 import { Form } from "react-bootstrap";
 
 interface UserListProps {
@@ -473,12 +474,18 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                                 }
                                             </p>
                                             <hr />
+                                            {/* Served through an authenticated route rather than the
+                                                public bucket URL. These are national ID cards; the route
+                                                checks that the caller is the owner or an admin and
+                                                redirects to a five-minute presigned URL. It takes the
+                                                user id, not a filename, so a leaked filename grants
+                                                nothing. */}
                                             <Row>
                                                 <Col>
-                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageFront}`} alt="NID Front"></img>
+                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=front`} alt="NID Front"></img>
                                                 </Col>
                                                 <Col>
-                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageBack}`} alt="NID Back"></img>
+                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=back`} alt="NID Back"></img>
                                                 </Col>
                                             </Row>
                                         </>
@@ -528,7 +535,12 @@ UserList.getLayout = function PageLayout(page: any) {
     return <MainLayout>{page}</MainLayout>;
 };
 
-export async function getServerSideProps() {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+    // This query runs before any client-side layout check, and its result is
+    // embedded in the served HTML — so without this guard the whole user table
+    // (email, phone, NID, bank accounts) was readable by an anonymous request.
+    if (!requireAdminPage(context)) return redirectToLogin;
+
     const users = await User.findAll({
         order: [['idUsers', 'DESC']],
         include: [

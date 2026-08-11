@@ -73,6 +73,9 @@ function Header() {
                                     <NavDropdown.Item href="/setup/unit">Unit</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/partnership">Partnership</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/investor_testimonial">Investor Testimonial</NavDropdown.Item>
+                                    <NavDropdown.Divider />
+                                    {/* Reference: every backend route, who calls it, and the web-vs-app differences. */}
+                                    <NavDropdown.Item href="/api-viewer">API map</NavDropdown.Item>
                                 </NavDropdown>
                                 <Nav.Link href="/notification">Notification</Nav.Link>
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">

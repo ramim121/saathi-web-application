@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Col, Container, Form, InputGroup, Row, Table, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';

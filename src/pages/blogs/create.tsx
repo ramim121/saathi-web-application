@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button, Col, Container, Form, Spinner, Row } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import Swal from 'sweetalert2';
 import { Editor } from '@tinymce/tinymce-react';
@@ -8,6 +8,7 @@ import { getCookie } from '@/utils/GetCookie';
 
 interface FormDataType {
     heading: string,
+    headingBn: string,
     description: string,
     writtenBy: string,
     writtenDate: string,
@@ -17,6 +18,7 @@ interface FormDataType {
 function Blogs() {
     const [formData, setFormData] = useState<FormDataType>({
         heading: '',
+        headingBn: '',
         description: '',
         writtenBy: '',
         writtenDate: '',
@@ -24,6 +26,9 @@ function Blogs() {
     });
 
     const descriptionRef = useRef<any>(null);
+    // The Bangla body needs its own editor instance — a plain textarea would
+    // strip the formatting that the English body is allowed to carry.
+    const descriptionBnRef = useRef<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
@@ -65,6 +70,8 @@ function Blogs() {
                     const newFormData = new FormData();
                     newFormData.append('heading', formData.heading);
                     newFormData.append('description', descriptionRef.current.getContent());
+                    newFormData.append('headingBn', formData.headingBn || '');
+                    newFormData.append('descriptionBn', descriptionBnRef.current ? descriptionBnRef.current.getContent() : '');
                     newFormData.append('writtenBy', formData.writtenBy);
                     newFormData.append('writtenDate', formData.writtenDate);
                     if (formData.featuredImage !== null)
@@ -84,6 +91,7 @@ function Blogs() {
                         });
                         setFormData({
                             heading: '',
+                            headingBn: '',
                             description: '',
                             writtenBy: '',
                             writtenDate: '',
@@ -93,6 +101,7 @@ function Blogs() {
                             fileInputRef.current.value = '';  // Clear file input
                         }
                         descriptionRef.current.setContent('');
+                        descriptionBnRef.current?.setContent('');
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -129,6 +138,14 @@ function Blogs() {
                                 <Form.Control type="text" placeholder="Enter heading of the blog" name="heading" onChange={handleOnChange} value={formData.heading} />
                             </Col>
                         </Form.Group>
+                        <Form.Group as={Row}>
+                            {/* Bangla counterpart — optional; blank falls back to English. */}
+                            <Form.Label column sm='2' className='mb-3'>Heading (বাংলা)</Form.Label>
+                            <Col sm='10'>
+                                <Form.Control type="text" placeholder="ব্লগের শিরোনাম লিখুন" name="headingBn" lang="bn" onChange={handleOnChange} value={formData.headingBn} />
+                                <Form.Text muted>Optional. Falls back to the English heading if left blank.</Form.Text>
+                            </Col>
+                        </Form.Group>
                         <Form.Group as={Row} className='mb-3'>
                             <Form.Label column sm='2'>Description</Form.Label>
                             <Col sm='10'>
@@ -150,6 +167,34 @@ function Blogs() {
                                         content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
                                     }}
                                 />
+                            </Col>
+                        </Form.Group>
+                        <Form.Group as={Row} className='mb-3'>
+                            {/* Bangla body. Optional — blank falls back to the English one.
+                                Its own editor instance, with a Bangla-capable font stack in
+                                content_style so the editing surface renders the script
+                                instead of tofu boxes. */}
+                            <Form.Label column sm='2'>Description (বাংলা)</Form.Label>
+                            <Col sm='10'>
+                                <Editor
+                                    apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
+                                    onInit={(evt, editor) => descriptionBnRef.current = editor}
+                                    id='descriptionBn'
+                                    init={{
+                                        height: 400,
+                                        plugins: [
+                                            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                                            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                                            'insertdatetime', 'media', 'table', 'help', 'wordcount'
+                                        ],
+                                        toolbar: 'undo redo | blocks | ' +
+                                            'bold italic backcolor | alignleft aligncenter ' +
+                                            'alignright alignjustify | bullist numlist outdent indent | ' +
+                                            'removeformat | help',
+                                        content_style: 'body { font-family:"Noto Sans Bengali","Nirmala UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.7 }'
+                                    }}
+                                />
+                                <Form.Text muted>Optional. Falls back to the English description if left blank.</Form.Text>
                             </Col>
                         </Form.Group>
                         <Form.Group as={Row}>

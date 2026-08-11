@@ -26,10 +26,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         let userInfo = jwt.decode(token) as JWTPayload;
-        // if (userInfo.userType !== 'admin') {
-        //     res.status(403).json({ success: false, message: 'Access denied' });
-        //     return;
-        // }
 
         let { idProjectInvestmentBookings, remarks } = req.body;
         if (!remarks) {
@@ -41,6 +37,38 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             if (!booking) {
                 await transaction.rollback();
                 return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+
+            /**
+             * SECURITY: ownership check.
+             *
+             * The booking id comes from the request body and nothing tied it to
+             * the caller — the access check above this was commented out — so
+             * any signed-in user could cancel **anyone's** booking by guessing a
+             * sequential id, releasing their units.
+             *
+             * Admins may cancel any booking; that is what the admin panel does.
+             * A 404 rather than a 403 for everyone else, so this does not become
+             * a way to discover which ids exist.
+             */
+            if (userInfo.userType !== 'admin' && Number(booking.idUsers) !== Number(userInfo.idUsers)) {
+                await transaction.rollback();
+                return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+
+            // Cancelling a booking that is already paid for is not a user
+            // action — it needs a refund decision — so only an admin may do it.
+            if (userInfo.userType !== 'admin' && booking.paymentConfirmationStatus === 'confirmed') {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'This booking is already confirmed. Contact support to cancel it.',
+                });
+            }
+
+            if (booking.cancelled === 'yes') {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'This booking is already cancelled' });
             }
 
             booking.cancelled = 'yes';

@@ -61,7 +61,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             include: [
                                 {
                                     model: User,
-                                    attributes: ['idUsers', 'fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'phoneNumber', 'age', 'skills', 'bio'],
+                                    // SECURITY: public route — `phoneNumber` removed (no app
+                                    // screen reads a partner's phone). `disability` stays: the
+                                    // app renders it as a badge on this payload.
+                                    attributes: ['idUsers', 'fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'age', 'skills', 'bio',
+                                        'fullNameBn', 'roleBn', 'locationBn', 'interestedInBn', 'skillsBn', 'bioBn'],
                                     include: [
                                         { model: File, as: 'ProfilePicture' }
                                     ]
@@ -158,7 +162,9 @@ export async function getProjectDetails(projectId: string) {
                 include: [
                     {
                         model: User,
-                        attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'phoneNumber'],
+                        // SECURITY: public route — `phoneNumber` removed. See note above.
+                        attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate',
+                            'fullNameBn', 'roleBn', 'locationBn', 'interestedInBn'],
                         include: [
                             { model: File, as: 'ProfilePicture' }
                         ]

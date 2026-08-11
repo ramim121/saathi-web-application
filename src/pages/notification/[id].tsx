@@ -5,7 +5,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface DetailsProps {
     idManualNotifications: number;

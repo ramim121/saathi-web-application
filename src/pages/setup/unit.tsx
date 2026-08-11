@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 
 interface FormDataType {

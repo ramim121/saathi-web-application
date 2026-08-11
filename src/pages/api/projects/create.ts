@@ -175,6 +175,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 collectionEnds: fields.collectionEnds ? fields.collectionEnds[0] : null,
                 otherLocations: fields.otherLocations ? fields.otherLocations[0] : null,
                 summary: fields.summary ? fields.summary[0] : null,
+                // Bangla counterparts. Note `description` is deliberately absent:
+                // nothing writes that column — the rich-text editor writes `summary`.
+                projectNameBn: fields.projectNameBn ? fields.projectNameBn[0].toString() : null,
+                summaryBn: fields.summaryBn ? fields.summaryBn[0] : null,
+                locationBn: fields.locationBn ? fields.locationBn[0] : null,
+                otherLocationsBn: fields.otherLocationsBn ? fields.otherLocationsBn[0] : null,
                 createdBy: fields.createdBy ? fields.createdBy[0] : null,
                 showInUpcoming: fields.showInUpcoming ? fields.showInUpcoming[0] : null,
                 projectCategory: fields.projectCategory ? fields.projectCategory[0] : null,
@@ -248,6 +254,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     collectionStarts: data.collectionStarts,
                     collectionEnds: data.collectionEnds,
                     otherLocations: data.otherLocations,
+                    projectNameBn: data.projectNameBn || null,
+                    summaryBn: data.summaryBn || null,
+                    locationBn: data.locationBn || null,
+                    otherLocationsBn: data.otherLocationsBn || null,
                     projectStatus: 'created',
                     showInUpcoming: data.showInUpcoming,
                     idProjectCategories: data.projectCategory,

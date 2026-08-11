@@ -6,6 +6,9 @@ export default interface InvestorTestimonial {
     image: string;
     rating: number;
     testimonial: Text;
+    // Bangla counterparts (migration 002); null falls back to English.
+    nameBn?: string | null;
+    testimonialBn?: string | null;
     priority: number;
     createdAt: Date;
     updatedAt: Date;

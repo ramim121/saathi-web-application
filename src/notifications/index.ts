@@ -11,6 +11,7 @@ import sendNotif, { sendNotificationToTopic } from "@/config/fcm";
 import sendEmail from "@/utils/SendEmail";
 import path from "path";
 import ejs from 'ejs';
+import { hasTemplate, renderTemplate } from '@/notifications/templates';
 
 // Picks notifications from the queue and sends them
 const runNotificationQueue = async () => {
@@ -108,7 +109,8 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
                 from: 'Shathi Msg <msg@notification.n.digigramventures.com>',
                 to: [users[i].email!],
                 subject: notificationBody.subject,
-                htmlBody: notificationBody.body
+                htmlBody: notificationBody.body,
+                textBody: notificationBody.text
             }))
         }
     }
@@ -119,7 +121,8 @@ const handleEmailNotification = async (notification: NotificationQueueModel) => 
             from: 'Shathi Msg <msg@notification.n.digigramventures.com>',
             to: [notification.receiver],
             subject: notificationBody.subject,
-            htmlBody: notificationBody.body
+            htmlBody: notificationBody.body,
+            textBody: notificationBody.text
         }));
     }
 
@@ -171,16 +174,42 @@ export async function generateNotification(notificationName: string, notificatio
         }
 
         if (notificationTemplate?.emailTemplate && receiver.email && receiver.emailVerified === 'yes') {
-            // Open email template file
-            const filePath = path.join(process.cwd(), 'src', 'notifications', 'email_templates', notificationTemplate.emailTemplate);
-            const emailBody = fs.readFileSync(filePath, 'utf8');
+            /*
+             * Rendered from `notifications/templates.ts` when a renderer exists
+             * for this notification, and from the old .html/.ejs file otherwise.
+             *
+             * Both paths are kept on purpose. The rewritten templates cover the
+             * eleven notifications that exist today; if a twelfth is added to
+             * `notification_templates` with only a file behind it, it still
+             * sends rather than silently going nowhere.
+             *
+             * The file path is `eval()`-based and unescaped — see
+             * `generateNotificationBody`. That is the reason to migrate the
+             * remainder, not to extend it.
+             */
+            let subject: string;
+            let body: string;
+            let text: string | undefined;
+
+            if (hasTemplate(notificationName)) {
+                // NULL means never asked, and is treated as English — which is
+                // what all existing accounts have been receiving.
+                const locale = receiver.preferredLanguage === 'bn' ? 'bn' : 'en';
+                const rendered = renderTemplate(notificationName, notificationData, locale);
+                subject = rendered.subject;
+                body = rendered.html;
+                text = rendered.text;
+            } else {
+                const filePath = path.join(process.cwd(), 'src', 'notifications', 'email_templates', notificationTemplate.emailTemplate);
+                const emailBody = fs.readFileSync(filePath, 'utf8');
+                subject = generateNotificationBody(notificationTemplate.emailSubject!, notificationData);
+                body = generateNotificationBody(emailBody, notificationData, filePath.endsWith('.ejs'));
+            }
+
             await NotificationQueue.create({
                 notificationType: 'email',
                 receiver: receiver.email,
-                notificationBody: JSON.stringify({
-                    subject: generateNotificationBody(notificationTemplate.emailSubject!, notificationData),
-                    body: generateNotificationBody(emailBody, notificationData, filePath.endsWith('.ejs'))
-                })
+                notificationBody: JSON.stringify({ subject, body, text })
             });
         }
 

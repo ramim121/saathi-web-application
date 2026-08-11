@@ -9,6 +9,9 @@ export default interface PartnerAdditionalInfo {
     dependents_size: string;
     livelihood_activity: string;
     primary_goal: string;
+    // Bangla counterparts (migration 002); null falls back to English.
+    livelihood_activity_bn?: string | null;
+    primary_goal_bn?: string | null;
     createdAt: Date;
     updatedAt: Date;
     User?: User;

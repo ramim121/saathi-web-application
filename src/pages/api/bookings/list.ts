@@ -5,6 +5,7 @@ import Cors from 'micro-cors';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import { safeOrder } from '@/utils/order';
 const cors = Cors({
 	origin: '*',
 	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -75,7 +76,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 			distinct: true,
 			limit,
 			offset,
-			order: [[orderBy as string || 'createdAt', orderType === 'DESC' ? 'DESC' : 'ASC']],
+			order: safeOrder(ProjectInvestmentBooking, orderBy, orderType, 'createdAt', 'ASC'),
 		});
 
 		const rowsWithMaturity = result.rows.map((booking: any) => {

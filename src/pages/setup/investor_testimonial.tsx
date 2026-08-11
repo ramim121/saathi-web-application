@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL, S3_URL } from '@/config/constants';
+import { API_URL, S3_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 import { Editor } from '@tinymce/tinymce-react';
@@ -10,9 +10,11 @@ import { Editor } from '@tinymce/tinymce-react';
 interface FormDataType {
     idInvestorTestimonials?: number;
     name: string;
+    nameBn: string;
     image: string | File;
     rating: number | null;
     testimonial: string;
+    testimonialBn: string;
     priority: number | null;
 }
 
@@ -32,9 +34,11 @@ function InvestorTestimonialSetup() {
     const [formData, setFormData] = useState<FormDataType>({
         idInvestorTestimonials: undefined,
         name: '',
+        nameBn: '',
         image: '',
         rating: null,
         testimonial: '',
+        testimonialBn: '',
         priority: null
     });
 
@@ -204,6 +208,8 @@ function InvestorTestimonialSetup() {
                 newFormData.append('rating', formData.rating?.toString() || '');
                 newFormData.append('testimonial', testimonialRef.current ? testimonialRef.current.getContent() : formData.testimonial);
                 newFormData.append('priority', formData.priority?.toString() || '');
+                newFormData.append('nameBn', formData.nameBn || '');
+                newFormData.append('testimonialBn', formData.testimonialBn || '');
 
                 if (formData.image instanceof File) {
                     newFormData.append('image', formData.image);
@@ -229,9 +235,11 @@ function InvestorTestimonialSetup() {
                         setFormData({
                             idInvestorTestimonials: undefined,
                             name: '',
+                            nameBn: '',
                             image: '',
                             rating: null,
                             testimonial: '',
+                            testimonialBn: '',
                             priority: null
                         });
                         setIsEditing(false);
@@ -267,9 +275,11 @@ function InvestorTestimonialSetup() {
         setFormData({
             idInvestorTestimonials: item.idInvestorTestimonials,
             name: item.name,
+            nameBn: item.nameBn || '',
             image: item.image,
             rating: item.rating,
             testimonial: item.testimonial,
+            testimonialBn: item.testimonialBn || '',
             priority: item.priority
         });
         if (fileInputRef.current) {
@@ -345,6 +355,21 @@ function InvestorTestimonialSetup() {
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
+                                {/* Bangla counterpart — optional; blank falls back to English. */}
+                                <Form.Label column sm='3' className='mb-3'>Name (বাংলা)</Form.Label>
+                                <Col sm='9'>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="নাম লিখুন"
+                                        name="nameBn"
+                                        lang="bn"
+                                        onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
+                                        value={formData.nameBn}
+                                    />
+                                    <Form.Text muted>Optional. Falls back to the English name if left blank.</Form.Text>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
                                 <Form.Label column sm='3' className='mb-3'>Image<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='9'>
                                     <Form.Control type="file" name="image" onChange={handleFileUpload} ref={fileInputRef} />
@@ -377,6 +402,22 @@ function InvestorTestimonialSetup() {
                                         value={formData.testimonial}
                                         onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
                                     />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                {/* Bangla counterpart — optional; blank falls back to English. */}
+                                <Form.Label column sm='3' className='mb-3'>Testimonial (বাংলা)</Form.Label>
+                                <Col sm='9'>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={5}
+                                        placeholder="বাংলায় প্রশংসাপত্র লিখুন"
+                                        name="testimonialBn"
+                                        lang="bn"
+                                        value={formData.testimonialBn}
+                                        onChange={(e) => setFormData({ ...formData, testimonialBn: e.target.value })}
+                                    />
+                                    <Form.Text muted>Optional. Falls back to the English testimonial if left blank.</Form.Text>
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row} className="mt-3">

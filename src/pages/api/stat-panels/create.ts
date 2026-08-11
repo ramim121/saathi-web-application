@@ -69,7 +69,12 @@ const schema = Joi.object({
         'number.base': 'Priority must be a number',
         'number.empty': 'Priority is required',
         'any.required': 'Priority is required'
-    })
+    }),
+    // Bangla counterparts — optional; null falls back to the English column.
+    // Only meaningful for statType 'text' / 'number'; an 'image' row has no
+    // translatable copy.
+    statLabelBn: Joi.string().optional().allow(null, ''),
+    statValueBn: Joi.string().optional().allow(null, '')
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -100,7 +105,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 statLabel: fields.statLabel ? fields.statLabel[0] : null,
                 statType: fields.statType ? fields.statType[0] : null,
                 statValue: statValue,
-                priority: fields.priority ? fields.priority[0] : null
+                priority: fields.priority ? fields.priority[0] : null,
+                statLabelBn: fields.statLabelBn ? fields.statLabelBn[0] : null,
+                statValueBn: fields.statValueBn ? fields.statValueBn[0] : null
             }
 
             const options = {
@@ -152,7 +159,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     statType: data.statType,
                     statLabel: data.statLabel,
                     statValue: data.statType === 'image' ? statValueFileName : data.statValue,
-                    priority: data.priority
+                    priority: data.priority,
+                    statLabelBn: data.statLabelBn || null,
+                    // An image row's "value" is a filename, not copy — never translated.
+                    statValueBn: data.statType === 'image' ? null : (data.statValueBn || null)
                 }, { transaction });
 
                 await transaction.commit();

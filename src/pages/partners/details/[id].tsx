@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs } from "react-bootstrap";
 import Carousel from 'react-bootstrap/Carousel';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 import Swal from "sweetalert2";
 import Link from "next/link";
 

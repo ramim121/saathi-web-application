@@ -5,9 +5,9 @@ import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Form, Button, Spinner } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 import Select from 'react-select';
 
 interface DetailsProps {

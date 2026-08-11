@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import { useRouter } from 'next/router';

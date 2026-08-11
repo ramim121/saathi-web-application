@@ -46,7 +46,9 @@ const schema = Joi.object({
         'number.base': 'Priority must be a number',
         'number.empty': 'Priority is required',
         'any.required': 'Priority is required'
-    })
+    }),
+    // Bangla counterpart — optional; content is translated after it is written.
+    nameBn: Joi.string().optional().allow(null, '')
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -73,7 +75,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const data = {
                 idPartnerships,
                 name: fields.name ? fields.name[0] : null,
-                priority: fields.priority ? fields.priority[0] : null
+                priority: fields.priority ? fields.priority[0] : null,
+                nameBn: fields.nameBn ? fields.nameBn[0] : null
             };
 
             const options = {
@@ -124,7 +127,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 await existing.update({
                     name: data.name,
                     image: imageFileName,
-                    priority: data.priority
+                    priority: data.priority,
+                    nameBn: data.nameBn || null
                 }, { transaction });
 
                 await transaction.commit();

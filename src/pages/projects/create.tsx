@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { Button, Col, Container, Form, Row, Card, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
 import { Editor } from '@tinymce/tinymce-react';
@@ -11,6 +11,10 @@ import { useRouter } from 'next/router';
 
 interface FormDataType {
 	projectName: string,
+	// Bangla counterparts — all optional; blank falls back to the English field.
+	projectNameBn: string,
+	locationBn: string,
+	otherLocationsBn: string,
 	unitInvestmentValue: number,
 	projectType?: 'regular' | 'special',
 	investment: {
@@ -64,6 +68,9 @@ function Projects() {
 	const router = useRouter();
 	const [formData, setFormData] = useState<FormDataType>({
 		projectName: '',
+		projectNameBn: '',
+		locationBn: '',
+		otherLocationsBn: '',
 		unitInvestmentValue: 0,
 		projectType: 'regular',
 		investment: {
@@ -98,6 +105,8 @@ function Projects() {
 	const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
 	const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>([]);
 	const editorRef = useRef<any>(null);
+	// Bangla summary gets its own editor instance — the summary is rich text.
+	const summaryBnRef = useRef<any>(null);
 	const mainImageRef = useRef<HTMLInputElement>(null);
 	const featuredImagesRef = useRef<HTMLInputElement>(null);
 	const [loading, setLoading] = useState<boolean>(false);
@@ -258,6 +267,10 @@ function Projects() {
 					newFormData.append('collectionStarts', formData.collectionStarts);
 					newFormData.append('collectionEnds', formData.collectionEnds);
 					newFormData.append('otherLocations', formData.otherLocations);
+					newFormData.append('projectNameBn', formData.projectNameBn || '');
+					newFormData.append('locationBn', formData.locationBn || '');
+					newFormData.append('otherLocationsBn', formData.otherLocationsBn || '');
+					newFormData.append('summaryBn', summaryBnRef.current ? summaryBnRef.current.getContent() : '');
 					newFormData.append('mainImage', formData.mainImage);
 					newFormData.append('investment', JSON.stringify(formData.investment));
 					newFormData.append('ProjectProperty', JSON.stringify(formData.ProjectProperty));
@@ -318,6 +331,8 @@ function Projects() {
 								<Form.Label column sm='4' >Name of the project <span className='text-danger'>*</span></Form.Label>
 								<Col sm='8'>
 									<Form.Control type="text" placeholder="Enter name of the project" name="projectName" onChange={handleOnChange} value={formData.projectName} />
+									{/* Bangla counterpart — optional; blank falls back to English. */}
+									<Form.Control className="mt-2" type="text" lang="bn" placeholder="প্রকল্পের নাম (বাংলা) — ঐচ্ছিক" name="projectNameBn" onChange={handleOnChange} value={formData.projectNameBn} />
 								</Col>
 							</Form.Group>
 
@@ -433,12 +448,16 @@ function Projects() {
 								<Form.Label column sm='4'>Location <span className='text-danger'>*</span></Form.Label>
 								<Col sm='8'>
 									<Form.Control type="text" placeholder="Enter project location" name="location" onChange={handleOnChange} value={formData.location} />
+									{/* Bangla counterpart — optional; blank falls back to English. */}
+									<Form.Control className="mt-2" type="text" lang="bn" placeholder="প্রকল্পের অবস্থান (বাংলা) — ঐচ্ছিক" name="locationBn" onChange={handleOnChange} value={formData.locationBn} />
 								</Col>
 							</Form.Group>
 							<Form.Group as={Row} className='mb-3'>
 								<Form.Label column sm='4'>Other Locations </Form.Label>
 								<Col sm='8'>
 									<Form.Control type="text" placeholder="Enter your projects other location" name="otherLocations" onChange={handleOnChange} value={formData.otherLocations} />
+									{/* Bangla counterpart — optional; blank falls back to English. */}
+									<Form.Control className="mt-2" type="text" lang="bn" placeholder="অন্যান্য অবস্থান (বাংলা) — ঐচ্ছিক" name="otherLocationsBn" onChange={handleOnChange} value={formData.otherLocationsBn} />
 								</Col>
 							</Form.Group>
 							<Form.Group as={Row} className='mb-3'>
@@ -462,6 +481,32 @@ function Projects() {
 											content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
 										}}
 									/>
+								</Col>
+							</Form.Group>
+							<Form.Group as={Row} className='mb-3'>
+								{/* Bangla summary. Optional — blank falls back to the English
+									summary. Own editor instance, Bangla-capable font stack. */}
+								<Form.Label column sm='4'>Summary (বাংলা)</Form.Label>
+								<Col sm='8'>
+									<Editor
+										apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
+										onInit={(evt, editor) => summaryBnRef.current = editor}
+										id='summaryBn'
+										init={{
+											height: 400,
+											plugins: [
+												'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+												'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+												'insertdatetime', 'media', 'table', 'help', 'wordcount'
+											],
+											toolbar: 'undo redo | blocks | ' +
+												'bold italic backcolor | alignleft aligncenter ' +
+												'alignright alignjustify | bullist numlist outdent indent | ' +
+												'removeformat | help',
+											content_style: 'body { font-family:"Noto Sans Bengali","Nirmala UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.7 }'
+										}}
+									/>
+									<Form.Text muted>Optional. Falls back to the English summary if left blank.</Form.Text>
 								</Col>
 							</Form.Group>
 							<Form.Group as={Row} className='mb-3'>

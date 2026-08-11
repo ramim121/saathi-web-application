@@ -18,6 +18,11 @@ const Partnership = sequelize.define<PartnershipModel>('Partnership', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    // Bangla counterpart — migration 002_bangla_columns.sql.
+    nameBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     priority: {
         type: DataTypes.INTEGER,
         allowNull: true,

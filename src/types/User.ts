@@ -25,7 +25,12 @@ export default interface User {
     nidVerified: 'yes' | 'no';
     nidVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
     profileImage: string | null;
-    status: 'active' | 'inactive' | 'deleted';
+    status: 'active' | 'inactive' | 'deleted' | 'merged';
+    gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
+    preferredLanguage?: 'en' | 'bn' | null;
+    /** Set together by a merge; names the surviving account. */
+    mergedInto?: number | null;
+    mergedAt?: Date | string | null;
     age: number | null;
     location: string | null;
     role: string | null;
@@ -34,6 +39,15 @@ export default interface User {
     skills: string | null;
     joiningDate: Date | null;
     education: string | null;
+    // Bangla counterparts for the public partner profile (migration 002).
+    // Null means "not translated yet"; readers fall back to the English column.
+    fullNameBn?: string | null;
+    roleBn?: string | null;
+    bioBn?: string | null;
+    skillsBn?: string | null;
+    locationBn?: string | null;
+    interestedInBn?: string | null;
+    educationBn?: string | null;
     Investments?: ProjectInvestor[];
     Partnerships?: ProjectPartner[];
     disability: 'yes' | 'no';

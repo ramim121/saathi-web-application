@@ -5,12 +5,13 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup, Tabs, Tab } from "react-bootstrap";
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
-import { API_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
+import { API_URL } from '@/config/public';
 import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
 import { ChatDots } from 'react-bootstrap-icons';
 import Link from 'next/link';
+import { isProofSubmitted } from '@/utils/bookingStatus';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -964,10 +965,15 @@ function Details() {
                                     <tr>
                                         <td>Proof of Payment</td>
                                         <td>
+                                            {/* Served through an authenticated route, not the public
+                                                bucket URL: these are bank receipts and cheque images, and
+                                                they used to be readable by anyone holding the link. The
+                                                route checks ownership and redirects to a five-minute
+                                                presigned URL. */}
                                             {details.proofOfPayment !== null && (
-                                                <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
+                                                <a href={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`} target="_blank" rel="noopener noreferrer">
                                                     <img
-                                                        src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
+                                                        src={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`}
                                                         alt={details.proofOfPayment}
                                                         width={100}
                                                         height={100}
@@ -1226,7 +1232,7 @@ function Details() {
                                     Cancel
                                 </Button>
                             }
-                            {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
+                            {details.cancelled === 'no' && isProofSubmitted(details.paymentConfirmationStatus) &&
                                 <>
                                     <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
                                         Confirm

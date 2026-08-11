@@ -109,7 +109,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 household_size: fields.household_size ? fields.household_size[0] : null,
                 dependents_size: fields.dependents_size ? fields.dependents_size[0] : null,
                 livelihood_activity: fields.livelihood_activity ? fields.livelihood_activity[0] : null,
-                primary_goal: fields.primary_goal ? fields.primary_goal[0] : null
+                primary_goal: fields.primary_goal ? fields.primary_goal[0] : null,
+                // Bangla counterparts for the public partner profile. All optional —
+                // a null falls back to the English column at render time.
+                fullNameBn: fields.fullNameBn ? fields.fullNameBn[0] : null,
+                roleBn: fields.roleBn ? fields.roleBn[0] : null,
+                bioBn: fields.bioBn ? fields.bioBn[0] : null,
+                skillsBn: fields.skillsBn ? fields.skillsBn[0] : null,
+                locationBn: fields.locationBn ? fields.locationBn[0] : null,
+                interestedInBn: fields.interestedInBn ? fields.interestedInBn[0] : null,
+                educationBn: fields.educationBn ? fields.educationBn[0] : null,
+                livelihood_activity_bn: fields.livelihood_activity_bn ? fields.livelihood_activity_bn[0] : null,
+                primary_goal_bn: fields.primary_goal_bn ? fields.primary_goal_bn[0] : null
 
             };
 
@@ -176,6 +187,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     joiningDate: data.joiningDate,
                     skills: data.skills,
                     education: data.education,
+                    fullNameBn: data.fullNameBn || null,
+                    roleBn: data.roleBn || null,
+                    bioBn: data.bioBn || null,
+                    skillsBn: data.skillsBn || null,
+                    locationBn: data.locationBn || null,
+                    interestedInBn: data.interestedInBn || null,
+                    educationBn: data.educationBn || null,
                     disability: data.disability,
                     partnerType: data.partnerType
                 }, {
@@ -196,7 +214,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         household_size: data.household_size,
                         dependents_size: data.dependents_size,
                         livelihood_activity: data.livelihood_activity,
-                        primary_goal: data.primary_goal
+                        primary_goal: data.primary_goal,
+                        livelihood_activity_bn: data.livelihood_activity_bn || null,
+                        primary_goal_bn: data.primary_goal_bn || null
                     }, { transaction });
                 } else {
                     await PartnerAdditionalInfo.create({
@@ -205,7 +225,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         household_size: data.household_size,
                         dependents_size: data.dependents_size,
                         livelihood_activity: data.livelihood_activity,
-                        primary_goal: data.primary_goal
+                        primary_goal: data.primary_goal,
+                        livelihood_activity_bn: data.livelihood_activity_bn || null,
+                        primary_goal_bn: data.primary_goal_bn || null
                     }, { transaction });
                 }
 

@@ -18,6 +18,16 @@ const Blog = sequelize.define<BlogModel>('Blog', {
         type: DataTypes.TEXT,
         allowNull: false
     },
+    // Bangla counterparts — migration 002_bangla_columns.sql. Nullable; null
+    // falls back to the English column.
+    headingBn: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    descriptionBn: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     featuredImage: {
         type: DataTypes.STRING(255),
         allowNull: true

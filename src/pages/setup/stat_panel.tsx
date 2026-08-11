@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface FormDataType {
     idAppStatPanel?: number
@@ -13,6 +13,9 @@ interface FormDataType {
     statLabel: string
     statValue: string | number | File
     priority: number | null
+    statLabelBn: string
+    /** Only meaningful for statType 'text' / 'number' — an image value is a filename. */
+    statValueBn: string
 }
 
 interface FilterProps {
@@ -34,7 +37,9 @@ function StatPanel() {
         statType: 'text',
         statLabel: '',
         statValue: '',
-        priority: null
+        priority: null,
+        statLabelBn: '',
+        statValueBn: ''
     });
 
     const [filter, setFilter] = useState<FilterProps>({
@@ -172,6 +177,11 @@ function StatPanel() {
                 }
                 newFormData.append('statType', formData.statType);
                 newFormData.append('statLabel', formData.statLabel);
+                newFormData.append('statLabelBn', formData.statLabelBn || '');
+                // An image row's value is a filename, so there is nothing to translate.
+                if (formData.statType !== 'image') {
+                    newFormData.append('statValueBn', formData.statValueBn || '');
+                }
 
                 // Append statValue based on statType
                 if (formData.statType === 'number') {
@@ -205,7 +215,9 @@ function StatPanel() {
                             statType: 'text',
                             statLabel: '',
                             statValue: '',
-                            priority: null
+                            priority: null,
+                            statLabelBn: '',
+                            statValueBn: ''
                         });
                         setIsEditing(false);
                         if (fileInputRef.current) {
@@ -240,7 +252,9 @@ function StatPanel() {
             statLabel: panel.statLabel,
             // For image, keep existing filename so we can show a preview.
             statValue: panel.statType === 'image' ? panel.statValue : (panel.statValue ?? ''),
-            priority: panel.priority
+            priority: panel.priority,
+            statLabelBn: panel.statLabelBn || '',
+            statValueBn: panel.statValueBn || ''
         });
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -317,6 +331,25 @@ function StatPanel() {
                                     <Form.Control type="text" placeholder="Enter stat label" name="statLabel" onChange={(e) => setFormData({ ...formData, statLabel: e.target.value })} value={formData.statLabel} />
                                 </Col>
                             </Form.Group>
+                            <Form.Group as={Row}>
+                                {/* Bangla counterpart — optional; blank falls back to English. */}
+                                <Form.Label column sm='4' className='mb-3'>Label (বাংলা)</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control type="text" placeholder="বাংলায় লেবেল লিখুন" name="statLabelBn" lang="bn" onChange={(e) => setFormData({ ...formData, statLabelBn: e.target.value })} value={formData.statLabelBn} />
+                                    <Form.Text muted>Optional. Falls back to the English label if left blank.</Form.Text>
+                                </Col>
+                            </Form.Group>
+                            {formData.statType !== 'image' && (
+                                <Form.Group as={Row}>
+                                    {/* Bangla value applies to text/number rows only —
+                                        an image row's value is a filename, not copy. */}
+                                    <Form.Label column sm='4' className='mb-3'>Value (বাংলা)</Form.Label>
+                                    <Col sm='8'>
+                                        <Form.Control type="text" placeholder="বাংলায় মান লিখুন" name="statValueBn" lang="bn" onChange={(e) => setFormData({ ...formData, statValueBn: e.target.value })} value={formData.statValueBn} />
+                                        <Form.Text muted>Optional. Falls back to the English value if left blank.</Form.Text>
+                                    </Col>
+                                </Form.Group>
+                            )}
                             {formData.statType === 'number' && (
                                 <Form.Group as={Row}>
                                     <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>

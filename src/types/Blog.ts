@@ -4,6 +4,9 @@ export default interface Blog {
     idBlogs: number;
     heading: string;
     description: string;
+    // Bangla counterparts (migration 002); null falls back to English.
+    headingBn?: string | null;
+    descriptionBn?: string | null;
     featuredImage: string;
     featuredImageThumb: string;
     writtenBy: string;

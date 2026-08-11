@@ -4,7 +4,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Form, Button, Spinner } from "react-bootstrap";
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Swal from "sweetalert2";
 
 interface DetailsProps {

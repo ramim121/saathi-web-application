@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Cookies from "js-cookie";
 import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { useRouter } from 'next/router';

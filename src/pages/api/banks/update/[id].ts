@@ -2,15 +2,20 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { UserBank } from '@/models/__associations';
 import sequelize from '@/config/db';
 import Joi from 'joi';
-import Cors from 'micro-cors';
 import { Op } from 'sequelize';
+import { withCors, requireUser, canAccess, type AuthContext } from '@/utils/auth';
 
-const cors = Cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
-    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
-});
-
+/**
+ * Update a user's bank account.
+ *
+ * SECURITY: this route previously had no authentication and no ownership check.
+ * It took `idUserBanks` straight from the URL and wrote the account number into
+ * that row, from any origin. `user_banks` is where investor returns are paid,
+ * so anyone iterating integer IDs could redirect payouts.
+ *
+ * It now requires a valid token AND that the row belongs to the caller (admins
+ * may act on any row).
+ */
 
 const schema = Joi.object({
     idBanks: Joi.number().required().messages({
@@ -31,57 +36,55 @@ const schema = Joi.object({
     }),
 }).unknown();
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'OPTIONS') { return res.status(200).end(); }
-    if (req.method === 'POST') {
-        const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body
-        const options = {
-            abortEarly: false,
-        };
-        const { error } = schema.validate({ idBanks, idBankBranches, accountHolderName, accountNumber }, options);
-        if (error) {
-            let errorMessage: string[] = [];
+async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthContext) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, message: 'Method not allowed' });
+    }
 
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
-            });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
-        }
+    const { idBanks, idBankBranches, accountHolderName, accountNumber } = req.body;
 
-        const userBankExist = await UserBank.findOne({
-            where: {
-                accountNumber,
-                [Op.not]: {
-                    idUserBanks: req.query.id
-                }
-            }
-        });
+    const { error } = schema.validate(
+        { idBanks, idBankBranches, accountHolderName, accountNumber },
+        { abortEarly: false },
+    );
+    if (error) {
+        const errorMessage = error.details.map((e) => e.message);
+        return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
+    }
 
-        if (userBankExist) {
-            return res.status(400).json({ success: false, message: 'Account number already exist' });
-        }
+    // The row must exist AND belong to the caller before anything is written.
+    const existing = await UserBank.findOne({ where: { idUserBanks: req.query.id } });
+    if (!existing) {
+        return res.status(404).json({ success: false, message: 'Bank account not found' });
+    }
+    if (!canAccess(auth, (existing as unknown as { idUsers: number }).idUsers)) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
-        const transaction = await sequelize.transaction();
+    const userBankExist = await UserBank.findOne({
+        where: {
+            accountNumber,
+            [Op.not]: { idUserBanks: req.query.id },
+        },
+    });
+    if (userBankExist) {
+        return res.status(400).json({ success: false, message: 'Account number already exist' });
+    }
 
-        try {
-            const userBank = await UserBank.update({
-                idBanks, idBankBranches, accountHolderName, accountNumber
-            }, {
-                where: {
-                    idUserBanks: req.query.id
-                },
-                transaction
-            });
-
-            await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Bank information updated successfully', data: userBank })
-        } catch (err) {
-            await transaction.rollback();
-            return res.status(400).json({ success: false, message: (err as Error).message })
-        }
-    } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+    const transaction = await sequelize.transaction();
+    try {
+        const userBank = await UserBank.update(
+            { idBanks, idBankBranches, accountHolderName, accountNumber },
+            { where: { idUserBanks: req.query.id }, transaction },
+        );
+        await transaction.commit();
+        return res
+            .status(200)
+            .json({ success: true, message: 'Bank information updated successfully', data: userBank });
+    } catch (err) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: (err as Error).message });
     }
 }
 
-export default cors(handler as any);
+export default withCors(requireUser(handler));

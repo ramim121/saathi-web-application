@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Col, Container, Form, Row, Table, Pagination, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface FormDataType {
     idProductCategories?: string;

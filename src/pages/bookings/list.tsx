@@ -212,7 +212,8 @@ function List() {
                             <Form.Select className="form-control form-control-sm" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus}>
                                 <option value="">All</option>
                                 <option value="pending">Pending</option>
-                                <option value="uploaded">Uploaded</option>
+                                <option value="uploaded">Proof submitted (uploaded)</option>
+                                <option value="proof_submitted">Proof submitted</option>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="denied">Denied</option>
                             </Form.Select>
