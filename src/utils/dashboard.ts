@@ -24,6 +24,16 @@ import sequelize from '@/config/db';
  * numbers at once.
  */
 
+/**
+ * Which breakdown a tile opens.
+ *
+ * Named per dataset rather than per card so two cards can open the same list:
+ * "Total active investment" and "Fresh capital injected" are two readings of
+ * the same set of positions, and showing one list under both is honest —
+ * inventing a second, differently-filtered list would not be.
+ */
+export type Drill = 'positions' | 'payouts' | 'pending' | 'investors';
+
 export type StatCard = {
     label: string;
     value: number;
@@ -31,6 +41,8 @@ export type StatCard = {
     note: string;
     tone: 'brand' | 'good' | 'warn' | 'alert' | 'info';
     money: boolean;
+    /** Omitted when a figure has no row-level breakdown worth showing. */
+    drill?: Drill;
 };
 
 export type PayableWindow = {
@@ -147,6 +159,7 @@ export async function loadDashboard(): Promise<Dashboard> {
             note: `${active.positions} confirmed position${active.positions === 1 ? '' : 's'}`,
             tone: 'brand',
             money: true,
+            drill: 'positions',
         },
         {
             label: 'Fresh capital injected',
@@ -154,6 +167,7 @@ export async function loadDashboard(): Promise<Dashboard> {
             note: `Rolled over: BDT ${n(fresh.rolled).toLocaleString('en-IN')}`,
             tone: 'good',
             money: true,
+            drill: 'positions',
         },
         {
             label: 'Matured, awaiting payout',
@@ -161,6 +175,7 @@ export async function loadDashboard(): Promise<Dashboard> {
             note: `${withdrawals.cnt} position${withdrawals.cnt === 1 ? '' : 's'} past maturity`,
             tone: 'warn',
             money: true,
+            drill: 'payouts',
         },
         {
             label: 'Pending payments',
@@ -168,6 +183,7 @@ export async function loadDashboard(): Promise<Dashboard> {
             note: 'bookings awaiting confirmation',
             tone: 'alert',
             money: false,
+            drill: 'pending',
         },
         {
             label: 'Active investors',
@@ -175,6 +191,7 @@ export async function loadDashboard(): Promise<Dashboard> {
             note: `+${investors.joined} joined this month`,
             tone: 'info',
             money: false,
+            drill: 'investors',
         },
     ];
 

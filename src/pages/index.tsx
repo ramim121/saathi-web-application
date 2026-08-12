@@ -5,6 +5,7 @@ import MainLayout from '@/layouts/MainLayout';
 import notification from '@/notifications';
 import { requireAdminPage, redirectToLogin } from '@/utils/pageAuth';
 import { loadDashboard, type Dashboard } from '@/utils/dashboard';
+import { loadDashboardDetail, type DashboardDetail } from '@/utils/dashboardDetail';
 import { DashboardView } from '@/components/dashboard/DashboardView';
 
 /**
@@ -36,9 +37,13 @@ const SHORTCUTS: Shortcut[] = [
     { href: '/partners/list', title: 'Partners', body: 'Shathi partners and their capacity.' },
 ];
 
-type Props = { dashboard: Dashboard | null; error: string | null };
+type Props = {
+    dashboard: Dashboard | null;
+    detail: DashboardDetail | null;
+    error: string | null;
+};
 
-export default function Home({ dashboard, error }: Props) {
+export default function Home({ dashboard, detail, error }: Props) {
     return (
         <div className="container-fluid py-4">
             {error && (
@@ -50,7 +55,7 @@ export default function Home({ dashboard, error }: Props) {
                 </div>
             )}
 
-            {dashboard && <DashboardView data={dashboard} />}
+            {dashboard && detail && <DashboardView data={dashboard} detail={detail} />}
 
             <div className="row g-3 mt-1">
                 {SHORTCUTS.map((item) => (
@@ -98,10 +103,21 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
      * broken".
      */
     try {
-        const dashboard = await loadDashboard();
-        return { props: { dashboard: JSON.parse(JSON.stringify(dashboard)) as Dashboard, error: null } };
+        /*
+         * Loaded together: the tiles and their breakdowns must come from the
+         * same read of the database. Fetching the detail on click would let a
+         * tile say 26 while the list it opens holds 27.
+         */
+        const [dashboard, detail] = await Promise.all([loadDashboard(), loadDashboardDetail()]);
+        return {
+            props: {
+                dashboard: JSON.parse(JSON.stringify(dashboard)) as Dashboard,
+                detail: JSON.parse(JSON.stringify(detail)) as DashboardDetail,
+                error: null,
+            },
+        };
     } catch (error) {
-        return { props: { dashboard: null, error: (error as Error).message } };
+        return { props: { dashboard: null, detail: null, error: (error as Error).message } };
     }
 }
 

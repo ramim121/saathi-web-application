@@ -64,6 +64,7 @@ function Header() {
                         <Navbar.Collapse id="basic-navbar-nav">
 
                             <Nav className="ms-auto">
+                                <Nav.Link href="/reports">Reports</Nav.Link>
                                 <Nav.Link href="/users">Users</Nav.Link>
                                 <NavDropdown title="Setups" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Investment</NavDropdown.Item>

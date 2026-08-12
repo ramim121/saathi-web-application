@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import type { Dashboard, StatCard } from '@/utils/dashboard';
+import type { Dashboard, StatCard, Drill } from '@/utils/dashboard';
+import type { DashboardDetail } from '@/utils/dashboardDetail';
+import { DrillSet } from './DrillSets';
 
 /**
  * The management dashboard.
@@ -14,18 +16,24 @@ import type { Dashboard, StatCard } from '@/utils/dashboard';
  * Every figure here is derived — units times unit value — because no amount is
  * stored. A dashboard that shows a total without saying what it counts invites
  * someone to reconcile it against a list that counts something else, so each
- * block says which statuses it includes.
+ * block says which statuses it includes, and every tile opens the exact rows
+ * its figure counts.
  *
- * Built with the Bootstrap classes the rest of the admin already uses rather
- * than a new styling system, so it stays consistent with the pages around it.
+ * Built with the Bootstrap classes the rest of the admin already uses, restyled
+ * globally by styles/admin-theme.css rather than page by page.
  */
 
+/*
+ * Tone drives both the tile's accent edge and the figure's colour, so it is one
+ * class defined in admin-theme.css rather than a pair of Bootstrap utilities —
+ * `border-primary` would repaint all four sides, not just the accent edge.
+ */
 const TONE_CLASS: Record<StatCard['tone'], string> = {
-    brand: 'border-primary text-primary',
-    good: 'border-success text-success',
-    warn: 'border-warning text-warning',
-    alert: 'border-danger text-danger',
-    info: 'border-info text-info',
+    brand: 'tone-brand',
+    good: 'tone-good',
+    warn: 'tone-warn',
+    alert: 'tone-alert',
+    info: 'tone-info',
 };
 
 function money(value: number): string {
@@ -41,22 +49,42 @@ function prettyType(value: string | null): string {
         .join(' ');
 }
 
-function StatTile({ card }: { card: StatCard }) {
+function StatTile({ card, onOpen }: { card: StatCard; onOpen: (d: Drill) => void }) {
+    /*
+     * A tile with a breakdown is a button, not a div with a click handler —
+     * keyboard users reach it by tab and fire it with Enter for free, and a
+     * screen reader announces it as activatable. Tiles without a breakdown stay
+     * inert rather than looking clickable and doing nothing.
+     *
+     * `h-100` is right here and wrong on the panels below: these five are peers
+     * in a single row, and a ragged row of KPI tiles reads as a mistake.
+     */
+    const drill = card.drill;
+    const body = (
+        <div className="card-body py-3">
+            <div className="stat-label">{card.label}</div>
+            <div className={`stat-value ${TONE_CLASS[card.tone]}`}>
+                {card.money ? money(card.value) : card.value.toLocaleString('en-IN')}
+            </div>
+            <div className="stat-note">{card.note}</div>
+            {drill && <span className="stat-more">View breakdown →</span>}
+        </div>
+    );
+
     return (
         <div className="col-12 col-sm-6 col-xl mb-3">
-            <div className={`card h-100 border-start border-4 ${TONE_CLASS[card.tone]}`}>
-                <div className="card-body py-3">
-                    <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.04em' }}>
-                        {card.label}
-                    </div>
-                    <div className={`fw-bold ${TONE_CLASS[card.tone]}`} style={{ fontSize: '1.35rem' }}>
-                        {card.money ? money(card.value) : card.value.toLocaleString('en-IN')}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                        {card.note}
-                    </div>
-                </div>
-            </div>
+            {drill ? (
+                <button
+                    type="button"
+                    className={`card stat-card stat-clickable h-100 w-100 text-start ${TONE_CLASS[card.tone]}`}
+                    onClick={() => onOpen(drill)}
+                    aria-label={`${card.label} — view breakdown`}
+                >
+                    {body}
+                </button>
+            ) : (
+                <div className={`card stat-card h-100 ${TONE_CLASS[card.tone]}`}>{body}</div>
+            )}
         </div>
     );
 }
@@ -72,7 +100,7 @@ function Bar({ value, max }: { value: number; max: number }) {
     const percent = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
     return (
         <div className="progress mt-1" style={{ height: 4 }} role="presentation">
-            <div className="progress-bar bg-primary" style={{ width: `${percent}%` }} />
+            <div className="progress-bar" style={{ width: `${percent}%` }} />
         </div>
     );
 }
@@ -89,21 +117,15 @@ function Panel({
     children: React.ReactNode;
 }) {
     /*
-     * No `h-100`. Bootstrap columns stretch to the tallest sibling, so a short
-     * panel beside a long one grew to match and left dead space below its
-     * content — a "Nothing matures" line sitting in a card three times its
-     * height. Cards size to their content; the row aligns them to the top.
+     * No `h-100`. Panels size to their content; the columns they sit in do the
+     * stacking, so a short panel never has to match a tall neighbour.
      */
     return (
         <div className="card">
-            <div className="card-header bg-white d-flex justify-content-between align-items-start gap-2 py-3">
+            <div className="card-header d-flex justify-content-between align-items-start gap-2">
                 <div>
                     <h2 className="h6 mb-0 fw-bold">{title}</h2>
-                    {subtitle && (
-                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                            {subtitle}
-                        </div>
-                    )}
+                    {subtitle && <div className="text-muted small">{subtitle}</div>}
                 </div>
                 {action && (
                     <Link href={action.href} className="btn btn-sm btn-outline-secondary flex-shrink-0">
@@ -120,7 +142,9 @@ function Empty({ children }: { children: React.ReactNode }) {
     return <p className="text-muted small mb-0 p-3">{children}</p>;
 }
 
-export function DashboardView({ data }: { data: Dashboard }) {
+export function DashboardView({ data, detail }: { data: Dashboard; detail: DashboardDetail }) {
+    const [drill, setDrill] = useState<Drill | null>(null);
+
     const maxProject = Math.max(0, ...data.byProject.map((r) => r.totalRaised));
     const maxMonth = Math.max(0, ...data.byMonth.map((r) => r.totalRaised));
     const maxPartner = Math.max(0, ...data.topPartners.map((r) => r.totalManaged));
@@ -128,26 +152,36 @@ export function DashboardView({ data }: { data: Dashboard }) {
 
     return (
         <>
-            <div className="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+            <div className="page-head">
                 <div>
-                    <h1 className="h4 fw-bold mb-1">Management dashboard</h1>
-                    <p className="text-muted mb-0" style={{ fontSize: '0.82rem' }}>
+                    <h1 className="page-title">Management dashboard</h1>
+                    <p className="page-subtitle">
                         Amounts are units × unit value. Cancelled positions are excluded throughout.
+                        Every figure below opens the rows it counts.
                     </p>
                 </div>
-                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                <div className="text-muted small">
                     Generated {new Date(data.generatedAt).toLocaleString('en-GB')}
                 </div>
             </div>
 
             <div className="row g-0 gx-3">
                 {data.cards.map((card) => (
-                    <StatTile key={card.label} card={card} />
+                    <StatTile key={card.label} card={card} onOpen={setDrill} />
                 ))}
             </div>
 
+            {/*
+             * Two flowing columns, not a grid of rows.
+             *
+             * Bootstrap rows align their columns to a shared top edge, so a
+             * short panel beside a tall one leaves the height difference as
+             * blank page — the payables forecast (four lines) sat beside the
+             * project table (ten rows) and left a hole the size of the table.
+             * Stacking within each column lets every panel take its own height.
+             */}
             <div className="row g-3 mt-0 align-items-start">
-                <div className="col-12 col-xl-7">
+                <div className="col-12 col-xl-7 d-flex flex-column gap-3">
                     <Panel
                         title="Payables forecast"
                         subtitle="Positions maturing ahead. Anything already overdue is on the card above."
@@ -159,8 +193,8 @@ export function DashboardView({ data }: { data: Dashboard }) {
                             </Empty>
                         ) : (
                             <div className="table-responsive">
-                                <table className="table table-sm mb-0 align-middle">
-                                    <thead className="table-light">
+                                <table className="table table-sm align-middle">
+                                    <thead>
                                         <tr>
                                             <th>Window</th>
                                             <th className="text-end">Positions</th>
@@ -174,7 +208,9 @@ export function DashboardView({ data }: { data: Dashboard }) {
                                                 <td className="fw-semibold">{row.label}</td>
                                                 <td className="text-end">{row.count}</td>
                                                 <td className="text-end">{money(row.profitOnly)}</td>
-                                                <td className="text-end fw-semibold">{money(row.profitAndCapital)}</td>
+                                                <td className="text-end fw-semibold">
+                                                    {money(row.profitAndCapital)}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -183,21 +219,98 @@ export function DashboardView({ data }: { data: Dashboard }) {
                         )}
                         {data.payables.some((p) => p.count > 0) && (
                             <p className="text-muted small mb-0 px-3 py-2 border-top">
-                                Profit uses each project&apos;s <strong>minimum</strong> return. Windows
-                                are cumulative, so the 3-month row includes the 15-day one.
+                                Profit uses each project&apos;s <strong>minimum</strong> return.
+                                Windows are cumulative, so the 3-month row includes the 15-day one.
                             </p>
                         )}
                     </Panel>
+
+                    <Panel
+                        title="Investment by project"
+                        action={{ href: '/projects/list', label: 'All projects' }}
+                    >
+                        {data.byProject.length === 0 ? (
+                            <Empty>No investments recorded yet.</Empty>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-sm table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Project</th>
+                                            <th>Type</th>
+                                            <th className="text-end">Investors</th>
+                                            <th className="text-end">Units</th>
+                                            <th className="text-end">Raised</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.byProject.map((row) => (
+                                            <tr key={row.idProjects}>
+                                                <td className="fw-semibold">{row.projectName}</td>
+                                                <td>
+                                                    <span className="badge bg-body-secondary text-body-secondary fw-normal">
+                                                        {prettyType(row.investmentType)}
+                                                    </span>
+                                                </td>
+                                                <td className="text-end">{row.investors}</td>
+                                                <td className="text-end">{row.units}</td>
+                                                <td className="text-end">
+                                                    {money(row.totalRaised)}
+                                                    <Bar value={row.totalRaised} max={maxProject} />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </Panel>
+                    <Panel title="By investment type">
+                        {data.byType.length === 0 ? (
+                            <Empty>No investments recorded yet.</Empty>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-sm table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th className="text-end">Investors</th>
+                                            <th className="text-end">Raised</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.byType.map((row) => (
+                                            <tr key={row.investmentType}>
+                                                <td className="fw-semibold">
+                                                    {prettyType(row.investmentType)}
+                                                </td>
+                                                <td className="text-end">{row.investors}</td>
+                                                <td className="text-end">
+                                                    {money(row.totalRaised)}
+                                                    <Bar value={row.totalRaised} max={maxType} />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        <p className="text-muted small mb-0 px-3 py-2 border-top">
+                            An investor in both types is counted in both rows, so these do not sum to
+                            the investor count above.
+                        </p>
+                    </Panel>
+
                 </div>
 
-                <div className="col-12 col-xl-5">
+                <div className="col-12 col-xl-5 d-flex flex-column gap-3">
                     <Panel title="Monthly trend" subtitle="Last six months, by payment date">
                         {data.byMonth.length === 0 ? (
                             <Empty>No investments recorded in the last six months.</Empty>
                         ) : (
                             <div className="table-responsive">
-                                <table className="table table-sm mb-0 align-middle">
-                                    <thead className="table-light">
+                                <table className="table table-sm table-hover align-middle">
+                                    <thead>
                                         <tr>
                                             <th>Month</th>
                                             <th className="text-end">Positions</th>
@@ -220,41 +333,34 @@ export function DashboardView({ data }: { data: Dashboard }) {
                             </div>
                         )}
                     </Panel>
-                </div>
 
-                <div className="col-12 col-xl-7">
                     <Panel
-                        title="Investment by project"
-                        action={{ href: '/projects/list', label: 'All projects' }}
+                        title="Top partners"
+                        subtitle="By capital managed"
+                        action={{ href: '/partners/list', label: 'All partners' }}
                     >
-                        {data.byProject.length === 0 ? (
-                            <Empty>No investments recorded yet.</Empty>
+                        {data.topPartners.length === 0 ? (
+                            <Empty>No partner allocations recorded yet.</Empty>
                         ) : (
                             <div className="table-responsive">
-                                <table className="table table-sm mb-0 align-middle">
-                                    <thead className="table-light">
+                                <table className="table table-sm table-hover align-middle">
+                                    <thead>
                                         <tr>
-                                            <th>Project</th>
-                                            <th>Type</th>
-                                            <th className="text-end">Investors</th>
-                                            <th className="text-end">Units</th>
-                                            <th className="text-end">Raised</th>
+                                            <th style={{ width: '2.5rem' }}>#</th>
+                                            <th>Partner</th>
+                                            <th className="text-end">Positions</th>
+                                            <th className="text-end">Managed</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data.byProject.map((row) => (
-                                            <tr key={row.idProjects}>
-                                                <td className="fw-semibold">{row.projectName}</td>
-                                                <td>
-                                                    <span className="badge bg-light text-dark fw-normal">
-                                                        {prettyType(row.investmentType)}
-                                                    </span>
-                                                </td>
-                                                <td className="text-end">{row.investors}</td>
-                                                <td className="text-end">{row.units}</td>
+                                        {data.topPartners.map((row, index) => (
+                                            <tr key={`${row.name}-${index}`}>
+                                                <td className="text-muted">{index + 1}</td>
+                                                <td className="fw-semibold">{row.name}</td>
+                                                <td className="text-end">{row.investments}</td>
                                                 <td className="text-end">
-                                                    {money(row.totalRaised)}
-                                                    <Bar value={row.totalRaised} max={maxProject} />
+                                                    {money(row.totalManaged)}
+                                                    <Bar value={row.totalManaged} max={maxPartner} />
                                                 </td>
                                             </tr>
                                         ))}
@@ -264,81 +370,9 @@ export function DashboardView({ data }: { data: Dashboard }) {
                         )}
                     </Panel>
                 </div>
-
-                <div className="col-12 col-xl-5">
-                    <div className="d-flex flex-column gap-3">
-                        <Panel title="By investment type">
-                            {data.byType.length === 0 ? (
-                                <Empty>No investments recorded yet.</Empty>
-                            ) : (
-                                <div className="table-responsive">
-                                    <table className="table table-sm mb-0 align-middle">
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th>Type</th>
-                                                <th className="text-end">Investors</th>
-                                                <th className="text-end">Raised</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.byType.map((row) => (
-                                                <tr key={row.investmentType}>
-                                                    <td className="fw-semibold">{prettyType(row.investmentType)}</td>
-                                                    <td className="text-end">{row.investors}</td>
-                                                    <td className="text-end">
-                                                        {money(row.totalRaised)}
-                                                        <Bar value={row.totalRaised} max={maxType} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                            <p className="text-muted small mb-0 px-3 py-2 border-top">
-                                An investor in both types is counted in both rows, so these do not sum
-                                to the investor count above.
-                            </p>
-                        </Panel>
-
-                        <Panel
-                            title="Top partners"
-                            subtitle="By capital managed"
-                            action={{ href: '/partners/list', label: 'All partners' }}
-                        >
-                            {data.topPartners.length === 0 ? (
-                                <Empty>No partner allocations recorded yet.</Empty>
-                            ) : (
-                                <div className="table-responsive">
-                                    <table className="table table-sm mb-0 align-middle">
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th style={{ width: '2.5rem' }}>#</th>
-                                                <th>Partner</th>
-                                                <th className="text-end">Positions</th>
-                                                <th className="text-end">Managed</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.topPartners.map((row, index) => (
-                                                <tr key={`${row.name}-${index}`}>
-                                                    <td className="text-muted">{index + 1}</td>
-                                                    <td className="fw-semibold">{row.name}</td>
-                                                    <td className="text-end">{row.investments}</td>
-                                                    <td className="text-end">
-                                                        {money(row.totalManaged)}
-                                                        <Bar value={row.totalManaged} max={maxPartner} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </Panel>
-                    </div>
-                </div>
             </div>
+
+            <DrillSet which={drill} detail={detail} onClose={() => setDrill(null)} />
         </>
     );
 }

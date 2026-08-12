@@ -15,6 +15,38 @@ interface UserListProps {
     users: UserType[];
 }
 
+/**
+ * The three verification states as compact ticks.
+ *
+ * Green means verified, grey means not — never red: an unverified account is a
+ * normal state on the way in, not an error, and a column of red on a fresh
+ * signup list reads as a system fault.
+ */
+function VerifyTicks({ nid, phone, email }: { nid: boolean; phone: boolean; email: boolean }) {
+    const items: Array<[string, string, boolean]> = [
+        ["NID", "N", nid],
+        ["Phone", "P", phone],
+        ["Email", "E", email],
+    ];
+    return (
+        <span className="verify-ticks">
+            {items.map(([label, letter, ok]) => (
+                <span
+                    key={label}
+                    className={`verify-tick ${ok ? "is-ok" : "is-no"}`}
+                    title={`${label} ${ok ? "verified" : "not verified"}`}
+                >
+                    {letter}
+                    <span aria-hidden="true">{ok ? "✓" : "·"}</span>
+                    <span className="visually-hidden">
+                        {label} {ok ? "verified" : "not verified"}
+                    </span>
+                </span>
+            ))}
+        </span>
+    );
+}
+
 const UserList: NextPage<UserListProps> = ({ users }) => {
     const [usersList, setUsersList] = useState<UserType[]>(users);
     const [filteredUsers, setFilteredUsers] = useState<UserType[]>(users);
@@ -361,12 +393,23 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                 <td>{new Date(user.createdAt).toLocaleDateString("en-In")}</td>
                                 <td>{user.disability}</td>
                                 <td className="text-capitalize">{user.status}</td>
+                                {/*
+                                  * Three ticks, not three sentences. Scanning a
+                                  * page of users for who still needs verifying
+                                  * is the actual job here, and "NID Verified:
+                                  * No" repeated down a column defeats it — the
+                                  * word that matters is buried at the end of
+                                  * each line. The letter carries the meaning
+                                  * and the colour carries the state, with the
+                                  * full wording in the title for screen readers
+                                  * and anyone who needs it spelled out.
+                                  */}
                                 <td style={{ whiteSpace: "nowrap" }}>
-                                    NID Verified: {user.nidVerified === "yes" ? "Yes" : "No"}
-                                    <br />
-                                    Phone Verified: {user.phoneVerified === "yes" ? "Yes" : "No"}
-                                    <br />
-                                    Email Verified: {user.emailVerified === "yes" ? "Yes" : "No"}
+                                    <VerifyTicks
+                                        nid={user.nidVerified === "yes"}
+                                        phone={user.phoneVerified === "yes"}
+                                        email={user.emailVerified === "yes"}
+                                    />
                                 </td>
                                 <td>
                                     {user.UserBanks && user.UserBanks.length > 0 ? (

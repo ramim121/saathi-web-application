@@ -1,0 +1,422 @@
+/*
+ * Admin theme.
+ *
+ * WHY THIS IS ONE FILE AND NOT A REWRITE OF 42 PAGES
+ * The admin is Bootstrap 5 throughout. Bootstrap 5 draws almost everything from
+ * CSS custom properties, so redefining those properties restyles every page at
+ * once — including pages nobody has opened in months. Editing 42 files by hand
+ * would take longer, miss pages, and leave the ones it missed looking like the
+ * old product.
+ *
+ * This is also why Tailwind was not added. Tailwind ships its own reset, which
+ * fights Bootstrap's on every existing page; the gain would be new utility
+ * classes on the handful of pages someone got round to rewriting, and the cost
+ * would be a subtly broken layout on the rest.
+ *
+ * PALETTE
+ * Taken from the existing product rather than invented: #075635 is the Shathi
+ * green already in style.css, #000A50 the Digigram navy. The greys are a single
+ * cool ramp so borders, headers and muted text relate to each other instead of
+ * being three unrelated shades of grey.
+ *
+ * Loaded after bootstrap.min.css and before the older sheets, so page-specific
+ * rules still win where they exist.
+ */
+
+:root {
+    --sa-brand: #075635;
+    --sa-brand-600: #0a6b42;
+    --sa-brand-100: #e6f2ec;
+    --sa-navy: #000a50;
+    --sa-navy-700: #1a2470;
+
+    /* One cool grey ramp, light to dark. */
+    --sa-0: #ffffff;
+    --sa-25: #fafbfc;
+    --sa-50: #f4f6f8;
+    --sa-100: #eceff3;
+    --sa-200: #dde2e9;
+    --sa-300: #c3ccd8;
+    --sa-500: #6b7789;
+    --sa-700: #3c4757;
+    --sa-900: #1b2432;
+
+    --sa-radius: 10px;
+    --sa-radius-sm: 7px;
+    /* Borders carry the structure, shadows only lift what floats. */
+    --sa-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --sa-shadow-lg: 0 12px 32px -8px rgba(16, 24, 40, 0.18);
+
+    /* ---- Bootstrap overrides: these repaint every existing page ---- */
+    --bs-primary: var(--sa-brand);
+    --bs-primary-rgb: 7, 86, 53;
+    --bs-link-color: var(--sa-brand);
+    --bs-link-color-rgb: 7, 86, 53;
+    --bs-link-hover-color: var(--sa-brand-600);
+    --bs-body-color: var(--sa-900);
+    --bs-body-bg: var(--sa-50);
+    --bs-secondary-color: var(--sa-500);
+    --bs-border-color: var(--sa-200);
+    --bs-border-radius: var(--sa-radius);
+    --bs-border-radius-sm: var(--sa-radius-sm);
+    --bs-body-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bs-body-font-size: 0.9rem;
+    --bs-emphasis-color: var(--sa-900);
+}
+
+body {
+    background-color: var(--sa-50);
+    color: var(--sa-900);
+    font-family: var(--bs-body-font-family);
+    font-size: 0.9rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Headings sit tighter and darker than Bootstrap's defaults. */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    color: var(--sa-900);
+    font-weight: 650;
+    letter-spacing: -0.011em;
+}
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------- surfaces -- */
+
+.card {
+    background: var(--sa-0);
+    border: 1px solid var(--sa-200);
+    border-radius: var(--sa-radius);
+    box-shadow: var(--sa-shadow);
+}
+
+.card-header {
+    background: var(--sa-0);
+    border-bottom: 1px solid var(--sa-100);
+    padding: 0.85rem 1rem;
+    font-weight: 650;
+}
+
+.card-footer {
+    background: var(--sa-25);
+    border-top: 1px solid var(--sa-100);
+}
+
+/* ---------------------------------------------------------------- tables -- */
+/*
+ * The single biggest change on a data-heavy admin. Column headers become small
+ * uppercase labels so they read as structure rather than as another row of
+ * data, and numbers get tabular figures so digits line up in a column.
+ */
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--sa-900);
+    --bs-table-border-color: var(--sa-100);
+    --bs-table-hover-bg: var(--sa-25);
+    margin-bottom: 0;
+}
+
+.table > thead > tr > th,
+.table > thead > tr > td {
+    background: var(--sa-50);
+    border-bottom: 1px solid var(--sa-200) !important;
+    color: var(--sa-500);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding: 0.6rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table > tbody > tr > td {
+    border-bottom: 1px solid var(--sa-100);
+    padding: 0.6rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table > tbody > tr:last-child > td { border-bottom: 0; }
+
+/* Digits align by place value; proportional figures make columns look ragged. */
+.table td.text-end,
+.table th.text-end,
+.font-monospace,
+.stat-value {
+    font-variant-numeric: tabular-nums;
+}
+
+.table-responsive { border-radius: var(--sa-radius); }
+
+/* Sortable header affordance for the drill-down tables. */
+.drill-table th.sortable { cursor: pointer; user-select: none; }
+.drill-table th.sortable:hover { color: var(--sa-900); background: var(--sa-100); }
+.drill-table .sort-mark { margin-left: 0.3rem; opacity: 0.45; font-size: 0.75em; }
+.drill-table th[aria-sort] .sort-mark { opacity: 1; color: var(--sa-brand); }
+
+/* ---------------------------------------------------------------- forms -- */
+
+.form-control, .form-select {
+    border-color: var(--sa-300);
+    border-radius: var(--sa-radius-sm);
+    font-size: 0.9rem;
+    padding: 0.45rem 0.7rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--sa-brand);
+    box-shadow: 0 0 0 3px rgba(7, 86, 53, 0.12);
+}
+
+.form-label {
+    color: var(--sa-700);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+/* -------------------------------------------------------------- buttons -- */
+
+.btn {
+    border-radius: var(--sa-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+}
+
+.btn-sm { font-size: 0.78rem; padding: 0.3rem 0.65rem; }
+
+.btn-primary {
+    --bs-btn-bg: var(--sa-brand);
+    --bs-btn-border-color: var(--sa-brand);
+    --bs-btn-hover-bg: var(--sa-brand-600);
+    --bs-btn-hover-border-color: var(--sa-brand-600);
+    --bs-btn-active-bg: var(--sa-brand-600);
+    --bs-btn-disabled-bg: var(--sa-brand);
+    --bs-btn-disabled-border-color: var(--sa-brand);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--sa-brand);
+    --bs-btn-border-color: var(--sa-300);
+    --bs-btn-hover-bg: var(--sa-brand);
+    --bs-btn-hover-border-color: var(--sa-brand);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--sa-700);
+    --bs-btn-border-color: var(--sa-300);
+    --bs-btn-hover-bg: var(--sa-100);
+    --bs-btn-hover-color: var(--sa-900);
+    --bs-btn-hover-border-color: var(--sa-300);
+}
+
+.btn:focus-visible { box-shadow: 0 0 0 3px rgba(7, 86, 53, 0.2); }
+
+/* --------------------------------------------------------------- badges -- */
+
+.badge {
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    padding: 0.3em 0.65em;
+}
+
+/* ------------------------------------------------------------ stat tiles -- */
+
+.stat-card {
+    border-left: 4px solid var(--sa-300);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.stat-label {
+    color: var(--sa-500);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+}
+
+.stat-note { color: var(--sa-500); font-size: 0.76rem; }
+
+.stat-more {
+    color: var(--sa-brand);
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 650;
+    margin-top: 0.4rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/*
+ * The hint stays hidden until hover on a pointer device, so five tiles do not
+ * shout "View breakdown" at once — but it is always visible to keyboard focus
+ * and on touch, where hover does not exist and the affordance would otherwise
+ * never appear.
+ */
+.stat-clickable:hover .stat-more,
+.stat-clickable:focus-visible .stat-more { opacity: 1; }
+
+@media (hover: none) {
+    .stat-more { opacity: 1; }
+}
+
+.stat-clickable {
+    cursor: pointer;
+    padding: 0;
+}
+
+.stat-clickable:hover {
+    box-shadow: var(--sa-shadow-lg);
+    transform: translateY(-1px);
+}
+
+.stat-clickable:focus-visible {
+    outline: 2px solid var(--sa-brand);
+    outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- modals -- */
+
+.modal-content {
+    border: 1px solid var(--sa-200);
+    border-radius: var(--sa-radius);
+    box-shadow: var(--sa-shadow-lg);
+}
+
+.modal-header {
+    background: var(--sa-25);
+    border-bottom: 1px solid var(--sa-200);
+    border-radius: var(--sa-radius) var(--sa-radius) 0 0;
+}
+
+.modal-footer { background: var(--sa-25); border-top: 1px solid var(--sa-200); }
+.modal-backdrop.show { opacity: 0.42; }
+
+/* ---------------------------------------------------------- navigation -- */
+/*
+ * The chrome is navy so the working area reads as the page and the navigation
+ * as the frame. Selectors are deliberately broad because the header markup
+ * varies between the layouts in this app.
+ */
+
+.navbar,
+header.navbar,
+.main-header {
+    background: var(--sa-navy) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--sa-shadow);
+}
+
+.navbar .nav-link,
+.navbar .navbar-brand,
+.navbar .navbar-text {
+    color: rgba(255, 255, 255, 0.82) !important;
+    font-weight: 550;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
+    color: #fff !important;
+}
+
+.navbar .dropdown-menu {
+    border: 1px solid var(--sa-200);
+    border-radius: var(--sa-radius-sm);
+    box-shadow: var(--sa-shadow-lg);
+    font-size: 0.88rem;
+}
+
+.dropdown-item:active { background-color: var(--sa-brand); }
+
+/* --------------------------------------------------------------- alerts -- */
+
+.alert { border-radius: var(--sa-radius); border-width: 1px; font-size: 0.88rem; }
+
+/* ------------------------------------------------------------ utilities -- */
+
+.page-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+.page-subtitle { color: var(--sa-500); font-size: 0.82rem; margin: 0.15rem 0 0; }
+
+/* A toolbar above a list: title left, filters and actions right. */
+.page-head {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.progress { background-color: var(--sa-100); border-radius: 999px; }
+.progress-bar { background-color: var(--sa-brand); border-radius: 999px; }
+
+.pagination { --bs-pagination-color: var(--sa-700); --bs-pagination-active-bg: var(--sa-brand); }
+.pagination .page-link { border-color: var(--sa-200); font-size: 0.85rem; }
+
+/* Print: drop the chrome, keep the data. */
+@media print {
+    .navbar, .btn, .modal, .modal-backdrop, .page-head .btn { display: none !important; }
+    .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+    body { background: #fff; }
+}
+
+/* ----------------------------------------------------------- stat tones -- */
+/*
+ * Each tone sets the tile's accent edge and the figure's colour together, so a
+ * card cannot end up with a green edge and an amber number.
+ */
+.tone-brand { border-left-color: var(--sa-brand); }
+.tone-good  { border-left-color: #167a4a; }
+.tone-warn  { border-left-color: #b26b00; }
+.tone-alert { border-left-color: #b42318; }
+.tone-info  { border-left-color: #0b6b93; }
+
+.stat-value.tone-brand { color: var(--sa-brand); }
+.stat-value.tone-good  { color: #167a4a; }
+.stat-value.tone-warn  { color: #b26b00; }
+.stat-value.tone-alert { color: #b42318; }
+.stat-value.tone-info  { color: #0b6b93; }
+
+/*
+ * Drill-down cells never wrap.
+ *
+ * "BDT 5,00,000" breaking after "BDT" and "09 Nov 2025" breaking after the day
+ * both split one value across two lines, which is harder to scan than a wider
+ * table. The table already scrolls inside .table-responsive, so the extra width
+ * costs nothing.
+ */
+.drill-table th,
+.drill-table td { white-space: nowrap; }
+
+/* ------------------------------------------------------- verification -- */
+
+.verify-ticks { display: inline-flex; gap: 0.25rem; }
+
+.verify-tick {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 700;
+    gap: 0.12rem;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    padding: 0.25rem 0.4rem;
+}
+
+/* Green for verified, neutral grey for not — never red; see VerifyTicks. */
+.verify-tick.is-ok { background: #e3f3ea; color: #146c43; }
+.verify-tick.is-no { background: var(--sa-100); color: var(--sa-500); }
