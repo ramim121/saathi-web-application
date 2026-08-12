@@ -1,96 +1,74 @@
 import React from 'react';
 import Link from 'next/link';
-import { Container, Row, Col, Card } from 'react-bootstrap';
 import { GetServerSidePropsContext } from 'next';
 import MainLayout from '@/layouts/MainLayout';
 import notification from '@/notifications';
 import { requireAdminPage, redirectToLogin } from '@/utils/pageAuth';
+import { loadDashboard, type Dashboard } from '@/utils/dashboard';
+import { DashboardView } from '@/components/dashboard/DashboardView';
 
 /**
  * Admin landing page.
  *
- * It used to render the literal text "WELCOME HOME" for anyone who reached it,
- * signed in or not, and it imported `next/font/google` without using the result.
+ * It used to render the literal text "WELCOME HOME" to anyone who reached it,
+ * signed in or not. That was replaced by a grid of shortcuts, on the reasoning
+ * that a figure on a landing page which disagrees with the list it links to is
+ * worse than no figure at all.
  *
- * Now it is gated: an unauthenticated visitor is redirected to the login page,
- * and an admin gets a way into the sections they actually use. There are
- * deliberately **no counts or figures here** — every number on an admin screen
- * should come from the same query the section itself runs, and a dashboard
- * statistic that disagrees with the list it links to is worse than no statistic.
+ * That reasoning was about *duplicated* numbers. The real objection is a
+ * dashboard whose totals are computed differently from the sections beneath it
+ * — so the numbers here are derived by one module, `utils/dashboard`, using the
+ * same units × unit-value rule the app and website use, and each block states
+ * which statuses it counts. An operator opening this page wants to know how
+ * much is working, what is owed and when, and where it came from; a wall of
+ * links answers none of that.
+ *
+ * The shortcuts are still here, at the bottom, because they were genuinely
+ * useful for navigation.
  */
 
-type Shortcut = {
-    href: string;
-    title: string;
-    body: string;
-};
+type Shortcut = { href: string; title: string; body: string };
 
 const SHORTCUTS: Shortcut[] = [
-    {
-        href: '/bookings/list',
-        title: 'Bookings',
-        body: 'Confirm payments, review proof of payment, cancel or deny a booking.',
-    },
-    {
-        href: '/projects/list',
-        title: 'Projects',
-        body: 'Create and edit projects, assign Shathi partners, change project status.',
-    },
-    {
-        href: '/users',
-        title: 'Users',
-        body: 'Verify NID, email and phone. View linked bank accounts.',
-    },
-    {
-        href: '/partners/list',
-        title: 'Partners',
-        body: 'Register Shathi partners and maintain their profiles.',
-    },
-    {
-        href: '/orders/list',
-        title: 'Orders',
-        body: 'Shathi Sheba product orders and their delivery status.',
-    },
-    {
-        href: '/blogs/list',
-        title: 'Content',
-        body: 'Blog posts, partnerships, testimonials and app stat panels.',
-    },
-    {
-        href: '/notification',
-        title: 'Notifications',
-        body: 'Send a manual notification to app users.',
-    },
-    {
-        href: '/api-viewer',
-        title: 'API map',
-        body: 'Every backend route, who calls it, and how web and app differ.',
-    },
+    { href: '/bookings/list', title: 'Bookings', body: 'Confirm payments, review proof, cancel.' },
+    { href: '/users', title: 'Investors', body: 'Verify NIDs, check contact details.' },
+    { href: '/projects/list', title: 'Projects', body: 'Units, pricing, partner assignment.' },
+    { href: '/partners/list', title: 'Partners', body: 'Shathi partners and their capacity.' },
 ];
 
-export default function Home({ name }: { name: string }) {
-    return (
-        <Container className="py-4">
-            <h4 className="mb-1">Welcome{name ? `, ${name}` : ''}</h4>
-            <p className="text-muted">Choose a section to work in.</p>
+type Props = { dashboard: Dashboard | null; error: string | null };
 
-            <Row className="g-3 mt-1">
+export default function Home({ dashboard, error }: Props) {
+    return (
+        <div className="container-fluid py-4">
+            {error && (
+                <div className="alert alert-warning" role="alert">
+                    <strong>The dashboard could not be loaded.</strong> {error}
+                    <div className="small mt-1">
+                        The sections below still work — only the figures on this page are affected.
+                    </div>
+                </div>
+            )}
+
+            {dashboard && <DashboardView data={dashboard} />}
+
+            <div className="row g-3 mt-1">
                 {SHORTCUTS.map((item) => (
-                    <Col key={item.href} md={6} lg={3}>
-                        <Card className="h-100">
-                            <Card.Body>
-                                <Card.Title as="h6" className="mb-2">
-                                    <Link href={item.href} className="stretched-link text-decoration-none">
-                                        {item.title}
-                                    </Link>
-                                </Card.Title>
-                                <Card.Text className="text-muted small mb-0">{item.body}</Card.Text>
-                            </Card.Body>
-                        </Card>
-                    </Col>
+                    <div className="col-12 col-sm-6 col-lg-3" key={item.href}>
+                        <Link href={item.href} className="text-decoration-none">
+                            <div className="card h-100">
+                                <div className="card-body py-3">
+                                    <div className="fw-bold text-dark">{item.title}</div>
+                                    <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                        {item.body}
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
                 ))}
-            </Row>
-        </Container>
+            </div>
+        </div>
     );
 }
 
@@ -113,7 +91,18 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
         .then(() => notification())
         .catch(() => undefined);
 
-    return { props: { name: '' } };
+    /*
+     * A failed dashboard query must not take the whole admin down. The page
+     * renders with a warning and the section links still work, which is the
+     * difference between "the figures are unavailable" and "the admin is
+     * broken".
+     */
+    try {
+        const dashboard = await loadDashboard();
+        return { props: { dashboard: JSON.parse(JSON.stringify(dashboard)) as Dashboard, error: null } };
+    } catch (error) {
+        return { props: { dashboard: null, error: (error as Error).message } };
+    }
 }
 
 Home.getLayout = function getLayout(page: React.ReactNode) {
