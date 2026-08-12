@@ -88,8 +88,14 @@ function Panel({
     action?: { href: string; label: string };
     children: React.ReactNode;
 }) {
+    /*
+     * No `h-100`. Bootstrap columns stretch to the tallest sibling, so a short
+     * panel beside a long one grew to match and left dead space below its
+     * content — a "Nothing matures" line sitting in a card three times its
+     * height. Cards size to their content; the row aligns them to the top.
+     */
     return (
-        <div className="card h-100">
+        <div className="card">
             <div className="card-header bg-white d-flex justify-content-between align-items-start gap-2 py-3">
                 <div>
                     <h2 className="h6 mb-0 fw-bold">{title}</h2>
@@ -140,14 +146,17 @@ export function DashboardView({ data }: { data: Dashboard }) {
                 ))}
             </div>
 
-            <div className="row g-3 mt-0">
+            <div className="row g-3 mt-0 align-items-start">
                 <div className="col-12 col-xl-7">
                     <Panel
                         title="Payables forecast"
                         subtitle="Positions maturing ahead. Anything already overdue is on the card above."
                     >
                         {data.payables.every((p) => p.count === 0) ? (
-                            <Empty>Nothing matures in the next three months.</Empty>
+                            <Empty>
+                                Nothing matures in the next three months. Positions already past
+                                maturity are on the <strong>Matured, awaiting payout</strong> card.
+                            </Empty>
                         ) : (
                             <div className="table-responsive">
                                 <table className="table table-sm mb-0 align-middle">
@@ -172,10 +181,12 @@ export function DashboardView({ data }: { data: Dashboard }) {
                                 </table>
                             </div>
                         )}
-                        <p className="text-muted small mb-0 px-3 py-2 border-top">
-                            Profit uses each project&apos;s <strong>minimum</strong> return. Windows are
-                            cumulative, so the 3-month row includes the 15-day one.
-                        </p>
+                        {data.payables.some((p) => p.count > 0) && (
+                            <p className="text-muted small mb-0 px-3 py-2 border-top">
+                                Profit uses each project&apos;s <strong>minimum</strong> return. Windows
+                                are cumulative, so the 3-month row includes the 15-day one.
+                            </p>
+                        )}
                     </Panel>
                 </div>
 
@@ -255,7 +266,7 @@ export function DashboardView({ data }: { data: Dashboard }) {
                 </div>
 
                 <div className="col-12 col-xl-5">
-                    <div className="d-flex flex-column gap-3 h-100">
+                    <div className="d-flex flex-column gap-3">
                         <Panel title="By investment type">
                             {data.byType.length === 0 ? (
                                 <Empty>No investments recorded yet.</Empty>
