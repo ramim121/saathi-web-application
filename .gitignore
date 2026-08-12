@@ -26,6 +26,10 @@ next-env.d.ts
 # dozens of unreadable HTML diffs.
 db/email-preview/
 
+# Records the file names replace-project-images.mjs overwrote, so --revert can
+# put them back. Environment-specific state, not source.
+db/project-image-backup.json
+
 # Local tooling
 .DS_Store
 Thumbs.db
