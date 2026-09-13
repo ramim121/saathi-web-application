@@ -24,6 +24,9 @@ export default interface ProjectInvestmentBooking {
     collectionLocation?: string | null;
     cancelled: 'yes' | 'no';
     ProjectInvestors?: ProjectInvestor[];
+    bookingType: 'fresh' | 'reinvestment';
+    reinvestedAmount: number;
+    idSourceProjectInvestors?: number | null;
 }
 
 export interface ProjectInvestmentBookingAttributes extends Optional<ProjectInvestmentBooking, 'idProjectInvestmentBookings'> { }

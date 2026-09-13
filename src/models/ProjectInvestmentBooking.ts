@@ -79,6 +79,20 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('yes', 'no'),
         allowNull: false,
         defaultValue: 'no'
+    },
+    bookingType: {
+        type: DataTypes.ENUM('fresh', 'reinvestment'),
+        allowNull: false,
+        defaultValue: 'fresh'
+    },
+    reinvestedAmount: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: false,
+        defaultValue: 0
+    },
+    idSourceProjectInvestors: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 }, {
     tableName: 'project_investment_bookings',
