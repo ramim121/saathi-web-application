@@ -157,6 +157,129 @@ a:hover { text-decoration: underline; }
 .drill-table .sort-mark { margin-left: 0.3rem; opacity: 0.45; font-size: 0.75em; }
 .drill-table th[aria-sort] .sort-mark { opacity: 1; color: var(--sa-brand); }
 
+/* ------------------------------------------------------ reading long lists --
+ *
+ * An admin's job on these pages is scanning: bookings, users, investors, the
+ * payout queue. All of them run to hundreds of rows, and the constraint is how
+ * many can be compared at once without losing track of which column is which.
+ * Everything below serves that, and none of it requires touching a page.
+ */
+
+/*
+ * The header stays put while the body scrolls.
+ *
+ * Past about fifteen rows the column names have scrolled away, so reading a
+ * cell means scrolling back up to remember what it is — on the wide tables
+ * (users, bookings) that is most of them. Bootstrap gives `.table-responsive`
+ * its own scroll container, so `position: sticky` resolves against that box and
+ * works without a fixed page height.
+ *
+ * `z-index` keeps the header above the cells it covers; without it the header
+ * background is painted under rows that scroll beneath it, and the text of both
+ * shows through at once.
+ */
+.table-responsive > .table > thead > tr > th,
+.table-responsive > .table > thead > tr > td {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    /* Opaque: the body rows pass directly underneath. */
+    background: var(--sa-50);
+}
+
+/*
+ * A hairline under the sticky header rather than a border.
+ *
+ * `border-bottom` on a sticky cell scrolls with the cell's own box in some
+ * engines and leaves a gap the rows bleed through; a box-shadow is painted
+ * outside the box and stays put.
+ */
+.table-responsive > .table > thead > tr > th {
+    box-shadow: inset 0 -1px 0 var(--sa-200);
+}
+
+/*
+ * Every figure in a table aligns by place value, not only the ones a page
+ * remembered to mark `.text-end`.
+ *
+ * Proportional digits make a column of money ragged down its left edge, which
+ * is exactly the edge you compare magnitudes against. `font-variant-numeric`
+ * only affects digits, so text cells in the same column are unchanged.
+ */
+.table > tbody > tr > td { font-variant-numeric: tabular-nums; }
+
+/*
+ * Row hover across the full row.
+ *
+ * Bootstrap's hover only applies with `.table-hover` on the element, and most
+ * of these tables predate that class. Tracking a value across eight columns
+ * without it means following an unmarked line with your eye.
+ */
+.table > tbody > tr:hover > td { background-color: var(--sa-25); }
+
+/*
+ * Long free-text cells (project names, addresses, remarks) stretch a table
+ * until the columns that matter are pushed off-screen. Capping them keeps the
+ * numeric columns visible; the full value stays available on hover via the
+ * cell's `title`, and in the row's detail page.
+ */
+.table td.truncate,
+.table .cell-truncate {
+    max-width: 22ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*
+ * Opt-in compact mode for the densest lists — `<table class="table table-tight">`.
+ * Roughly a third more rows per screen. Not the default, because the standard
+ * padding is the more comfortable read on the pages that are mostly prose.
+ */
+.table-tight > tbody > tr > td,
+.table-tight > thead > tr > th,
+.table-tight > thead > tr > td {
+    padding: 0.35rem 0.6rem;
+}
+
+/*
+ * A horizontally scrolling table gives no sign that there is more to the right
+ * — the last visible column simply looks like the last column. This fades the
+ * right edge when the content overflows. `background-attachment: local` on the
+ * first two layers pins them to the content, so the shadow only appears while
+ * there is actually something scrolled out of view.
+ */
+.table-responsive {
+    background-image:
+        linear-gradient(to right, var(--sa-0), rgba(255, 255, 255, 0)),
+        linear-gradient(to left, var(--sa-0), rgba(255, 255, 255, 0)),
+        linear-gradient(to right, rgba(16, 24, 40, 0.09), rgba(16, 24, 40, 0)),
+        linear-gradient(to left, rgba(16, 24, 40, 0.09), rgba(16, 24, 40, 0));
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-size: 28px 100%, 28px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+
+/* Numeric emphasis for the figure a row is really about. */
+.table td .figure-strong {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--sa-900);
+}
+
+/*
+ * Row density and alignment are wasted if the page cannot be read on a laptop,
+ * where the admin is actually used. Below this width the sticky header costs
+ * more vertical room than it returns.
+ */
+@media (max-width: 575.98px) {
+    .table-responsive > .table > thead > tr > th,
+    .table-responsive > .table > thead > tr > td {
+        position: static;
+    }
+}
+
 /* ---------------------------------------------------------------- forms -- */
 
 .form-control, .form-select {
