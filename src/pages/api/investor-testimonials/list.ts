@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
+import { safeOrder } from '@/utils/order';
 
 export default async function handler(
     req: NextApiRequest,
@@ -56,7 +57,7 @@ export default async function handler(
                 where: whereClause,
                 limit,
                 offset,
-                order: [[(orderBy as string) || 'idInvestorTestimonials', orderType === 'ASC' ? 'ASC' : 'DESC']],
+                order: safeOrder(InvestorTestimonial, orderBy, orderType, 'idInvestorTestimonials', 'DESC'),
             });
 
             return res.status(200).json({

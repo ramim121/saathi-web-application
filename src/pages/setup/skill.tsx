@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 
 interface FormDataType {
@@ -164,7 +164,7 @@ function Skill() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Skills</h4>
@@ -193,7 +193,7 @@ function Skill() {
             </Container>
 
 
-            <Container fluid className='mt-5'>
+            <Container className='mt-5'>
                 <h4 className="text-start">Skills List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

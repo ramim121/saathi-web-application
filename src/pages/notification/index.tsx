@@ -3,7 +3,7 @@ import React, { useState, useRef, useContext, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import { Container, Row, Col, Form, Button, Spinner, Pagination, Table } from 'react-bootstrap';
 import { Editor } from '@tinymce/tinymce-react';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { AppContext } from '@/context/AppContext';
@@ -234,7 +234,7 @@ function ManualNotification() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={12}>
                         <h4 className="text-start">Manual Notification Create</h4>
@@ -296,7 +296,7 @@ function ManualNotification() {
                                         <Col sm='8'>
                                             <Editor
                                                 apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                                onInit={(_evt: any, editor: any) => editorRef.current = editor}
+                                                onInit={(evt, editor) => editorRef.current = editor}
                                                 id='summary'
                                                 init={{
                                                     height: 400,

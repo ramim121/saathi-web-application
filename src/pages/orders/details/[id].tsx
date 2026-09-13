@@ -4,7 +4,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Form, Button, Spinner } from "react-bootstrap";
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Swal from "sweetalert2";
 
 interface DetailsProps {
@@ -169,7 +169,7 @@ function Details() {
 
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start"> Order Details ({details?.orderId})</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">

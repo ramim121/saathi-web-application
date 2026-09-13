@@ -3,8 +3,8 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Table, Button } from "react-bootstrap";
 import { getRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
-import { API_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
+import { API_URL } from '@/config/public';
 import Link from "next/link";
 
 interface ListProps {
@@ -86,7 +86,7 @@ function List() {
 
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start">Blogs List</h4>
             <hr />
             <Table responsive striped bordered hover>

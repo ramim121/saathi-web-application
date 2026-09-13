@@ -28,6 +28,13 @@ export default interface Project {
     projectBanner: string;
     otherLocations?: string;
     description?: string;
+    // Bangla counterparts (migration 002). Null means "not translated yet" —
+    // callers fall back to the English column.
+    projectNameBn?: string | null;
+    summaryBn?: string | null;
+    descriptionBn?: string | null;
+    locationBn?: string | null;
+    otherLocationsBn?: string | null;
     createdAt?: string;
     updatedAt?: string;
     ProjectCategory?: ProjectCategory;

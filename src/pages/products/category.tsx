@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Col, Container, Form, Row, Table, Pagination, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface FormDataType {
     idProductCategories?: string;
@@ -231,7 +231,7 @@ function Category() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <Row>
                     <Col md={2}></Col>
                     <Col md={8}>
@@ -302,7 +302,7 @@ function Category() {
                 </Row>
             </Container>
 
-            <Container fluid className='mt-5'>
+            <Container className='mt-5'>
                 <h4 className="text-start">Product Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

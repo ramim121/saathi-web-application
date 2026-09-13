@@ -121,6 +121,29 @@ const Project = sequelize.define<ProjectModel>('Project', {
         allowNull: true,
         defaultValue: 0
     },
+    // Bangla counterparts — migration 002_bangla_columns.sql. All nullable:
+    // a null means "not translated yet" and the reader falls back to English.
+    // `underscored: true` maps these to project_name_bn, summary_bn, etc.
+    projectNameBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    summaryBn: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    descriptionBn: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    locationBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    otherLocationsBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     description: {
         type: DataTypes.TEXT,
         allowNull: true

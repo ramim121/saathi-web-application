@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 // import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
@@ -223,7 +223,7 @@ function Registration() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <h4 className="text-start">Partner Registration</h4>
                 <hr />
                 <Form onSubmit={handleSubmit}>
@@ -374,7 +374,7 @@ function Registration() {
                                 <Col sm='8' style={{ zIndex: '0' }}>
                                     {/* <Editor
                                         apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                        onInit={(_evt: any, editor: any) => bioRef.current = editor}
+                                        onInit={(evt, editor) => bioRef.current = editor}
                                         id='painPoints'
                                         init={{
                                             height: 360,

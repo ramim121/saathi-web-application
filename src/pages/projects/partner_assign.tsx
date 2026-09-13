@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Form, Row, Col, Button, Card, Table } from "react-bootstrap";
 import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions, postRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
 import Select, { components } from "react-select";
 import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill } from 'react-bootstrap-icons';
@@ -245,7 +245,7 @@ function PartnerAssign() {
 	}
 
 	return (
-		<Container fluid>
+		<Container>
 			<h4 className="text-start">Partner Assign</h4>
 			<hr />
 			<Form onSubmit={handleSubmit}>

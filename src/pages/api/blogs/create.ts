@@ -77,6 +77,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const data = {
                 heading: fields.heading ? fields.heading[0] : null,
                 description: fields.description ? fields.description[0] : null,
+                headingBn: fields.headingBn ? fields.headingBn[0] : null,
+                descriptionBn: fields.descriptionBn ? fields.descriptionBn[0] : null,
                 writtenBy: fields.writtenBy ? fields.writtenBy[0] : null,
                 writtenDate: fields.writtenDate ? fields.writtenDate[0] : null
             }
@@ -159,6 +161,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 const blog = await Blog.create({
                     heading: data.heading,
                     description: data.description,
+                    headingBn: data.headingBn || null,
+                    descriptionBn: data.descriptionBn || null,
                     writtenBy: data.writtenBy,
                     writtenDate: data.writtenDate,
                     featuredImage: featuredImage !== null ? featuredImageFileName : null,

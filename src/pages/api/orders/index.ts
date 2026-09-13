@@ -78,7 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 orderListQuery = orderListQuery.where('product_orders.order_status', 'like', `%${status}%`);
             }
             if (orderBy && orderType) {
-                orderListQuery = orderListQuery.orderBy(orderBy as string, orderType as 'asc' | 'desc');
+                // Clamp the direction rather than passing the query string
+                // through: knex escapes the column identifier but treats the
+                // direction as a literal fragment.
+                const direction = String(orderType).toLowerCase() === 'asc' ? 'asc' : 'desc';
+                orderListQuery = orderListQuery.orderBy(orderBy as string, direction);
             } else {
                 orderListQuery = orderListQuery.orderBy('product_orders.created_at', 'desc');
             }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import Swal from "sweetalert2";
-import { Container, Table, Button, Pagination, Row, Form, Nav, Alert } from "react-bootstrap";
+import { Container, Table, Button, Pagination, Row, Form, Nav } from "react-bootstrap";
 import Link from "next/link";
 import { getRequestOptions } from "@/utils/Fetch";
 
@@ -54,22 +54,6 @@ function List() {
 
     const [total, setTotal] = useState<number>(0);
     const [activeTab, setActiveTab] = useState<string>("current");
-    const [maturedCount, setMaturedCount] = useState<number>(0);
-
-    useEffect(() => {
-        const fetchMaturedCount = async () => {
-            try {
-                const res = await fetch('/api/cron/mature-investments', getRequestOptions());
-                if (res.status === 200) {
-                    const data = await res.json();
-                    setMaturedCount(data.count || 0);
-                }
-            } catch (_) {
-                // silently ignore
-            }
-        };
-        fetchMaturedCount();
-    }, []);
 
     useEffect(() => {
         const fetchBookingList = async () => {
@@ -180,14 +164,9 @@ function List() {
     }
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start">Booking List</h4>
             <hr />
-            {maturedCount > 0 && (
-                <Alert variant="warning">
-                    <strong>Action Required:</strong> {maturedCount} confirmed investment{maturedCount > 1 ? 's have' : ' has'} passed maturity date and need{maturedCount === 1 ? 's' : ''} to be set to &quot;Ready For Withdrawal&quot;. Open each booking and click the <em>Ready For Withdrawal</em> button to proceed.
-                </Alert>
-            )}
             <Nav variant="tabs" activeKey={activeTab} onSelect={(selectedKey) => handleTabChange(selectedKey || "current")}>
                 <Nav.Item>
                     <Nav.Link eventKey="current">Current Bookings</Nav.Link>
@@ -233,7 +212,8 @@ function List() {
                             <Form.Select className="form-control form-control-sm" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus}>
                                 <option value="">All</option>
                                 <option value="pending">Pending</option>
-                                <option value="uploaded">Uploaded</option>
+                                <option value="uploaded">Proof submitted (uploaded)</option>
+                                <option value="proof_submitted">Proof submitted</option>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="denied">Denied</option>
                             </Form.Select>

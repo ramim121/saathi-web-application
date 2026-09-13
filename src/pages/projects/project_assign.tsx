@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Form, Row, Col, Button, Card, Table } from 'react-bootstrap';
 import MainLayout from '@/layouts/MainLayout';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { deleteRequestOptions, getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import Select, { components } from 'react-select';
@@ -278,7 +278,7 @@ function ProjectAssign() {
     };
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start">Project Assign</h4>
             <hr />
             <Form onSubmit={handleSubmit}>

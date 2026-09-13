@@ -5,13 +5,46 @@ import { postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { User, UserBank, Bank, BankBranch } from "@/models/__associations";
 import UserType from "@/types/User";
-import { S3_URL } from "@/config/constants";
-import { NextPage } from "next";
-import { API_URL } from "@/config/constants";
+import { S3_URL } from '@/config/public';
+import { NextPage, GetServerSidePropsContext } from "next";
+import { API_URL } from '@/config/public';
+import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
 import { Form } from "react-bootstrap";
 
 interface UserListProps {
     users: UserType[];
+}
+
+/**
+ * The three verification states as compact ticks.
+ *
+ * Green means verified, grey means not — never red: an unverified account is a
+ * normal state on the way in, not an error, and a column of red on a fresh
+ * signup list reads as a system fault.
+ */
+function VerifyTicks({ nid, phone, email }: { nid: boolean; phone: boolean; email: boolean }) {
+    const items: Array<[string, string, boolean]> = [
+        ["NID", "N", nid],
+        ["Phone", "P", phone],
+        ["Email", "E", email],
+    ];
+    return (
+        <span className="verify-ticks">
+            {items.map(([label, letter, ok]) => (
+                <span
+                    key={label}
+                    className={`verify-tick ${ok ? "is-ok" : "is-no"}`}
+                    title={`${label} ${ok ? "verified" : "not verified"}`}
+                >
+                    {letter}
+                    <span aria-hidden="true">{ok ? "✓" : "·"}</span>
+                    <span className="visually-hidden">
+                        {label} {ok ? "verified" : "not verified"}
+                    </span>
+                </span>
+            ))}
+        </span>
+    );
 }
 
 const UserList: NextPage<UserListProps> = ({ users }) => {
@@ -184,7 +217,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
 
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start">User List</h4>
             <p>Total Users: {filteredUsers.length}</p>
             <hr />
@@ -360,12 +393,23 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                 <td>{new Date(user.createdAt).toLocaleDateString("en-In")}</td>
                                 <td>{user.disability}</td>
                                 <td className="text-capitalize">{user.status}</td>
+                                {/*
+                                  * Three ticks, not three sentences. Scanning a
+                                  * page of users for who still needs verifying
+                                  * is the actual job here, and "NID Verified:
+                                  * No" repeated down a column defeats it — the
+                                  * word that matters is buried at the end of
+                                  * each line. The letter carries the meaning
+                                  * and the colour carries the state, with the
+                                  * full wording in the title for screen readers
+                                  * and anyone who needs it spelled out.
+                                  */}
                                 <td style={{ whiteSpace: "nowrap" }}>
-                                    NID Verified: {user.nidVerified === "yes" ? "Yes" : "No"}
-                                    <br />
-                                    Phone Verified: {user.phoneVerified === "yes" ? "Yes" : "No"}
-                                    <br />
-                                    Email Verified: {user.emailVerified === "yes" ? "Yes" : "No"}
+                                    <VerifyTicks
+                                        nid={user.nidVerified === "yes"}
+                                        phone={user.phoneVerified === "yes"}
+                                        email={user.emailVerified === "yes"}
+                                    />
                                 </td>
                                 <td>
                                     {user.UserBanks && user.UserBanks.length > 0 ? (
@@ -473,12 +517,18 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                                 }
                                             </p>
                                             <hr />
+                                            {/* Served through an authenticated route rather than the
+                                                public bucket URL. These are national ID cards; the route
+                                                checks that the caller is the owner or an admin and
+                                                redirects to a five-minute presigned URL. It takes the
+                                                user id, not a filename, so a leaked filename grants
+                                                nothing. */}
                                             <Row>
                                                 <Col>
-                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageFront}`} alt="NID Front"></img>
+                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=front`} alt="NID Front"></img>
                                                 </Col>
                                                 <Col>
-                                                    <img width={"100%"} src={`${S3_URL}nid/${selectedUser!.nidImageBack}`} alt="NID Back"></img>
+                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=back`} alt="NID Back"></img>
                                                 </Col>
                                             </Row>
                                         </>
@@ -528,7 +578,12 @@ UserList.getLayout = function PageLayout(page: any) {
     return <MainLayout>{page}</MainLayout>;
 };
 
-export async function getServerSideProps() {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+    // This query runs before any client-side layout check, and its result is
+    // embedded in the served HTML — so without this guard the whole user table
+    // (email, phone, NID, bank accounts) was readable by an anonymous request.
+    if (!requireAdminPage(context)) return redirectToLogin;
+
     const users = await User.findAll({
         order: [['idUsers', 'DESC']],
         include: [

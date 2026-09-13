@@ -1,0 +1,1547 @@
+{
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\.eslintrc.json": {
+    "mtime": 1786333227.8256328,
+    "ast_hash": "8c6eb34426c88114c3a00407fa117af4",
+    "semantic_hash": "8c6eb34426c88114c3a00407fa117af4"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\ecosystem.config.js": {
+    "mtime": 1786333227.8289754,
+    "ast_hash": "4a3b994e64fc6e2e6a5fe6784f337750",
+    "semantic_hash": "4a3b994e64fc6e2e6a5fe6784f337750"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\next.config.js": {
+    "mtime": 1786333227.8289754,
+    "ast_hash": "d2f5232337d15244f263b78bdc09ca5b",
+    "semantic_hash": "d2f5232337d15244f263b78bdc09ca5b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\package.json": {
+    "mtime": 1786333227.8289754,
+    "ast_hash": "3462cd06c21e56b4d8c1ba64a5499cdd",
+    "semantic_hash": "3462cd06c21e56b4d8c1ba64a5499cdd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\config\\constants.ts": {
+    "mtime": 1786333227.8663847,
+    "ast_hash": "0e6242db250fa0f829ae97348d5e67e7",
+    "semantic_hash": "0e6242db250fa0f829ae97348d5e67e7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\config\\db.ts": {
+    "mtime": 1786333227.8663847,
+    "ast_hash": "d54fe35085e4fff1ee5996b2e8a0ca87",
+    "semantic_hash": "d54fe35085e4fff1ee5996b2e8a0ca87"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\config\\fcm.ts": {
+    "mtime": 1786333227.8663847,
+    "ast_hash": "03968faeccdac92bd129ade1257048f5",
+    "semantic_hash": "03968faeccdac92bd129ade1257048f5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\config\\firebase.json": {
+    "mtime": 1786333227.86739,
+    "ast_hash": "ce3409a2771d41d544b9e7c92ef7687e",
+    "semantic_hash": "ce3409a2771d41d544b9e7c92ef7687e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\context\\AppContext.tsx": {
+    "mtime": 1786333227.868403,
+    "ast_hash": "9add8bc2ce8292776fe5eb7d33865c7a",
+    "semantic_hash": "9add8bc2ce8292776fe5eb7d33865c7a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\layouts\\Footer.tsx": {
+    "mtime": 1786333227.868403,
+    "ast_hash": "ad44d476128520416df05a10d6cf9e62",
+    "semantic_hash": "ad44d476128520416df05a10d6cf9e62"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\layouts\\Header.tsx": {
+    "mtime": 1786333227.8698425,
+    "ast_hash": "44d93ed65ba43306ac5ee23bd454ea64",
+    "semantic_hash": "44d93ed65ba43306ac5ee23bd454ea64"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\layouts\\MainLayout.tsx": {
+    "mtime": 1786333227.8698425,
+    "ast_hash": "9dccbb8d872f4a012e8fe3edee1db653",
+    "semantic_hash": "9dccbb8d872f4a012e8fe3edee1db653"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\AppFcmToken.ts": {
+    "mtime": 1786333227.8708477,
+    "ast_hash": "694e0033f5e7700400e448d56baefffc",
+    "semantic_hash": "694e0033f5e7700400e448d56baefffc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\AppStatPanel.ts": {
+    "mtime": 1786333227.8708477,
+    "ast_hash": "103c932bea935a5776a93b317966e745",
+    "semantic_hash": "103c932bea935a5776a93b317966e745"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\AppVersion.ts": {
+    "mtime": 1786333227.8708477,
+    "ast_hash": "da665b49403c17fa6fae3102738d8d2c",
+    "semantic_hash": "da665b49403c17fa6fae3102738d8d2c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Bank.ts": {
+    "mtime": 1786333227.8718479,
+    "ast_hash": "fbe91885c289bd8607463ac15c44bcfa",
+    "semantic_hash": "fbe91885c289bd8607463ac15c44bcfa"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\BankBranch.ts": {
+    "mtime": 1786333227.8718479,
+    "ast_hash": "c47f4929c65984ae4e516f4a8065b29c",
+    "semantic_hash": "c47f4929c65984ae4e516f4a8065b29c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Blog.ts": {
+    "mtime": 1786333227.8728514,
+    "ast_hash": "445e606dd04f6fe9d11e24c1056694f0",
+    "semantic_hash": "445e606dd04f6fe9d11e24c1056694f0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ContactMessage.ts": {
+    "mtime": 1786333227.8728514,
+    "ast_hash": "6a8cf433a3d941c46adc17db17b8572a",
+    "semantic_hash": "6a8cf433a3d941c46adc17db17b8572a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\DigigramBank.ts": {
+    "mtime": 1786333227.8738499,
+    "ast_hash": "bb751ea242987566b925fd476dd391c0",
+    "semantic_hash": "bb751ea242987566b925fd476dd391c0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\District.ts": {
+    "mtime": 1786333227.8738499,
+    "ast_hash": "ec729d05ed62e0a0207ae673e6864bba",
+    "semantic_hash": "ec729d05ed62e0a0207ae673e6864bba"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Division.ts": {
+    "mtime": 1786333227.8748538,
+    "ast_hash": "2513afc6563a7265d6e920664aaa5a95",
+    "semantic_hash": "2513afc6563a7265d6e920664aaa5a95"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\File.ts": {
+    "mtime": 1786333227.8748538,
+    "ast_hash": "18722e448b9c1d5186cd274770c16190",
+    "semantic_hash": "18722e448b9c1d5186cd274770c16190"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\InvestmentSetup.ts": {
+    "mtime": 1786333227.8758478,
+    "ast_hash": "05113d0df71f111a5a0c1f4778344792",
+    "semantic_hash": "05113d0df71f111a5a0c1f4778344792"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\InvestorTestimonial.ts": {
+    "mtime": 1786333227.8758478,
+    "ast_hash": "e5184fbc6cbc7c94e53f5d75a2f1fe55",
+    "semantic_hash": "e5184fbc6cbc7c94e53f5d75a2f1fe55"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ManualNotification.ts": {
+    "mtime": 1786333227.8758478,
+    "ast_hash": "b22e9531c10777283f12e68d297dc14f",
+    "semantic_hash": "b22e9531c10777283f12e68d297dc14f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\NotificationQueue.ts": {
+    "mtime": 1786333227.8768582,
+    "ast_hash": "ca4e0f385bb1b52024a9e0db6dbd92eb",
+    "semantic_hash": "ca4e0f385bb1b52024a9e0db6dbd92eb"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\NotificationTemplate.ts": {
+    "mtime": 1786333227.8768582,
+    "ast_hash": "d3908a4e8abb89da9d5c068d63bd42f5",
+    "semantic_hash": "d3908a4e8abb89da9d5c068d63bd42f5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\PartnerAdditionalInfo.ts": {
+    "mtime": 1786333227.8778498,
+    "ast_hash": "5bd21f724e6326e1baedb3c200603415",
+    "semantic_hash": "5bd21f724e6326e1baedb3c200603415"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Partnership.ts": {
+    "mtime": 1786333227.8778498,
+    "ast_hash": "a05f6b3540e2486e514fcb43e3fb99cd",
+    "semantic_hash": "a05f6b3540e2486e514fcb43e3fb99cd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\PoliceStation.ts": {
+    "mtime": 1786333227.8788474,
+    "ast_hash": "cbc5a6c49d4cec9548bf326e040b1c09",
+    "semantic_hash": "cbc5a6c49d4cec9548bf326e040b1c09"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Product.ts": {
+    "mtime": 1786333227.8788474,
+    "ast_hash": "319882672b957635d544fa1260d797dc",
+    "semantic_hash": "319882672b957635d544fa1260d797dc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductCategory.ts": {
+    "mtime": 1786333227.8788474,
+    "ast_hash": "ba21729fec59bc0a78fd651687b275e8",
+    "semantic_hash": "ba21729fec59bc0a78fd651687b275e8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductImage.ts": {
+    "mtime": 1786333227.8798473,
+    "ast_hash": "6e26a2cf00a3af7cf05e9571b1567aea",
+    "semantic_hash": "6e26a2cf00a3af7cf05e9571b1567aea"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductOrder.ts": {
+    "mtime": 1786333227.8798473,
+    "ast_hash": "b27cb3fd95430c7d96fb5ea70a82bfb8",
+    "semantic_hash": "b27cb3fd95430c7d96fb5ea70a82bfb8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductOrderItem.ts": {
+    "mtime": 1786333227.8798473,
+    "ast_hash": "a1a5e66ecdcb70ee9d292054d59cdb6c",
+    "semantic_hash": "a1a5e66ecdcb70ee9d292054d59cdb6c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductOrderStatus.ts": {
+    "mtime": 1786333227.8808491,
+    "ast_hash": "a98fe4872f89b1e53f2f4c9485f69d3c",
+    "semantic_hash": "a98fe4872f89b1e53f2f4c9485f69d3c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductPacking.ts": {
+    "mtime": 1786333227.8808491,
+    "ast_hash": "7a8efc9b4aab3e13e0a053a01f97ea4e",
+    "semantic_hash": "7a8efc9b4aab3e13e0a053a01f97ea4e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductPartner.ts": {
+    "mtime": 1786333227.8808491,
+    "ast_hash": "65112094b829801092e9d84bc17cbce2",
+    "semantic_hash": "65112094b829801092e9d84bc17cbce2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProductStock.ts": {
+    "mtime": 1786333227.8818486,
+    "ast_hash": "74ab58ad0eab67a8c3e02c6d6da81f8a",
+    "semantic_hash": "74ab58ad0eab67a8c3e02c6d6da81f8a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Project.ts": {
+    "mtime": 1786333227.8818486,
+    "ast_hash": "df557d467ab14d3c538b1d8623d15ae6",
+    "semantic_hash": "df557d467ab14d3c538b1d8623d15ae6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectCategory.ts": {
+    "mtime": 1786333227.8818486,
+    "ast_hash": "8de8dd9f3b5fa5f255b6edd476e85f76",
+    "semantic_hash": "8de8dd9f3b5fa5f255b6edd476e85f76"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectInvestmentBooking.ts": {
+    "mtime": 1786333227.882847,
+    "ast_hash": "66452c6b25df8bd82b1036199e833b91",
+    "semantic_hash": "66452c6b25df8bd82b1036199e833b91"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectInvestmentBookingStatus.ts": {
+    "mtime": 1786333227.882847,
+    "ast_hash": "7e664f3a6d4f9cb9035bac9961ad8c10",
+    "semantic_hash": "7e664f3a6d4f9cb9035bac9961ad8c10"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectInvestor.ts": {
+    "mtime": 1786333227.882847,
+    "ast_hash": "9678fc3ede05f68892234ab0eec617ee",
+    "semantic_hash": "9678fc3ede05f68892234ab0eec617ee"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectInvestorStatus.ts": {
+    "mtime": 1786333227.88407,
+    "ast_hash": "e03e9ab1c5a4d827532b28092378a22c",
+    "semantic_hash": "e03e9ab1c5a4d827532b28092378a22c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectPartner.ts": {
+    "mtime": 1786333227.88407,
+    "ast_hash": "1ad1bc35f8ac016263b9aa0f4f745c07",
+    "semantic_hash": "1ad1bc35f8ac016263b9aa0f4f745c07"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectPartnerInvestor.ts": {
+    "mtime": 1786333227.8850684,
+    "ast_hash": "2bf5781fff111b474344674a1251835c",
+    "semantic_hash": "2bf5781fff111b474344674a1251835c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectPartnerInvestorUpdate.ts": {
+    "mtime": 1786333227.8850684,
+    "ast_hash": "20b3c0974a9cb652e4a92ce86a7c6725",
+    "semantic_hash": "20b3c0974a9cb652e4a92ce86a7c6725"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectProperty.ts": {
+    "mtime": 1786333227.8850684,
+    "ast_hash": "e2c933e3becb4692660209761c984f14",
+    "semantic_hash": "e2c933e3becb4692660209761c984f14"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\ProjectSpecialBookingReq.ts": {
+    "mtime": 1786333227.8850684,
+    "ast_hash": "d67b11aaad5bc344a15e07efbc62abb8",
+    "semantic_hash": "d67b11aaad5bc344a15e07efbc62abb8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Skill.ts": {
+    "mtime": 1786333227.886068,
+    "ast_hash": "bfa6d0dba7fb79feb52002334ebb877f",
+    "semantic_hash": "bfa6d0dba7fb79feb52002334ebb877f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\Unit.ts": {
+    "mtime": 1786333227.886068,
+    "ast_hash": "7c59688d20db7e97ca4b1484374f854b",
+    "semantic_hash": "7c59688d20db7e97ca4b1484374f854b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\User.ts": {
+    "mtime": 1786333227.886068,
+    "ast_hash": "0a635d0267814e094dfe0b924fda470b",
+    "semantic_hash": "0a635d0267814e094dfe0b924fda470b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\UserAddress.ts": {
+    "mtime": 1786333227.8870685,
+    "ast_hash": "2249cf3da6f8aa40245b6d8a76b38995",
+    "semantic_hash": "2249cf3da6f8aa40245b6d8a76b38995"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\UserBank.ts": {
+    "mtime": 1786333227.8877904,
+    "ast_hash": "7b269b35de5cbcffd9d9e543e861ec54",
+    "semantic_hash": "7b269b35de5cbcffd9d9e543e861ec54"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\__associations.ts": {
+    "mtime": 1786333227.8877904,
+    "ast_hash": "066324faa3f56aeca4cee76e1795db81",
+    "semantic_hash": "066324faa3f56aeca4cee76e1795db81"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\models\\__sync.ts": {
+    "mtime": 1786333227.8877904,
+    "ast_hash": "82c3d451aa2d71d0ae8815b5b81f9b53",
+    "semantic_hash": "82c3d451aa2d71d0ae8815b5b81f9b53"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\booking_active.ejs": {
+    "mtime": 1786333227.8888016,
+    "ast_hash": "9f80d3deef8a8bef491e70ffdd74839c",
+    "semantic_hash": "9f80d3deef8a8bef491e70ffdd74839c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\booking_cancelled.ejs": {
+    "mtime": 1786333227.890054,
+    "ast_hash": "453315604bf293d9624e1e9ba256a604",
+    "semantic_hash": "453315604bf293d9624e1e9ba256a604"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\booking_placed.ejs": {
+    "mtime": 1786333227.890054,
+    "ast_hash": "9f93c17217f82797b63244de8f967ecc",
+    "semantic_hash": "9f93c17217f82797b63244de8f967ecc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\project_maturity_1_week.ejs": {
+    "mtime": 1786333227.892058,
+    "ast_hash": "2e93f5d6462aaaecca6cfec15f226b6e",
+    "semantic_hash": "2e93f5d6462aaaecca6cfec15f226b6e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\index.ts": {
+    "mtime": 1786333227.8930573,
+    "ast_hash": "c7b6523ed05ea73a4c66bb279aa4fdb1",
+    "semantic_hash": "c7b6523ed05ea73a4c66bb279aa4fdb1"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\DeleteMyAccount.tsx": {
+    "mtime": 1786333227.894059,
+    "ast_hash": "09282adbb24ba457676f151af5acf1fe",
+    "semantic_hash": "09282adbb24ba457676f151af5acf1fe"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\_app.tsx": {
+    "mtime": 1786333227.8950589,
+    "ast_hash": "4c808efa8fdd3d95b904dbf11e74da5b",
+    "semantic_hash": "4c808efa8fdd3d95b904dbf11e74da5b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\_document.tsx": {
+    "mtime": 1786333227.8950589,
+    "ast_hash": "6fd943ff70073f26219b4cbd124dec61",
+    "semantic_hash": "6fd943ff70073f26219b4cbd124dec61"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\admin\\registration.tsx": {
+    "mtime": 1786333227.8960583,
+    "ast_hash": "cb92774c2c3d8ca7d7e380d5ca845094",
+    "semantic_hash": "cb92774c2c3d8ca7d7e380d5ca845094"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\admin_registration.ts": {
+    "mtime": 1786333227.8967972,
+    "ast_hash": "ca841883414722847ef655aae8cb83c8",
+    "semantic_hash": "ca841883414722847ef655aae8cb83c8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\all_skills.ts": {
+    "mtime": 1786333227.8967972,
+    "ast_hash": "7364073c6e5dc58d55d98e5d019835ab",
+    "semantic_hash": "7364073c6e5dc58d55d98e5d019835ab"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\auth\\apple.ts": {
+    "mtime": 1786333227.8980687,
+    "ast_hash": "e197f5396f0a73ec70a111c39bec6579",
+    "semantic_hash": "e197f5396f0a73ec70a111c39bec6579"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\auth\\google.ts": {
+    "mtime": 1786333227.8980687,
+    "ast_hash": "d0c6ef190d4daef8881ef37755f9c2e5",
+    "semantic_hash": "d0c6ef190d4daef8881ef37755f9c2e5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\banks\\[id].ts": {
+    "mtime": 1786333227.8990788,
+    "ast_hash": "5ce0ae0bd26c47bb223421c7589e0240",
+    "semantic_hash": "5ce0ae0bd26c47bb223421c7589e0240"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\banks\\edit-info\\[id].ts": {
+    "mtime": 1786333227.9000733,
+    "ast_hash": "888a1f4b855b6f0c63a5c6097631ef00",
+    "semantic_hash": "888a1f4b855b6f0c63a5c6097631ef00"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\banks\\get_all_banks.ts": {
+    "mtime": 1786333227.9000733,
+    "ast_hash": "c877c1af2c0c658638074760a5c51a82",
+    "semantic_hash": "c877c1af2c0c658638074760a5c51a82"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\banks\\update\\[id].ts": {
+    "mtime": 1786333227.901073,
+    "ast_hash": "74cddaa6ff3346b44927d604e1bd0651",
+    "semantic_hash": "74cddaa6ff3346b44927d604e1bd0651"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\banks\\user-bank.ts": {
+    "mtime": 1786333227.901073,
+    "ast_hash": "575dc3a57adc64cae7655994b326b758",
+    "semantic_hash": "575dc3a57adc64cae7655994b326b758"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\blogs\\create.ts": {
+    "mtime": 1786333227.9020734,
+    "ast_hash": "1d92f80aa411bddbaff076e737539196",
+    "semantic_hash": "1d92f80aa411bddbaff076e737539196"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\blogs\\delete\\[id].ts": {
+    "mtime": 1786333227.9020734,
+    "ast_hash": "fd42cc0af19015dbae9619a47a541565",
+    "semantic_hash": "fd42cc0af19015dbae9619a47a541565"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\blogs\\edit-info\\[id].ts": {
+    "mtime": 1786333227.9030735,
+    "ast_hash": "855f49f240dd800da8d21c5af441af94",
+    "semantic_hash": "855f49f240dd800da8d21c5af441af94"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\blogs\\list.ts": {
+    "mtime": 1786333227.9030735,
+    "ast_hash": "800bfc55819c6de2e658778dc7cc96b6",
+    "semantic_hash": "800bfc55819c6de2e658778dc7cc96b6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\blogs\\update\\[id].ts": {
+    "mtime": 1786333227.9040735,
+    "ast_hash": "d3b9da9a0de2dab75186c5482db96342",
+    "semantic_hash": "d3b9da9a0de2dab75186c5482db96342"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\active-booking.ts": {
+    "mtime": 1786333227.9040735,
+    "ast_hash": "7b352a7bc2b27d5c2f5d03734d5dd60b",
+    "semantic_hash": "7b352a7bc2b27d5c2f5d03734d5dd60b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\cancel.ts": {
+    "mtime": 1786333227.905076,
+    "ast_hash": "d84f154919cf1b6ae1d4145b618c4879",
+    "semantic_hash": "d84f154919cf1b6ae1d4145b618c4879"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\change-partner.ts": {
+    "mtime": 1786333227.905076,
+    "ast_hash": "ca7bec0c688af40f4d6ffd52d9d67153",
+    "semantic_hash": "ca7bec0c688af40f4d6ffd52d9d67153"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\collection_status_change.ts": {
+    "mtime": 1786333227.9060767,
+    "ast_hash": "a16a13988573972690580ebaa0d8ce56",
+    "semantic_hash": "a16a13988573972690580ebaa0d8ce56"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\confirm.ts": {
+    "mtime": 1786333227.9060767,
+    "ast_hash": "4f59b26e53fc49c132225724241dd2a8",
+    "semantic_hash": "4f59b26e53fc49c132225724241dd2a8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\create.ts": {
+    "mtime": 1786333227.9060767,
+    "ast_hash": "83a2705960d06196bc667e63fe8cec29",
+    "semantic_hash": "83a2705960d06196bc667e63fe8cec29"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\deny.ts": {
+    "mtime": 1786333227.907073,
+    "ast_hash": "b778170e0013de7aec302e9ff9ab59f1",
+    "semantic_hash": "b778170e0013de7aec302e9ff9ab59f1"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\details\\[id].ts": {
+    "mtime": 1786333227.907073,
+    "ast_hash": "8e1e4148edffd53dfcf5627c1185283d",
+    "semantic_hash": "8e1e4148edffd53dfcf5627c1185283d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\investment_status_change.ts": {
+    "mtime": 1786333227.9080734,
+    "ast_hash": "f293b174f78412530cb79d6192bba7bd",
+    "semantic_hash": "f293b174f78412530cb79d6192bba7bd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\list.ts": {
+    "mtime": 1786333227.9080734,
+    "ast_hash": "731f3b581cee426424da835f0f1619d9",
+    "semantic_hash": "731f3b581cee426424da835f0f1619d9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\manual_booking.ts": {
+    "mtime": 1786333227.9080734,
+    "ast_hash": "13710220c3dc6df1d34e6d9f093b3e3f",
+    "semantic_hash": "13710220c3dc6df1d34e6d9f093b3e3f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\manual_notification.ts": {
+    "mtime": 1786333227.9090724,
+    "ast_hash": "6126861cce153ca90135511aadd93872",
+    "semantic_hash": "6126861cce153ca90135511aadd93872"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\proof-of-payment-upload\\[id].ts": {
+    "mtime": 1786333227.9090724,
+    "ast_hash": "f182cfcc72ef67ebb6f839a646bb5fb6",
+    "semantic_hash": "f182cfcc72ef67ebb6f839a646bb5fb6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\bookings\\proof-of-payment-upload\\upload.ts": {
+    "mtime": 1786333227.9100776,
+    "ast_hash": "afd3a5d11c4efebdaaac5fb7182a584f",
+    "semantic_hash": "afd3a5d11c4efebdaaac5fb7182a584f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\contact.ts": {
+    "mtime": 1786333227.9100776,
+    "ast_hash": "71367b3f1966468b29c9f91cf8492d02",
+    "semantic_hash": "71367b3f1966468b29c9f91cf8492d02"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\delete-user.ts": {
+    "mtime": 1786333227.9110737,
+    "ast_hash": "db9a9cf55c113ea66d6486cf4a4072df",
+    "semantic_hash": "db9a9cf55c113ea66d6486cf4a4072df"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\digigram_bank_info.ts": {
+    "mtime": 1786333227.9110737,
+    "ast_hash": "00b3c78b8a6e7ac95f783efe33774ce2",
+    "semantic_hash": "00b3c78b8a6e7ac95f783efe33774ce2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\fcm.ts": {
+    "mtime": 1786333227.9110737,
+    "ast_hash": "438808930e0d9a4dee761cd1ade7d9a7",
+    "semantic_hash": "438808930e0d9a4dee761cd1ade7d9a7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\hello.ts": {
+    "mtime": 1786333227.9120722,
+    "ast_hash": "fe912d87f4cc120b37d827d58151fdad",
+    "semantic_hash": "fe912d87f4cc120b37d827d58151fdad"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investment_plans.ts": {
+    "mtime": 1786333227.9120722,
+    "ast_hash": "8f0364adef846468684ae11e96cc0275",
+    "semantic_hash": "8f0364adef846468684ae11e96cc0275"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investments\\create.ts": {
+    "mtime": 1786333227.9120722,
+    "ast_hash": "fddc2699cbef5941abf6ab4a7571eeba",
+    "semantic_hash": "fddc2699cbef5941abf6ab4a7571eeba"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investments\\list.ts": {
+    "mtime": 1786333227.9130733,
+    "ast_hash": "7778e8127a142be0427c5d3c4829f6cc",
+    "semantic_hash": "7778e8127a142be0427c5d3c4829f6cc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investor-testimonials\\all-testimonials.ts": {
+    "mtime": 1786333227.9130733,
+    "ast_hash": "53575fdb147d16176258f61971ac384c",
+    "semantic_hash": "53575fdb147d16176258f61971ac384c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investor-testimonials\\create.ts": {
+    "mtime": 1786333227.9140732,
+    "ast_hash": "85fb90ff1281821f7d58d94e1698dd9b",
+    "semantic_hash": "85fb90ff1281821f7d58d94e1698dd9b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investor-testimonials\\delete.ts": {
+    "mtime": 1786333227.9140732,
+    "ast_hash": "b0cdf5c46e8ab43dd49ca08620b7d97d",
+    "semantic_hash": "b0cdf5c46e8ab43dd49ca08620b7d97d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investor-testimonials\\list.ts": {
+    "mtime": 1786333227.9140732,
+    "ast_hash": "3c3f9d540235c5d82a403c5153b433e1",
+    "semantic_hash": "3c3f9d540235c5d82a403c5153b433e1"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investor-testimonials\\update.ts": {
+    "mtime": 1786333227.9150734,
+    "ast_hash": "6657758e03cd210a00b4b48395715aa6",
+    "semantic_hash": "6657758e03cd210a00b4b48395715aa6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\investors\\invested-projects\\[id].ts": {
+    "mtime": 1786333227.9157276,
+    "ast_hash": "cddbbfe020db8a4a82defc639ec606aa",
+    "semantic_hash": "cddbbfe020db8a4a82defc639ec606aa"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\live-update\\create.ts": {
+    "mtime": 1786333227.9157276,
+    "ast_hash": "2431254ba005eab7ee99b2f6ab3c3877",
+    "semantic_hash": "2431254ba005eab7ee99b2f6ab3c3877"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\live-update\\list\\[id].ts": {
+    "mtime": 1786333227.916732,
+    "ast_hash": "d227ee9df4c4d8e487b8ee9f3f5c7928",
+    "semantic_hash": "d227ee9df4c4d8e487b8ee9f3f5c7928"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\location\\districts\\index.ts": {
+    "mtime": 1786333227.9179742,
+    "ast_hash": "0325b9f7c210ff305923dd34c0fc6184",
+    "semantic_hash": "0325b9f7c210ff305923dd34c0fc6184"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\location\\divisions\\index.ts": {
+    "mtime": 1786333227.9179742,
+    "ast_hash": "1a179c849ab410380aa46358e28fc3fd",
+    "semantic_hash": "1a179c849ab410380aa46358e28fc3fd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\location\\police-stations.ts": {
+    "mtime": 1786333227.9179742,
+    "ast_hash": "8f3a3f403c322973781dc6585dddae6c",
+    "semantic_hash": "8f3a3f403c322973781dc6585dddae6c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\login.ts": {
+    "mtime": 1786333227.9189787,
+    "ast_hash": "667de6aceb68e90ad28f5dd98140cb45",
+    "semantic_hash": "667de6aceb68e90ad28f5dd98140cb45"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\manual-notification\\create.ts": {
+    "mtime": 1786333227.9189787,
+    "ast_hash": "4db6a6604e04335df144340dee1148d3",
+    "semantic_hash": "4db6a6604e04335df144340dee1148d3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\manual-notification\\details\\[id].ts": {
+    "mtime": 1786333227.9203777,
+    "ast_hash": "0284a70bdad2e0762b041ae0bc326399",
+    "semantic_hash": "0284a70bdad2e0762b041ae0bc326399"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\manual-notification\\list.ts": {
+    "mtime": 1786333227.9203777,
+    "ast_hash": "190cd8d849820efa4d5ea96ac876d347",
+    "semantic_hash": "190cd8d849820efa4d5ea96ac876d347"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\my-notifications.ts": {
+    "mtime": 1786333227.9203777,
+    "ast_hash": "6b0390fa0235d2c919d70cb48db54cda",
+    "semantic_hash": "6b0390fa0235d2c919d70cb48db54cda"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\orders\\[id].ts": {
+    "mtime": 1786333227.921629,
+    "ast_hash": "521ccea2e7a2a40fff48b9544d0a962c",
+    "semantic_hash": "521ccea2e7a2a40fff48b9544d0a962c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\orders\\index.ts": {
+    "mtime": 1786333227.921629,
+    "ast_hash": "ff6cf32722fb248138da799f9ffb047f",
+    "semantic_hash": "ff6cf32722fb248138da799f9ffb047f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\orders\\status_change.ts": {
+    "mtime": 1786333227.921629,
+    "ast_hash": "842c41497dde9ec785703087da0c6758",
+    "semantic_hash": "842c41497dde9ec785703087da0c6758"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\otp.ts": {
+    "mtime": 1786333227.9226341,
+    "ast_hash": "c540b2c7f774113f27f6b71e390f218c",
+    "semantic_hash": "c540b2c7f774113f27f6b71e390f218c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partner-product\\[...params].ts": {
+    "mtime": 1786333227.9226341,
+    "ast_hash": "929cfd131fe9e42131b2ebc9dc8b133a",
+    "semantic_hash": "929cfd131fe9e42131b2ebc9dc8b133a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\details\\[id].ts": {
+    "mtime": 1786333227.9236338,
+    "ast_hash": "1da9c523c7b923c0179b1aa34f22bdb1",
+    "semantic_hash": "1da9c523c7b923c0179b1aa34f22bdb1"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\edit-info\\[id].ts": {
+    "mtime": 1786333227.9236338,
+    "ast_hash": "337caac796242d2c7bfd26c3337d1581",
+    "semantic_hash": "337caac796242d2c7bfd26c3337d1581"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\get-partners-for-assign\\[id].ts": {
+    "mtime": 1786333227.9246335,
+    "ast_hash": "a963d4a1d5f312e4999fe457e7d1dee5",
+    "semantic_hash": "a963d4a1d5f312e4999fe457e7d1dee5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\get_all_partners.ts": {
+    "mtime": 1786333227.9256349,
+    "ast_hash": "3dae1b6408506b8fc24c43a8244d9e68",
+    "semantic_hash": "3dae1b6408506b8fc24c43a8244d9e68"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\get_partner_for_assign.ts": {
+    "mtime": 1786333227.9256349,
+    "ast_hash": "4f907be96c67799f6b35de4783b29233",
+    "semantic_hash": "4f907be96c67799f6b35de4783b29233"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\list.ts": {
+    "mtime": 1786333227.9266355,
+    "ast_hash": "7d907a6abb38f4fde21a6b8fff7f943c",
+    "semantic_hash": "7d907a6abb38f4fde21a6b8fff7f943c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\registration.ts": {
+    "mtime": 1786333227.9266355,
+    "ast_hash": "6264a8eb040ed846c58eedabe14dc80b",
+    "semantic_hash": "6264a8eb040ed846c58eedabe14dc80b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partners\\update\\[id].ts": {
+    "mtime": 1786333227.9276366,
+    "ast_hash": "9d588bf731c13038d9e8b9de1a7de819",
+    "semantic_hash": "9d588bf731c13038d9e8b9de1a7de819"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partnerships\\all-partnerships.ts": {
+    "mtime": 1786333227.9286342,
+    "ast_hash": "34a7d01aec254145efa1d132ca27d158",
+    "semantic_hash": "34a7d01aec254145efa1d132ca27d158"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partnerships\\create.ts": {
+    "mtime": 1786333227.9286342,
+    "ast_hash": "a1bc36ab9b1995192e56678fb0620535",
+    "semantic_hash": "a1bc36ab9b1995192e56678fb0620535"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partnerships\\delete.ts": {
+    "mtime": 1786333227.9286342,
+    "ast_hash": "09c7d0770dab48ce55585a5d787480d9",
+    "semantic_hash": "09c7d0770dab48ce55585a5d787480d9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partnerships\\list.ts": {
+    "mtime": 1786333227.9296377,
+    "ast_hash": "5799404de5f1aced33f7b52e8544fa04",
+    "semantic_hash": "5799404de5f1aced33f7b52e8544fa04"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\partnerships\\update.ts": {
+    "mtime": 1786333227.9296377,
+    "ast_hash": "a2b0eb1038bfd79f4895e604f89bac66",
+    "semantic_hash": "a2b0eb1038bfd79f4895e604f89bac66"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\popular_projects.ts": {
+    "mtime": 1786333227.9306357,
+    "ast_hash": "fa90ac5ca367f3d5ea84e5401ebb0fdc",
+    "semantic_hash": "fa90ac5ca367f3d5ea84e5401ebb0fdc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\product-categories\\create.ts": {
+    "mtime": 1786333227.9306357,
+    "ast_hash": "0f0dda7f811e1d4d2acff3f7e81ece0b",
+    "semantic_hash": "0f0dda7f811e1d4d2acff3f7e81ece0b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\product-categories\\get_all_categories.ts": {
+    "mtime": 1786333227.9316373,
+    "ast_hash": "1b049b64e52d54932f08b192d32bf1b0",
+    "semantic_hash": "1b049b64e52d54932f08b192d32bf1b0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\product-categories\\index.ts": {
+    "mtime": 1786333227.9316373,
+    "ast_hash": "71ab1a0136f21f9d4591e3e308d37d27",
+    "semantic_hash": "71ab1a0136f21f9d4591e3e308d37d27"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\product-categories\\list.ts": {
+    "mtime": 1786333227.9316373,
+    "ast_hash": "d64f0b2993728e49412a9b00992647ad",
+    "semantic_hash": "d64f0b2993728e49412a9b00992647ad"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\product-categories\\update\\[id].ts": {
+    "mtime": 1786333227.9326358,
+    "ast_hash": "a7dfce0e9c0178fa05f6a6dc7eea5a5a",
+    "semantic_hash": "a7dfce0e9c0178fa05f6a6dc7eea5a5a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\add_packing.ts": {
+    "mtime": 1786333227.9326358,
+    "ast_hash": "14e20c12dde478cca9289fd7b2a906b9",
+    "semantic_hash": "14e20c12dde478cca9289fd7b2a906b9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\assign_partners.ts": {
+    "mtime": 1786333227.9336336,
+    "ast_hash": "4eb3501400239ca5914908ee41971d35",
+    "semantic_hash": "4eb3501400239ca5914908ee41971d35"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\create.ts": {
+    "mtime": 1786333227.9336336,
+    "ast_hash": "6023363305326ed3d231d9ca85cb6fec",
+    "semantic_hash": "6023363305326ed3d231d9ca85cb6fec"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\details\\[id].ts": {
+    "mtime": 1786333227.9346337,
+    "ast_hash": "18c79b0ca98400966962e5d56e2d897a",
+    "semantic_hash": "18c79b0ca98400966962e5d56e2d897a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\get-product-packing\\[id].ts": {
+    "mtime": 1786333227.9346337,
+    "ast_hash": "fcc2b7a32dcbbebf971666ec6465523b",
+    "semantic_hash": "fcc2b7a32dcbbebf971666ec6465523b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\get_partner_for_assign.ts": {
+    "mtime": 1786333227.9356334,
+    "ast_hash": "6befe9b8d694c67b6c4966560d7a0648",
+    "semantic_hash": "6befe9b8d694c67b6c4966560d7a0648"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\images_upload.ts": {
+    "mtime": 1786333227.9356334,
+    "ast_hash": "2dc16c91a1dd364102e710a0124ce56d",
+    "semantic_hash": "2dc16c91a1dd364102e710a0124ce56d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\index.ts": {
+    "mtime": 1786333227.9356334,
+    "ast_hash": "147255477d1dcc05a88b39b82d2ead4f",
+    "semantic_hash": "147255477d1dcc05a88b39b82d2ead4f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\products\\list.ts": {
+    "mtime": 1786333227.9366336,
+    "ast_hash": "68a27061e0eb28aa538280597e80809f",
+    "semantic_hash": "68a27061e0eb28aa538280597e80809f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\profile\\nid.ts": {
+    "mtime": 1786333227.9366336,
+    "ast_hash": "3d8cd5e0c1176fb9a73b8026b9972465",
+    "semantic_hash": "3d8cd5e0c1176fb9a73b8026b9972465"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\profile\\picture.ts": {
+    "mtime": 1786333227.9376338,
+    "ast_hash": "e4303678f8a086ad60181d6e473bfcd1",
+    "semantic_hash": "e4303678f8a086ad60181d6e473bfcd1"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\project-categories\\create.ts": {
+    "mtime": 1786333227.9376338,
+    "ast_hash": "8cd5fcb6c7a9d3a63889e51563107854",
+    "semantic_hash": "8cd5fcb6c7a9d3a63889e51563107854"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\project-categories\\get_all_categories.ts": {
+    "mtime": 1786333227.9376338,
+    "ast_hash": "3b1416bf8d24f8c39041cb632d6f1d32",
+    "semantic_hash": "3b1416bf8d24f8c39041cb632d6f1d32"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\project-categories\\list.ts": {
+    "mtime": 1786333227.9386332,
+    "ast_hash": "8ae020dc9d722656ca9ec84d501983f6",
+    "semantic_hash": "8ae020dc9d722656ca9ec84d501983f6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\create.ts": {
+    "mtime": 1786333227.9386332,
+    "ast_hash": "7d98ac00386e9672feb1e8f32707835c",
+    "semantic_hash": "7d98ac00386e9672feb1e8f32707835c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\delete-partner-assign\\[id].ts": {
+    "mtime": 1786333227.9396334,
+    "ast_hash": "0ee5b1f8930c01f9e0bd8eccef6c1f17",
+    "semantic_hash": "0ee5b1f8930c01f9e0bd8eccef6c1f17"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\details\\[id].ts": {
+    "mtime": 1786333227.9396334,
+    "ast_hash": "8a9c108b4c4d1c029275575216876c61",
+    "semantic_hash": "8a9c108b4c4d1c029275575216876c61"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\edit-info\\[id].ts": {
+    "mtime": 1786333227.9406333,
+    "ast_hash": "1ddc0f37c5a19db74c1ddd782dc1046a",
+    "semantic_hash": "1ddc0f37c5a19db74c1ddd782dc1046a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\get-projects-for-assign\\[id].ts": {
+    "mtime": 1786333227.9416344,
+    "ast_hash": "f20bb026b5540a7ca3a01556e1eff078",
+    "semantic_hash": "f20bb026b5540a7ca3a01556e1eff078"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\get-projects-for-project-assign.ts": {
+    "mtime": 1786333227.9416344,
+    "ast_hash": "9936c96514fe49e3d564cdb3fd7be4ec",
+    "semantic_hash": "9936c96514fe49e3d564cdb3fd7be4ec"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\get_all_projects.ts": {
+    "mtime": 1786333227.9426346,
+    "ast_hash": "ffbc276daccbe9711cec98fc71d63d59",
+    "semantic_hash": "ffbc276daccbe9711cec98fc71d63d59"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\get_projects_for_investment.ts": {
+    "mtime": 1786333227.9426346,
+    "ast_hash": "8e976b0ff205062aa96feb1c918e3d92",
+    "semantic_hash": "8e976b0ff205062aa96feb1c918e3d92"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\list.ts": {
+    "mtime": 1786333227.9436347,
+    "ast_hash": "7f3b8e6b723dc40652c3c36c4eee1efc",
+    "semantic_hash": "7f3b8e6b723dc40652c3c36c4eee1efc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\partner_assign.ts": {
+    "mtime": 1786333227.9436347,
+    "ast_hash": "ccdc22925228598a3378724870e140bb",
+    "semantic_hash": "ccdc22925228598a3378724870e140bb"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\project-partners\\[id].ts": {
+    "mtime": 1786333227.9446335,
+    "ast_hash": "6834a39fc94ec6030885b575007c65bf",
+    "semantic_hash": "6834a39fc94ec6030885b575007c65bf"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\project_assign.ts": {
+    "mtime": 1786333227.9446335,
+    "ast_hash": "dfcf5d95a2467eefb502e71be49426b7",
+    "semantic_hash": "dfcf5d95a2467eefb502e71be49426b7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\status_change.ts": {
+    "mtime": 1786333227.9446335,
+    "ast_hash": "99fd7c867939f23ef57ae8226c2ce41d",
+    "semantic_hash": "99fd7c867939f23ef57ae8226c2ce41d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\top-partners\\[projectId]\\[limit].ts": {
+    "mtime": 1786333227.945634,
+    "ast_hash": "20efdf84c4ea7db8e7d07ea34a612052",
+    "semantic_hash": "20efdf84c4ea7db8e7d07ea34a612052"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\projects\\update\\[id].ts": {
+    "mtime": 1786333227.9466333,
+    "ast_hash": "abf0f0e4b3f1695c1767deda8abbc19f",
+    "semantic_hash": "abf0f0e4b3f1695c1767deda8abbc19f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\skills\\create.ts": {
+    "mtime": 1786333227.9466333,
+    "ast_hash": "fafe755c902c2c191688ecba49a1f661",
+    "semantic_hash": "fafe755c902c2c191688ecba49a1f661"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\skills\\list.ts": {
+    "mtime": 1786333227.9466333,
+    "ast_hash": "b420966a38fb4fa6b49857e29ad136b6",
+    "semantic_hash": "b420966a38fb4fa6b49857e29ad136b6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\stat-panels\\all-stat-panel.ts": {
+    "mtime": 1786333227.947633,
+    "ast_hash": "35f5c71f26f41d9c889715c87c2a1a20",
+    "semantic_hash": "35f5c71f26f41d9c889715c87c2a1a20"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\stat-panels\\create.ts": {
+    "mtime": 1786333227.947633,
+    "ast_hash": "510d6225d62cbb1f9cc0b5a6f0873d16",
+    "semantic_hash": "510d6225d62cbb1f9cc0b5a6f0873d16"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\stat-panels\\delete.ts": {
+    "mtime": 1786333227.9486334,
+    "ast_hash": "6980dd66f2705aba9bfddb5f031f34c4",
+    "semantic_hash": "6980dd66f2705aba9bfddb5f031f34c4"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\stat-panels\\list.ts": {
+    "mtime": 1786333227.9486334,
+    "ast_hash": "0175c99630e6256671d2e8a4c9b40217",
+    "semantic_hash": "0175c99630e6256671d2e8a4c9b40217"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\stat-panels\\update.ts": {
+    "mtime": 1786333227.9496353,
+    "ast_hash": "8377db041f34cf5c4f590eb3cda2dca5",
+    "semantic_hash": "8377db041f34cf5c4f590eb3cda2dca5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\top_blogs.ts": {
+    "mtime": 1786333227.9496353,
+    "ast_hash": "5735b73ea508642f2a34a495086a2ac4",
+    "semantic_hash": "5735b73ea508642f2a34a495086a2ac4"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\top_partners.ts": {
+    "mtime": 1786333227.9496353,
+    "ast_hash": "30c0bc711565de5b09093017347f8d49",
+    "semantic_hash": "30c0bc711565de5b09093017347f8d49"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\unit\\create.ts": {
+    "mtime": 1786333227.9506352,
+    "ast_hash": "663efaae7fa5e980bcdc065da9dc99dd",
+    "semantic_hash": "663efaae7fa5e980bcdc065da9dc99dd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\unit\\get_all_unit.ts": {
+    "mtime": 1786333227.9516335,
+    "ast_hash": "c3833a373a7d9c85f082b2ee0638c3f2",
+    "semantic_hash": "c3833a373a7d9c85f082b2ee0638c3f2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\unit\\list.ts": {
+    "mtime": 1786333227.9516335,
+    "ast_hash": "ad2c9fa7437ef64f6cc4af286ecbc395",
+    "semantic_hash": "ad2c9fa7437ef64f6cc4af286ecbc395"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\unit\\update\\[id].ts": {
+    "mtime": 1786333227.9516335,
+    "ast_hash": "6e8b5a597384a87826350d550cb19d5a",
+    "semantic_hash": "6e8b5a597384a87826350d550cb19d5a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\user-bank\\[id].ts": {
+    "mtime": 1786333227.9526334,
+    "ast_hash": "fee3b63603cae57e40d2219181cc2461",
+    "semantic_hash": "fee3b63603cae57e40d2219181cc2461"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\user\\address.ts": {
+    "mtime": 1786333227.953635,
+    "ast_hash": "f5aadcf36901a96acfac6d3ea7843d0a",
+    "semantic_hash": "f5aadcf36901a96acfac6d3ea7843d0a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\user\\index.ts": {
+    "mtime": 1786333227.953635,
+    "ast_hash": "e0f8cb9eb3299c17deed49347da0afcc",
+    "semantic_hash": "e0f8cb9eb3299c17deed49347da0afcc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\user\\investors.ts": {
+    "mtime": 1786333227.953635,
+    "ast_hash": "eb64bb0f46352ffdcd3aef1eaee8f34e",
+    "semantic_hash": "eb64bb0f46352ffdcd3aef1eaee8f34e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\user\\order\\index.ts": {
+    "mtime": 1786333227.954635,
+    "ast_hash": "343481e1f4d7066bd2a155138aef960c",
+    "semantic_hash": "343481e1f4d7066bd2a155138aef960c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\verify.ts": {
+    "mtime": 1786333227.954635,
+    "ast_hash": "fcf54174a7ec9363b37c8e88dddb8b09",
+    "semantic_hash": "fcf54174a7ec9363b37c8e88dddb8b09"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\api\\version.ts": {
+    "mtime": 1786333227.9556339,
+    "ast_hash": "dc69a85744458fa4c838dbbec797cb5b",
+    "semantic_hash": "dc69a85744458fa4c838dbbec797cb5b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\blogs\\create.tsx": {
+    "mtime": 1786333227.9556339,
+    "ast_hash": "5a8731016f92a48e16de41f31957a93c",
+    "semantic_hash": "5a8731016f92a48e16de41f31957a93c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\blogs\\edit\\[id].tsx": {
+    "mtime": 1786333227.9574366,
+    "ast_hash": "89d27f40336a2bff6a4132bde187e509",
+    "semantic_hash": "89d27f40336a2bff6a4132bde187e509"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\blogs\\list.tsx": {
+    "mtime": 1786333227.957944,
+    "ast_hash": "877f8cabac5bf4089dd8e1ebef40db17",
+    "semantic_hash": "877f8cabac5bf4089dd8e1ebef40db17"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\bookings\\active-booking.tsx": {
+    "mtime": 1786333227.9589508,
+    "ast_hash": "2ed02a4af5ece48c296e3a621cf6dc79",
+    "semantic_hash": "2ed02a4af5ece48c296e3a621cf6dc79"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\bookings\\create.tsx": {
+    "mtime": 1786333227.9589508,
+    "ast_hash": "6429c67ffc486b7ac9aa1110bd13c764",
+    "semantic_hash": "6429c67ffc486b7ac9aa1110bd13c764"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\bookings\\details\\[id].tsx": {
+    "mtime": 1786333227.9599504,
+    "ast_hash": "ee866f33577ff2de7843c3c1241950e0",
+    "semantic_hash": "ee866f33577ff2de7843c3c1241950e0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\bookings\\list.tsx": {
+    "mtime": 1786333227.9609509,
+    "ast_hash": "4cf6a1c7529896c474a2936b416a9683",
+    "semantic_hash": "4cf6a1c7529896c474a2936b416a9683"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\index.tsx": {
+    "mtime": 1786333227.9609509,
+    "ast_hash": "1e3479ba599809c23230b79f0bbaf5b7",
+    "semantic_hash": "1e3479ba599809c23230b79f0bbaf5b7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\login.tsx": {
+    "mtime": 1786333227.9609509,
+    "ast_hash": "b61958b58c69c639415129fa3a497fd9",
+    "semantic_hash": "b61958b58c69c639415129fa3a497fd9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\logout.tsx": {
+    "mtime": 1786333227.9619496,
+    "ast_hash": "cd32dfe5b7c66262520b65196c309cb7",
+    "semantic_hash": "cd32dfe5b7c66262520b65196c309cb7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\notification\\[id].tsx": {
+    "mtime": 1786333227.9619496,
+    "ast_hash": "a489ed5c1354bb5793120e9069298cf8",
+    "semantic_hash": "a489ed5c1354bb5793120e9069298cf8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\notification\\index.tsx": {
+    "mtime": 1786333227.9619496,
+    "ast_hash": "244fcc4da85ee24b477117be1f1d2272",
+    "semantic_hash": "244fcc4da85ee24b477117be1f1d2272"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\orders\\details\\[id].tsx": {
+    "mtime": 1786333227.9629505,
+    "ast_hash": "364d94df557c6527c3eb4d5983aaf437",
+    "semantic_hash": "364d94df557c6527c3eb4d5983aaf437"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\orders\\list.tsx": {
+    "mtime": 1786333227.9639504,
+    "ast_hash": "51b664331a16d9a8c054cc1b5751a974",
+    "semantic_hash": "51b664331a16d9a8c054cc1b5751a974"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\partners\\details\\[id].tsx": {
+    "mtime": 1786333227.9649508,
+    "ast_hash": "ad93626622aa20b4070c3e11916a466e",
+    "semantic_hash": "ad93626622aa20b4070c3e11916a466e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\partners\\edit\\[id].tsx": {
+    "mtime": 1786333227.9649508,
+    "ast_hash": "1046b4d29ab522f0b9742a8ab459562d",
+    "semantic_hash": "1046b4d29ab522f0b9742a8ab459562d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\partners\\list.tsx": {
+    "mtime": 1786333227.9659498,
+    "ast_hash": "b3c51893ed900879505fc7d077bf958f",
+    "semantic_hash": "b3c51893ed900879505fc7d077bf958f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\partners\\registration.tsx": {
+    "mtime": 1786333227.9659498,
+    "ast_hash": "193bd7fe8756aaadcb697f1d30b09ccf",
+    "semantic_hash": "193bd7fe8756aaadcb697f1d30b09ccf"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\privacy.tsx": {
+    "mtime": 1786333227.9669502,
+    "ast_hash": "fad5b8e4a22ecbd71fa4b5fdb98b84bb",
+    "semantic_hash": "fad5b8e4a22ecbd71fa4b5fdb98b84bb"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\products\\category.tsx": {
+    "mtime": 1786333227.9669502,
+    "ast_hash": "f05686b107a1cdb5de4ea4a7966654f3",
+    "semantic_hash": "f05686b107a1cdb5de4ea4a7966654f3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\products\\create.tsx": {
+    "mtime": 1786333227.9679506,
+    "ast_hash": "4529be46f89e55b19717df8801388c09",
+    "semantic_hash": "4529be46f89e55b19717df8801388c09"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\products\\details\\[id].tsx": {
+    "mtime": 1786333227.9689546,
+    "ast_hash": "3554d57d24c6ae033aedb51ad0c43cf2",
+    "semantic_hash": "3554d57d24c6ae033aedb51ad0c43cf2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\products\\list.tsx": {
+    "mtime": 1786333227.9689546,
+    "ast_hash": "4480029084f002467ab8216f2737e863",
+    "semantic_hash": "4480029084f002467ab8216f2737e863"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\create.tsx": {
+    "mtime": 1786333227.9699688,
+    "ast_hash": "b17faccf18985ea18b45f83dfe317e3c",
+    "semantic_hash": "b17faccf18985ea18b45f83dfe317e3c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\details\\[id].tsx": {
+    "mtime": 1786333227.9709573,
+    "ast_hash": "d44ce6069118f31b761a55c033951830",
+    "semantic_hash": "d44ce6069118f31b761a55c033951830"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\edit\\[id].tsx": {
+    "mtime": 1786333227.9709573,
+    "ast_hash": "e4997b362cae7099472f9bea55c3f241",
+    "semantic_hash": "e4997b362cae7099472f9bea55c3f241"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\list.tsx": {
+    "mtime": 1786333227.9729152,
+    "ast_hash": "0667364ba57ec6194db36829a17b19a0",
+    "semantic_hash": "0667364ba57ec6194db36829a17b19a0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\partner_assign.tsx": {
+    "mtime": 1786333227.9729152,
+    "ast_hash": "cca1f57141ebefed61ff739d2b7f5088",
+    "semantic_hash": "cca1f57141ebefed61ff739d2b7f5088"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\projects\\project_assign.tsx": {
+    "mtime": 1786333227.9739206,
+    "ast_hash": "e63faab8ef9568c80439ef32f935c39e",
+    "semantic_hash": "e63faab8ef9568c80439ef32f935c39e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\investment.tsx": {
+    "mtime": 1786333227.9749198,
+    "ast_hash": "fd4fa359d4b28e02e8eaa2d6beb997cb",
+    "semantic_hash": "fd4fa359d4b28e02e8eaa2d6beb997cb"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\investor_testimonial.tsx": {
+    "mtime": 1786333227.9749198,
+    "ast_hash": "8c3482fb6a480d42a05e41226f1a3578",
+    "semantic_hash": "8c3482fb6a480d42a05e41226f1a3578"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\partnership.tsx": {
+    "mtime": 1786333227.9759197,
+    "ast_hash": "b49e602bbf0dd76be3fc8ce2c4d30133",
+    "semantic_hash": "b49e602bbf0dd76be3fc8ce2c4d30133"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\project_category.tsx": {
+    "mtime": 1786333227.9759197,
+    "ast_hash": "c7ef2db1250d756f8a6ac3726f9370c2",
+    "semantic_hash": "c7ef2db1250d756f8a6ac3726f9370c2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\skill.tsx": {
+    "mtime": 1786333227.9769192,
+    "ast_hash": "ecfeea7112d0dd4124ed8bcf403f94cc",
+    "semantic_hash": "ecfeea7112d0dd4124ed8bcf403f94cc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\stat_panel.tsx": {
+    "mtime": 1786333227.9769192,
+    "ast_hash": "d3b04e49f6f01c34a270669e5428069e",
+    "semantic_hash": "d3b04e49f6f01c34a270669e5428069e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\setup\\unit.tsx": {
+    "mtime": 1786333227.9769192,
+    "ast_hash": "532111baf37bdf6b8cdf620c37ae8030",
+    "semantic_hash": "532111baf37bdf6b8cdf620c37ae8030"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\pages\\users.tsx": {
+    "mtime": 1786333227.977919,
+    "ast_hash": "dcf3bb7279f182657baabd5b177a1a4c",
+    "semantic_hash": "dcf3bb7279f182657baabd5b177a1a4c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\AppFcmToken.ts": {
+    "mtime": 1786333227.98092,
+    "ast_hash": "4d93a870e2143bcb92c6f02bc11e5d82",
+    "semantic_hash": "4d93a870e2143bcb92c6f02bc11e5d82"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\AppStatPanel.ts": {
+    "mtime": 1786333227.98092,
+    "ast_hash": "6d9e6f9e0cff489e4ac4074eaab55808",
+    "semantic_hash": "6d9e6f9e0cff489e4ac4074eaab55808"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\AppVersion.ts": {
+    "mtime": 1786333227.98092,
+    "ast_hash": "aecbba28bb8918104243fa5718eaae84",
+    "semantic_hash": "aecbba28bb8918104243fa5718eaae84"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Bank.ts": {
+    "mtime": 1786333227.981919,
+    "ast_hash": "b89c8dd52e2e13bee99ba139390c9a84",
+    "semantic_hash": "b89c8dd52e2e13bee99ba139390c9a84"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\BankBranch.ts": {
+    "mtime": 1786333227.981919,
+    "ast_hash": "5c0e0230a61f7673d3da13ca7a6f9524",
+    "semantic_hash": "5c0e0230a61f7673d3da13ca7a6f9524"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Blog.ts": {
+    "mtime": 1786333227.981919,
+    "ast_hash": "7532696a7db2391581220a1781af52cd",
+    "semantic_hash": "7532696a7db2391581220a1781af52cd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ContactMessage.ts": {
+    "mtime": 1786333227.982919,
+    "ast_hash": "381b2b68158145bc9b72ffc20178475b",
+    "semantic_hash": "381b2b68158145bc9b72ffc20178475b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\DigigramBank.ts": {
+    "mtime": 1786333227.982919,
+    "ast_hash": "23c4e6382a5220eeee6237fe3eaff641",
+    "semantic_hash": "23c4e6382a5220eeee6237fe3eaff641"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\District.ts": {
+    "mtime": 1786333227.9834223,
+    "ast_hash": "37a29e3f01fef1652374cd9a57a242c8",
+    "semantic_hash": "37a29e3f01fef1652374cd9a57a242c8"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Division.ts": {
+    "mtime": 1786333227.9834223,
+    "ast_hash": "de320b5c3ea1b965019627d171e629ed",
+    "semantic_hash": "de320b5c3ea1b965019627d171e629ed"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\File.ts": {
+    "mtime": 1786333227.9834223,
+    "ast_hash": "03f05d107345be6c26c5b9ea547c6cb5",
+    "semantic_hash": "03f05d107345be6c26c5b9ea547c6cb5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\InvestmentSetup.ts": {
+    "mtime": 1786333227.9834223,
+    "ast_hash": "1692831810eab18349e4664e2a55930c",
+    "semantic_hash": "1692831810eab18349e4664e2a55930c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\InvestorTestimonial.ts": {
+    "mtime": 1786333227.9844272,
+    "ast_hash": "e4daafcb444cc4478fefbbedec3a4afd",
+    "semantic_hash": "e4daafcb444cc4478fefbbedec3a4afd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\JWTPayload.ts": {
+    "mtime": 1786333227.9844272,
+    "ast_hash": "e1da92f53a9aa1eeab5aa5b6ad55ed3a",
+    "semantic_hash": "e1da92f53a9aa1eeab5aa5b6ad55ed3a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ManualNotification.ts": {
+    "mtime": 1786333227.9844272,
+    "ast_hash": "5a964de7c71bc8e82da62bc0a56278f4",
+    "semantic_hash": "5a964de7c71bc8e82da62bc0a56278f4"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\NotificationQueue.ts": {
+    "mtime": 1786333227.9854279,
+    "ast_hash": "aeeefb835859224768c476113d45462c",
+    "semantic_hash": "aeeefb835859224768c476113d45462c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\NotificationTemplate.ts": {
+    "mtime": 1786333227.9854279,
+    "ast_hash": "b24d8803d714430a2e6b5d4120869d0c",
+    "semantic_hash": "b24d8803d714430a2e6b5d4120869d0c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\PartnerAdditionalInfo.ts": {
+    "mtime": 1786333227.9854279,
+    "ast_hash": "f4339541960dcf3ce9a70471957f9c4b",
+    "semantic_hash": "f4339541960dcf3ce9a70471957f9c4b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Partnership.ts": {
+    "mtime": 1786333227.9854279,
+    "ast_hash": "ed245c84af7d545a433801db87700b43",
+    "semantic_hash": "ed245c84af7d545a433801db87700b43"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\PoliceStation.ts": {
+    "mtime": 1786333227.9864275,
+    "ast_hash": "ec895e1be2ebcca83d39b6ec4aab6ab5",
+    "semantic_hash": "ec895e1be2ebcca83d39b6ec4aab6ab5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Product.ts": {
+    "mtime": 1786333227.9864275,
+    "ast_hash": "ed8f72b60c88405a16cfb58011bd935f",
+    "semantic_hash": "ed8f72b60c88405a16cfb58011bd935f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductCategory.ts": {
+    "mtime": 1786333227.9864275,
+    "ast_hash": "dfe965f6655503ccd729cfc502e9d819",
+    "semantic_hash": "dfe965f6655503ccd729cfc502e9d819"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductImage.ts": {
+    "mtime": 1786333227.9874268,
+    "ast_hash": "b71e79db8f016e8831aee03f78aefaea",
+    "semantic_hash": "b71e79db8f016e8831aee03f78aefaea"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductOrder.ts": {
+    "mtime": 1786333227.9874268,
+    "ast_hash": "41e727a7b6bf482e9fbbf57c417c30c3",
+    "semantic_hash": "41e727a7b6bf482e9fbbf57c417c30c3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductOrderItem.ts": {
+    "mtime": 1786333227.988428,
+    "ast_hash": "9b0d0bae577b96b0d18e2fa209fabc3f",
+    "semantic_hash": "9b0d0bae577b96b0d18e2fa209fabc3f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductOrderStatus.ts": {
+    "mtime": 1786333227.988428,
+    "ast_hash": "989733494cd8a7f8bed75916c52cb796",
+    "semantic_hash": "989733494cd8a7f8bed75916c52cb796"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductPacking.ts": {
+    "mtime": 1786333227.9894273,
+    "ast_hash": "69d45f57009a30c7ce90adf9bbe80674",
+    "semantic_hash": "69d45f57009a30c7ce90adf9bbe80674"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductPartner.ts": {
+    "mtime": 1786333227.9894273,
+    "ast_hash": "a9889c928958ee5d46e2cd3ec3afd888",
+    "semantic_hash": "a9889c928958ee5d46e2cd3ec3afd888"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProductStock.ts": {
+    "mtime": 1786333227.9894273,
+    "ast_hash": "5467acadf77e212ad2f4496fe7573b51",
+    "semantic_hash": "5467acadf77e212ad2f4496fe7573b51"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Project.ts": {
+    "mtime": 1786333227.990427,
+    "ast_hash": "0ed264faf31ac9a92bfd94969c2dc713",
+    "semantic_hash": "0ed264faf31ac9a92bfd94969c2dc713"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectCategory.ts": {
+    "mtime": 1786333227.990427,
+    "ast_hash": "1864c5d5e6459c20954784c3fa7db9f9",
+    "semantic_hash": "1864c5d5e6459c20954784c3fa7db9f9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectInvestmentBooking.ts": {
+    "mtime": 1786333227.9914272,
+    "ast_hash": "aa4bce2cceecb50feb60e8df524854de",
+    "semantic_hash": "aa4bce2cceecb50feb60e8df524854de"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectInvestmentBookingStatus.ts": {
+    "mtime": 1786333227.9914272,
+    "ast_hash": "dc9bf1c86127c400b7e54ce131df2aaa",
+    "semantic_hash": "dc9bf1c86127c400b7e54ce131df2aaa"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectInvestor.ts": {
+    "mtime": 1786333227.9914272,
+    "ast_hash": "0dc1eb6f21dbeea62eee42fce53f1698",
+    "semantic_hash": "0dc1eb6f21dbeea62eee42fce53f1698"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectInvestorStatus.ts": {
+    "mtime": 1786333227.992427,
+    "ast_hash": "98126ce71655a3de5f99e59408715d76",
+    "semantic_hash": "98126ce71655a3de5f99e59408715d76"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectPartner.ts": {
+    "mtime": 1786333227.992427,
+    "ast_hash": "0d750a160f3ce0310c4fa656a19d97a6",
+    "semantic_hash": "0d750a160f3ce0310c4fa656a19d97a6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectPartnerInvestor.ts": {
+    "mtime": 1786333227.992427,
+    "ast_hash": "73128499a00df54ed38449df2d7dfbb3",
+    "semantic_hash": "73128499a00df54ed38449df2d7dfbb3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectPartnerInvestorUpdate.ts": {
+    "mtime": 1786333227.993431,
+    "ast_hash": "adb04d8810f30c0e13f521a5dc5dca43",
+    "semantic_hash": "adb04d8810f30c0e13f521a5dc5dca43"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectProperty.ts": {
+    "mtime": 1786333227.993431,
+    "ast_hash": "02250e00586005d83fb507235fc4b1e3",
+    "semantic_hash": "02250e00586005d83fb507235fc4b1e3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\ProjectSpecialBookingReq.ts": {
+    "mtime": 1786333227.993431,
+    "ast_hash": "8213c98386da728226c3689e808f9c6d",
+    "semantic_hash": "8213c98386da728226c3689e808f9c6d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Skill.ts": {
+    "mtime": 1786333227.993431,
+    "ast_hash": "d92e1e2a6fa15b5015bc91a5600ef297",
+    "semantic_hash": "d92e1e2a6fa15b5015bc91a5600ef297"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\Unit.ts": {
+    "mtime": 1786333227.9944272,
+    "ast_hash": "4333da491271fedabefaafd8340976c0",
+    "semantic_hash": "4333da491271fedabefaafd8340976c0"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\User.ts": {
+    "mtime": 1786333227.9944272,
+    "ast_hash": "48918532a7ea893847f8f1cac4562f6b",
+    "semantic_hash": "48918532a7ea893847f8f1cac4562f6b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\UserAddress.ts": {
+    "mtime": 1786333227.9944272,
+    "ast_hash": "c9e461ad41e72ba0b5f587a39e1c77e5",
+    "semantic_hash": "c9e461ad41e72ba0b5f587a39e1c77e5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\types\\UserBank.ts": {
+    "mtime": 1786333227.9954267,
+    "ast_hash": "f4c882dc4005a20beb9fe57f5754d3ea",
+    "semantic_hash": "f4c882dc4005a20beb9fe57f5754d3ea"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\BookingStatusEntry.ts": {
+    "mtime": 1786333227.9954267,
+    "ast_hash": "5b0c282be65ac98b903f72de708f762b",
+    "semantic_hash": "5b0c282be65ac98b903f72de708f762b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\CalulcateMaturityDate.ts": {
+    "mtime": 1786333227.9964287,
+    "ast_hash": "e4cd498e656a479729cd0a795b60ccb6",
+    "semantic_hash": "e4cd498e656a479729cd0a795b60ccb6"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\Fetch.ts": {
+    "mtime": 1786333227.9964287,
+    "ast_hash": "7ecb494eace4125bea8ed4826b7affc5",
+    "semantic_hash": "7ecb494eace4125bea8ed4826b7affc5"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\GenerateHash.ts": {
+    "mtime": 1786333227.9964287,
+    "ast_hash": "a6d9d411c3920e6d6aeb22c1c66eac8b",
+    "semantic_hash": "a6d9d411c3920e6d6aeb22c1c66eac8b"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\GenerateProductCategoryId.ts": {
+    "mtime": 1786333227.9974267,
+    "ast_hash": "fa2d2533f8532953f0d09d3afa3d30c2",
+    "semantic_hash": "fa2d2533f8532953f0d09d3afa3d30c2"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\GetCookie.ts": {
+    "mtime": 1786333227.9974267,
+    "ast_hash": "9da65fa7863bcb0cf41bcc532e52e0dd",
+    "semantic_hash": "9da65fa7863bcb0cf41bcc532e52e0dd"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\ProjectInvestorStatusEntry.ts": {
+    "mtime": 1786333227.9974267,
+    "ast_hash": "2442751103fbb0ca6fc40ae27b264d95",
+    "semantic_hash": "2442751103fbb0ca6fc40ae27b264d95"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\SendEmail.ts": {
+    "mtime": 1786333227.998427,
+    "ast_hash": "aed0b54779d38782a82624bb27b9ee76",
+    "semantic_hash": "aed0b54779d38782a82624bb27b9ee76"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\SendSms.ts": {
+    "mtime": 1786333227.998427,
+    "ast_hash": "143bf208b8c76c20739afc56f8df3394",
+    "semantic_hash": "143bf208b8c76c20739afc56f8df3394"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\utils\\log.ts": {
+    "mtime": 1786333227.998427,
+    "ast_hash": "2c920babb6b100d035feda6558947195",
+    "semantic_hash": "2c920babb6b100d035feda6558947195"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\test.js": {
+    "mtime": 1786333227.9994278,
+    "ast_hash": "09ff95355ea0226a00d83b91c03b9c2f",
+    "semantic_hash": "09ff95355ea0226a00d83b91c03b9c2f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\tsconfig.json": {
+    "mtime": 1786333227.9994278,
+    "ast_hash": "adff92994bb6683289f4389b2bd8c14a",
+    "semantic_hash": "adff92994bb6683289f4389b2bd8c14a"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\.github\\workflows\\nextjs.yml": {
+    "mtime": 1786333227.8269696,
+    "ast_hash": "7d86bff40ff7302f2aad619d6d31bb7e",
+    "semantic_hash": "7d86bff40ff7302f2aad619d6d31bb7e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\.github\\workflows\\production.yml": {
+    "mtime": 1786333227.8269696,
+    "ast_hash": "347cbf6fd66c9e61b41f53a774b2532d",
+    "semantic_hash": "347cbf6fd66c9e61b41f53a774b2532d"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\README.md": {
+    "mtime": 1786333227.82798,
+    "ast_hash": "dec7e0e11d0a2b9d9adc29b1fb8d9b31",
+    "semantic_hash": "dec7e0e11d0a2b9d9adc29b1fb8d9b31"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\account_delete_otp.html": {
+    "mtime": 1786333227.8888016,
+    "ast_hash": "2876effc8ef82bed2989b31131a8a3fc",
+    "semantic_hash": "2876effc8ef82bed2989b31131a8a3fc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\email_verified_manual.html": {
+    "mtime": 1786333227.890054,
+    "ast_hash": "ad65e1d9b57ed825e4fba35cc72c9c83",
+    "semantic_hash": "ad65e1d9b57ed825e4fba35cc72c9c83"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\nid_verification_failed.html": {
+    "mtime": 1786333227.8910584,
+    "ast_hash": "58367b6aaa8963d361acbafbd2be257c",
+    "semantic_hash": "58367b6aaa8963d361acbafbd2be257c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\nid_verified.html": {
+    "mtime": 1786333227.8910584,
+    "ast_hash": "498e5f144ea83991c243c247fa8eaa8c",
+    "semantic_hash": "498e5f144ea83991c243c247fa8eaa8c"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\phone_verified_manual.html": {
+    "mtime": 1786333227.8910584,
+    "ast_hash": "41fa9be486f0814c0e9d446c461c7eee",
+    "semantic_hash": "41fa9be486f0814c0e9d446c461c7eee"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\project_maturity_2_weeks.html": {
+    "mtime": 1786333227.892058,
+    "ast_hash": "8dd30bccb41b36a2e6887d204329cad9",
+    "semantic_hash": "8dd30bccb41b36a2e6887d204329cad9"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\src\\notifications\\email_templates\\signup_completion.html": {
+    "mtime": 1786333227.8930573,
+    "ast_hash": "7ebc06707b96d28dbd9bf48a15bdfccc",
+    "semantic_hash": "7ebc06707b96d28dbd9bf48a15bdfccc"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\appstore.png": {
+    "mtime": 1786333227.8309884,
+    "ast_hash": "93c6bff14a210efbf3cded3801b7c436",
+    "semantic_hash": "93c6bff14a210efbf3cded3801b7c436"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\background-main.png": {
+    "mtime": 1786333227.8319788,
+    "ast_hash": "bb33546df75bdb91fe82a746fb3e3696",
+    "semantic_hash": "bb33546df75bdb91fe82a746fb3e3696"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\digigram-email-header.png": {
+    "mtime": 1786333227.8330617,
+    "ast_hash": "7346f1f99ad537feb25d13e9bca473ef",
+    "semantic_hash": "7346f1f99ad537feb25d13e9bca473ef"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\digigram-logo.png": {
+    "mtime": 1786333227.8339748,
+    "ast_hash": "0f62dde94a03463eeb3622d740e86bb3",
+    "semantic_hash": "0f62dde94a03463eeb3622d740e86bb3"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\digigram_logo.png": {
+    "mtime": 1786333227.8339748,
+    "ast_hash": "be18fe13e8c53399f57c142ad3ab7447",
+    "semantic_hash": "be18fe13e8c53399f57c142ad3ab7447"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\email-logo-header-old.jpg": {
+    "mtime": 1786333227.8359742,
+    "ast_hash": "52a37c8388b1924c6fcdb7dd7fd08a97",
+    "semantic_hash": "52a37c8388b1924c6fcdb7dd7fd08a97"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\email-logo-header.png": {
+    "mtime": 1786333227.8359742,
+    "ast_hash": "7043309231b0363f1163a938fd66eaf7",
+    "semantic_hash": "7043309231b0363f1163a938fd66eaf7"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\logo-header-old-2.png": {
+    "mtime": 1786333227.8370554,
+    "ast_hash": "501cf4573962937ba98c1b51059416bf",
+    "semantic_hash": "501cf4573962937ba98c1b51059416bf"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\logo-header-old.png": {
+    "mtime": 1786333227.8370554,
+    "ast_hash": "fe1401fab14e7b78401535b144325399",
+    "semantic_hash": "fe1401fab14e7b78401535b144325399"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\logo-header.png": {
+    "mtime": 1786333227.8380756,
+    "ast_hash": "a88f8e599cc35b4b24b2020a43fe3a3f",
+    "semantic_hash": "a88f8e599cc35b4b24b2020a43fe3a3f"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\assets\\images\\playstore.png": {
+    "mtime": 1786333227.8389761,
+    "ast_hash": "d16a09c935f4c76830529c781dfcf220",
+    "semantic_hash": "d16a09c935f4c76830529c781dfcf220"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\next.svg": {
+    "mtime": 1786333227.8399754,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "C:\\Apps\\ShathiSheba\\Digigram\\saathi-web-application\\public\\vercel.svg": {
+    "mtime": 1786333227.8399754,
+    "ast_hash": "61c6b19abff40ea7acd577be818f3976",
+    "semantic_hash": "61c6b19abff40ea7acd577be818f3976"
+  }
+}

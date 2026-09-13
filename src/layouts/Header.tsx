@@ -47,9 +47,9 @@ function Header() {
                 <meta content="width=device-width, initial-scale=1" name="viewport" />
                 <meta name="description" content="Saathi is an investment management application" />
             </Head>
-            <div className="page-top mb-3" style={{ backgroundRepeat: "no-repeat", backgroundSize: "cover", backgroundPosition: "center", backgroundImage: "url(/assets/images/background-main.png)" }}>
+            <div className="page-top mb-3" style={{ resize: "block", backgroundRepeat: "no-repeat", backgroundSize: "1920px", backgroundImage: "url(/assets/images/background-main.png)" }}>
                 <Navbar expand="lg" bg="none" className='text-light'>
-                    <Container fluid className="px-3 px-md-4 px-xl-5">
+                    <Container style={{ maxWidth: "1140px" }}>
                         <Navbar.Brand href="/">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -64,6 +64,7 @@ function Header() {
                         <Navbar.Collapse id="basic-navbar-nav">
 
                             <Nav className="ms-auto">
+                                <Nav.Link href="/reports">Reports</Nav.Link>
                                 <Nav.Link href="/users">Users</Nav.Link>
                                 <NavDropdown title="Setups" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Investment</NavDropdown.Item>
@@ -73,6 +74,9 @@ function Header() {
                                     <NavDropdown.Item href="/setup/unit">Unit</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/partnership">Partnership</NavDropdown.Item>
                                     <NavDropdown.Item href="/setup/investor_testimonial">Investor Testimonial</NavDropdown.Item>
+                                    <NavDropdown.Divider />
+                                    {/* Reference: every backend route, who calls it, and the web-vs-app differences. */}
+                                    <NavDropdown.Item href="/api-viewer">API map</NavDropdown.Item>
                                 </NavDropdown>
                                 <Nav.Link href="/notification">Notification</Nav.Link>
                                 <NavDropdown title="Partners" id="basic-nav-dropdown">

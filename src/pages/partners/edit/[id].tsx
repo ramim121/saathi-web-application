@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Col, Container, Form, Row, Spinner, Tab, Tabs, Table, Card } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
 import Select from 'react-select';
@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
 import { getRequestOptions } from "@/utils/Fetch";
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface FormDataType {
     name: string,
@@ -30,7 +30,18 @@ interface FormDataType {
     household_size: string,
     dependents_size: string,
     livelihood_activity: string,
-    primary_goal: string
+    primary_goal: string,
+    // Bangla counterparts for the public partner profile — all optional.
+    // A blank field falls back to its English counterpart at render time.
+    fullNameBn: string,
+    roleBn: string,
+    bioBn: string,
+    skillsBn: string,
+    locationBn: string,
+    interestedInBn: string,
+    educationBn: string,
+    livelihood_activity_bn: string,
+    primary_goal_bn: string
 }
 
 interface Skills {
@@ -61,7 +72,16 @@ function PartnerEdit() {
         household_size: '',
         dependents_size: '',
         livelihood_activity: '',
-        primary_goal: ''
+        primary_goal: '',
+        fullNameBn: '',
+        roleBn: '',
+        bioBn: '',
+        skillsBn: '',
+        locationBn: '',
+        interestedInBn: '',
+        educationBn: '',
+        livelihood_activity_bn: '',
+        primary_goal_bn: ''
     });
     const bioRef = useRef<any>(null);
     const profilePicRef = useRef<HTMLInputElement>(null);
@@ -121,7 +141,16 @@ function PartnerEdit() {
                         household_size: partnerData.PartnerAdditionalInfo?.household_size || '',
                         dependents_size: partnerData.PartnerAdditionalInfo?.dependents_size || '',
                         livelihood_activity: partnerData.PartnerAdditionalInfo?.livelihood_activity || '',
-                        primary_goal: partnerData.PartnerAdditionalInfo?.primary_goal || ''
+                        primary_goal: partnerData.PartnerAdditionalInfo?.primary_goal || '',
+                        fullNameBn: partnerData.fullNameBn || '',
+                        roleBn: partnerData.roleBn || '',
+                        bioBn: partnerData.bioBn || '',
+                        skillsBn: partnerData.skillsBn || '',
+                        locationBn: partnerData.locationBn || '',
+                        interestedInBn: partnerData.interestedInBn || '',
+                        educationBn: partnerData.educationBn || '',
+                        livelihood_activity_bn: partnerData.PartnerAdditionalInfo?.livelihood_activity_bn || '',
+                        primary_goal_bn: partnerData.PartnerAdditionalInfo?.primary_goal_bn || ''
                     });
                 } else {
                     Swal.fire({
@@ -238,6 +267,17 @@ function PartnerEdit() {
                 newFormData.append('dependents_size', formData.dependents_size);
                 newFormData.append('livelihood_activity', formData.livelihood_activity);
                 newFormData.append('primary_goal', formData.primary_goal);
+                // Bangla counterparts — sent as empty strings when untranslated;
+                // the API stores null and the site falls back to English.
+                newFormData.append('fullNameBn', formData.fullNameBn || '');
+                newFormData.append('roleBn', formData.roleBn || '');
+                newFormData.append('bioBn', formData.bioBn || '');
+                newFormData.append('skillsBn', formData.skillsBn || '');
+                newFormData.append('locationBn', formData.locationBn || '');
+                newFormData.append('interestedInBn', formData.interestedInBn || '');
+                newFormData.append('educationBn', formData.educationBn || '');
+                newFormData.append('livelihood_activity_bn', formData.livelihood_activity_bn || '');
+                newFormData.append('primary_goal_bn', formData.primary_goal_bn || '');
 
                 if (formData.featuredImages) {
                     for (let i = 0; i < formData.featuredImages.length; i++) {
@@ -291,7 +331,7 @@ function PartnerEdit() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <h4 className="text-start">Partner Edit</h4>
                 <hr />
                 <Form onSubmit={handleSubmit}>
@@ -465,7 +505,7 @@ function PartnerEdit() {
                                         <Col sm='8' style={{ zIndex: '0' }}>
                                             {/* <Editor
                                                 apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                                onInit={(_evt: any, editor: any) => bioRef.current = editor}
+                                                onInit={(evt, editor) => bioRef.current = editor}
                                                 id='painPoints'
                                                 init={{
                                                     height: 360,
@@ -616,6 +656,88 @@ function PartnerEdit() {
                                             </Table>
                                         </Card.Body>
                                     </Card>
+                                </Col>
+                            </Row>
+                        </Tab>
+                        {/*
+                          Bangla profile copy, grouped in its own tab rather than
+                          interleaved with the English fields. The partner profile is
+                          mirrored on the public website in Bangla, and translation
+                          happens as a separate pass after the English record exists —
+                          so these all stay optional, and every blank field falls back
+                          to its English counterpart at render time.
+
+                          Contact, identity and verification fields are deliberately
+                          absent: they are data, not copy, and are not translated.
+                        */}
+                        <Tab eventKey="bangla" title="বাংলা / Bangla">
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Full name (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="পুরো নাম" name="fullNameBn" onChange={handleOnChange} value={formData.fullNameBn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Role (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="ভূমিকা" name="roleBn" onChange={handleOnChange} value={formData.roleBn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Location (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="অবস্থান" name="locationBn" onChange={handleOnChange} value={formData.locationBn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Education (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="সর্বশেষ ডিগ্রি" name="educationBn" onChange={handleOnChange} value={formData.educationBn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Skills (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="দক্ষতা — কমা দিয়ে আলাদা করুন" name="skillsBn" onChange={handleOnChange} value={formData.skillsBn} />
+                                            <Form.Text muted>Comma-separated, matching the English skills list.</Form.Text>
+                                        </Col>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Interested in (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="আগ্রহের বিষয়" name="interestedInBn" onChange={handleOnChange} value={formData.interestedInBn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Livelihood activity (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="জীবিকার কাজ" name="livelihood_activity_bn" onChange={handleOnChange} value={formData.livelihood_activity_bn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Primary goal (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control type="text" lang="bn" placeholder="প্রধান লক্ষ্য" name="primary_goal_bn" onChange={handleOnChange} value={formData.primary_goal_bn} />
+                                        </Col>
+                                    </Form.Group>
+                                    <Form.Group as={Row} className='mb-3'>
+                                        <Form.Label column sm='4'>Bio (বাংলা)</Form.Label>
+                                        <Col sm='8'>
+                                            <Form.Control as="textarea" rows={6} lang="bn" placeholder="সংক্ষিপ্ত পরিচিতি" name="bioBn" onChange={handleOnChange} value={formData.bioBn} />
+                                        </Col>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <p className="text-muted small mb-0">
+                                        Every field on this tab is optional. Anything left blank falls back to the
+                                        English value on the website, so a partly translated profile still renders.
+                                    </p>
                                 </Col>
                             </Row>
                         </Tab>

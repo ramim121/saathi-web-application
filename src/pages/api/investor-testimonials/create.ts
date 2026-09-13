@@ -59,7 +59,11 @@ const schema = Joi.object({
         'number.base': 'Priority must be a number',
         'number.empty': 'Priority is required',
         'any.required': 'Priority is required'
-    })
+    }),
+    // Bangla counterparts — optional; content is written in English and
+    // translated afterwards, so a null simply falls back to the English column.
+    nameBn: Joi.string().optional().allow(null, ''),
+    testimonialBn: Joi.string().optional().allow(null, '')
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -88,6 +92,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 rating: fields.rating ? parseInt(fields.rating[0]) : null,
                 testimonial: fields.testimonial ? fields.testimonial[0] : null,
                 priority: fields.priority ? parseInt(fields.priority[0]) : null,
+                nameBn: fields.nameBn ? fields.nameBn[0] : null,
+                testimonialBn: fields.testimonialBn ? fields.testimonialBn[0] : null,
             };
 
             const options = {
@@ -133,7 +139,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     image: imageFileName,
                     rating: data.rating,
                     testimonial: data.testimonial,
-                    priority: data.priority
+                    priority: data.priority,
+                    nameBn: data.nameBn || null,
+                    testimonialBn: data.testimonialBn || null
                 }, { transaction });
 
                 await transaction.commit();

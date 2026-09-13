@@ -10,10 +10,10 @@ import {
     Spinner,
     Table,
 } from "react-bootstrap";
-import { API_URL } from "@/config/constants";
+import { API_URL } from '@/config/public';
 import Select, { SingleValue } from "react-select";
 import Swal from "sweetalert2";
-import { postRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 
 
 interface InvestorType {
@@ -119,7 +119,10 @@ function Create() {
 
     const fetchInvestors = async () => {
         try {
-            const res = await fetch(API_URL + "api/user/investors");
+            // Sends the admin token: `user/investors` returns the investor list
+            // and was locked to admin, so a tokenless call now 401s and this
+            // page showed "Authentication required" instead of the dropdown.
+            const res = await fetch(API_URL + "api/user/investors", getRequestOptions());
             const data = await res.json();
             if (res.status === 200) {
                 setInvestors(data.data);
@@ -296,7 +299,7 @@ function Create() {
     };
 
     return (
-        <Container fluid>
+        <Container>
             <Row>
                 <Col md={2} />
                 <Col md={8}>

@@ -5,12 +5,13 @@ import MainLayout from "@/layouts/MainLayout";
 import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup, Tabs, Tab } from "react-bootstrap";
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
-import { API_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
+import { API_URL } from '@/config/public';
 import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
 import { ChatDots } from 'react-bootstrap-icons';
 import Link from 'next/link';
+import { isProofSubmitted } from '@/utils/bookingStatus';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -48,7 +49,6 @@ interface DetailsProps {
             tenure: string;
             returnRangeMin: number;
             returnRangeMax: number;
-            unitInvestmentValue: number;
         };
         unitPurchased: number;
         investmentDate: string;
@@ -178,13 +178,6 @@ interface ChangePartnerFormDataProps {
     idProjectPartners: number;
 }
 
-interface PartnerOption {
-    idProjectPartners: number;
-    partnerName: string;
-    partnerUnitCapacity: number;
-    investorConfirmedBookingCount: number;
-}
-
 const CustomOptionPartner = ({ data, ...props }: { data: ProjectPartnersProps, [key: string]: any }) => (
     // @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
     <components.Option {...props}>
@@ -255,21 +248,7 @@ function Details() {
         idProjectPartners: 0
     });
     const [projectPartners, setProjectPartners] = useState<ProjectPartnersProps[]>([]);
-    const [settlementModalShow, setSettlementModalShow] = useState<boolean>(false);
-    const [settlementProject, setSettlementProject] = useState<{ idProjectInvestors: number; capital: number; profit: number | null; profitPercent: number | null } | null>(null);
-    const [settlementOption, setSettlementOption] = useState<string>('withdraw_all');
-    const [settlementNewProjectId, setSettlementNewProjectId] = useState<number>(0);
-    const [settlementUnits, setSettlementUnits] = useState<number>(0);
-    const [settlementTopUp, setSettlementTopUp] = useState<number>(0);
-    const [settlementProfitEdit, setSettlementProfitEdit] = useState<number>(0);
-    const [settlementProfitPercentEdit, setSettlementProfitPercentEdit] = useState<number>(0);
-    const [availableProjects, setAvailableProjects] = useState<{ idProjects: number; projectName: string; unitInvestmentValue: number }[]>([]);
-    const [settlementLoading, setSettlementLoading] = useState<boolean>(false);
-    const [settlementAvailablePartners, setSettlementAvailablePartners] = useState<PartnerOption[]>([]);
-    const [settlementPartnerSelections, setSettlementPartnerSelections] = useState<{ [key: number]: number }>({});
-    const [settlementTopUpFile, setSettlementTopUpFile] = useState<File | null>(null);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
-    const settlementTopUpFileRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (id != undefined) {
@@ -719,176 +698,6 @@ function Details() {
     }
 
 
-    const fetchAvailableProjects = async () => {
-        try {
-            const res = await fetch('/api/projects/get_all_projects', getRequestOptions());
-            const data = await res.json();
-            if (res.status === 200) {
-                setAvailableProjects(data.data.map((p: any) => ({
-                    idProjects: p.idProjects,
-                    projectName: p.projectName,
-                    unitInvestmentValue: Number(p.unitInvestmentValue),
-                })));
-            }
-        } catch (_) {
-            // silently ignore
-        }
-    };
-
-    const fetchSettlementPartners = async (idProjects: number) => {
-        try {
-            const res = await fetch('/api/projects/project-partners/' + idProjects, getRequestOptions());
-            const data = await res.json();
-            if (res.status === 200) {
-                setSettlementAvailablePartners(data.data.map((p: any) => ({
-                    idProjectPartners: p.idProjectPartners,
-                    partnerName: p.User?.fullName || '',
-                    partnerUnitCapacity: Number(p.partnerUnitCapacity),
-                    investorConfirmedBookingCount: Number(p.investorConfirmedBookingCount),
-                })));
-            }
-        } catch (_) {
-            // silently ignore
-        }
-    };
-
-    const openSettlementModal = (project: DetailsProps['ProjectInvestors'][0]) => {
-        const capital = Number(project.unitPurchased) * Number(project.Project.unitInvestmentValue);
-        setSettlementProject({
-            idProjectInvestors: project.idProjectInvestors,
-            capital,
-            profit: project.actualProfitAmount != null ? Number(project.actualProfitAmount) : null,
-            profitPercent: project.actualProfitPercentage != null ? Number(project.actualProfitPercentage) : null,
-        });
-        setSettlementProfitEdit(Number(project.actualProfitAmount) || 0);
-        setSettlementProfitPercentEdit(Number(project.actualProfitPercentage) || 0);
-        setSettlementOption('withdraw_all');
-        setSettlementNewProjectId(0);
-        setSettlementUnits(0);
-        setSettlementTopUp(0);
-        setSettlementAvailablePartners([]);
-        setSettlementPartnerSelections({});
-        setSettlementTopUpFile(null);
-        fetchAvailableProjects();
-        setSettlementModalShow(true);
-    };
-
-    const handleSettlement = async () => {
-        if (!settlementProject) return;
-        const effectiveProfit = settlementProject.profit ?? settlementProfitEdit;
-        const effectiveProfitPercent = settlementProject.profitPercent ?? settlementProfitPercentEdit;
-
-        if (settlementOption !== 'withdraw_all' && !settlementNewProjectId) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a project for reinvestment.' });
-            return;
-        }
-        if (settlementOption !== 'withdraw_all' && settlementUnits <= 0) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter units to reinvest.' });
-            return;
-        }
-
-        if (settlementOption !== 'withdraw_all') {
-            // Amount validation — full amount must be invested (no partial, no excess)
-            const selectedUnitValue = availableProjects.find(p => p.idProjects === settlementNewProjectId)?.unitInvestmentValue ?? 0;
-            const reinvestValue = settlementUnits * selectedUnitValue;
-            const requiredOption2 = settlementProject.capital;
-            const requiredOption3 = settlementProject.capital + effectiveProfit + Number(settlementTopUp);
-            if (settlementOption === 'withdraw_profit_reinvest_capital' && reinvestValue !== requiredOption2) {
-                Swal.fire({ icon: 'error', title: 'Amount Mismatch', text: `Must invest exactly BDT ${requiredOption2.toLocaleString()} (full capital). Current selection: BDT ${reinvestValue.toLocaleString()}.` });
-                return;
-            }
-            if (settlementOption === 'full_reinvest' && reinvestValue !== requiredOption3) {
-                Swal.fire({ icon: 'error', title: 'Amount Mismatch', text: `Must invest exactly BDT ${requiredOption3.toLocaleString()} (capital + profit + top-up). Current selection: BDT ${reinvestValue.toLocaleString()}.` });
-                return;
-            }
-
-            // Partner sum validation
-            if (settlementAvailablePartners.length > 0) {
-                const partnerTotal = Object.values(settlementPartnerSelections).reduce((a, b) => a + b, 0);
-                if (partnerTotal !== settlementUnits) {
-                    Swal.fire({ icon: 'error', title: 'Partner Assignment', text: `Total units assigned to partners (${partnerTotal}) must equal units to reinvest (${settlementUnits}).` });
-                    return;
-                }
-            }
-        }
-
-        setSettlementLoading(true);
-        try {
-            if (settlementOption === 'withdraw_all') {
-                const res = await fetch(API_URL + 'api/bookings/investment_status_change', putRequestOptions({
-                    idProjectInvestors: settlementProject.idProjectInvestors,
-                    investmentStatus: 'withdrawn',
-                    actualProfitAmount: effectiveProfit,
-                    actualProfitPercentage: effectiveProfitPercent,
-                }));
-                if (res.ok) {
-                    Swal.fire({ icon: 'success', title: 'Success', text: 'Investment marked as withdrawn!' });
-                    setSettlementModalShow(false);
-                    setReload(true);
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', html: (await res.json()).message });
-                }
-            } else {
-                const reinvestType = settlementOption === 'full_reinvest' ? 'full' : 'capital_only';
-                const selectedUnitValue = availableProjects.find(p => p.idProjects === settlementNewProjectId)?.unitInvestmentValue ?? 0;
-                const partners = Object.entries(settlementPartnerSelections)
-                    .filter(([, units]) => units > 0)
-                    .map(([idProjectPartners, investedUnit]) => ({
-                        idProjectPartners: Number(idProjectPartners),
-                        investedUnit,
-                        amountInvested: investedUnit * selectedUnitValue,
-                    }));
-
-                const res = await fetch(API_URL + 'api/bookings/reinvest', putRequestOptions({
-                    idProjectInvestors: settlementProject.idProjectInvestors,
-                    idProjects: settlementNewProjectId,
-                    unitPurchased: settlementUnits,
-                    topUpAmount: settlementOption === 'full_reinvest' ? settlementTopUp : 0,
-                    reinvestType,
-                    actualProfitAmount: effectiveProfit,
-                    actualProfitPercentage: effectiveProfitPercent,
-                    partners,
-                }));
-                if (res.ok) {
-                    const resData = await res.json();
-                    const newBookingId = resData.data?.newBookingId;
-
-                    // Upload top-up proof if provided
-                    if (settlementTopUpFile && newBookingId) {
-                        const formData = new FormData();
-                        formData.append('bookingId', String(newBookingId));
-                        formData.append('topupProof', settlementTopUpFile);
-                        const token = getCookie('token');
-                        const proofRes = await fetch(API_URL + 'api/bookings/attach-proof', {
-                            method: 'POST',
-                            headers: { Authorization: 'Bearer ' + token },
-                            body: formData,
-                        });
-                        if (!proofRes.ok) {
-                            Swal.fire({ icon: 'warning', title: 'Partially Complete', text: 'Reinvestment processed but top-up proof upload failed. Please upload manually.' });
-                        } else {
-                            Swal.fire({ icon: 'success', title: 'Success', text: 'Reinvestment processed successfully!' });
-                        }
-                    } else {
-                        Swal.fire({ icon: 'success', title: 'Success', text: 'Reinvestment processed successfully!' });
-                    }
-
-                    setSettlementModalShow(false);
-                    setSettlementTopUpFile(null);
-                    setSettlementPartnerSelections({});
-                    setSettlementAvailablePartners([]);
-                    setReload(true);
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', html: (await res.json()).message });
-                }
-            }
-        } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Error', text: (error as Error).message || 'Something went wrong!' });
-        } finally {
-            setSettlementLoading(false);
-        }
-    };
-
     const handleCollectionStatusChange = async (idProjectInvestmentBookings: number, status: string) => {
         Swal.fire({
             title: 'Are you sure?',
@@ -1080,7 +889,7 @@ function Details() {
     ];
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start"> Booking Details</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
@@ -1156,10 +965,15 @@ function Details() {
                                     <tr>
                                         <td>Proof of Payment</td>
                                         <td>
+                                            {/* Served through an authenticated route, not the public
+                                                bucket URL: these are bank receipts and cheque images, and
+                                                they used to be readable by anyone holding the link. The
+                                                route checks ownership and redirects to a five-minute
+                                                presigned URL. */}
                                             {details.proofOfPayment !== null && (
-                                                <a href={`${S3_URL}proof-of-payment/${details.proofOfPayment}`} target="_blank" rel="noopener noreferrer">
+                                                <a href={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`} target="_blank" rel="noopener noreferrer">
                                                     <img
-                                                        src={`${S3_URL}proof-of-payment/${details.proofOfPayment}`}
+                                                        src={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`}
                                                         alt={details.proofOfPayment}
                                                         width={100}
                                                         height={100}
@@ -1371,14 +1185,9 @@ function Details() {
                                                 }
                                             </td>
                                             <td>
-                                                {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' && project.investmentStatus !== 'withdrawn' && project.investmentStatus !== 'reinvested_full' && project.investmentStatus !== 'reinvested_capital' && project.investmentStatus !== 'reinvested_profit' && project.investmentStatus !== 'cancelled' &&
+                                                {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
                                                     <Button className='btn btn-sm btn-primary m-2' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
                                                         Ready For Withdrawal
-                                                    </Button>
-                                                }
-                                                {details.cancelled === 'no' && project.investmentStatus === 'ready_for_withdrawal' &&
-                                                    <Button className='btn btn-sm btn-success m-2' onClick={() => openSettlementModal(project)}>
-                                                        Settle Investment
                                                     </Button>
                                                 }
                                                 {details.cancelled === 'no' &&
@@ -1423,7 +1232,7 @@ function Details() {
                                     Cancel
                                 </Button>
                             }
-                            {details.cancelled === 'no' && details.paymentConfirmationStatus === 'uploaded' &&
+                            {details.cancelled === 'no' && isProofSubmitted(details.paymentConfirmationStatus) &&
                                 <>
                                     <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
                                         Confirm
@@ -1727,217 +1536,6 @@ function Details() {
                     {/* <pre>{JSON.stringify(projectPartners, null, 2)}</pre>
                     <pre>{JSON.stringify(changePartnerFormData, null, 2)}</pre> */}
                 </Modal.Body>
-            </Modal>
-            <Modal show={settlementModalShow} onHide={() => setSettlementModalShow(false)} size='lg'>
-                <Modal.Header closeButton>
-                    <Modal.Title>Settle Investment</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {settlementProject && (
-                        <>
-                            <Table bordered size='sm' className='mb-3'>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Capital</strong></td>
-                                        <td>BDT {settlementProject.capital.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Profit</strong></td>
-                                        <td>
-                                            {settlementProject.profit !== null ? (
-                                                `BDT ${settlementProject.profit.toLocaleString()} (${settlementProject.profitPercent}%)`
-                                            ) : (
-                                                <Row>
-                                                    <Col sm={5}>
-                                                        <Form.Control
-                                                            type='number'
-                                                            placeholder='Profit amount'
-                                                            value={settlementProfitEdit}
-                                                            step='any'
-                                                            onChange={e => setSettlementProfitEdit(Number(e.target.value))}
-                                                        />
-                                                    </Col>
-                                                    <Col sm={5}>
-                                                        <Form.Control
-                                                            type='number'
-                                                            placeholder='Profit %'
-                                                            value={settlementProfitPercentEdit}
-                                                            step='any'
-                                                            onChange={e => setSettlementProfitPercentEdit(Number(e.target.value))}
-                                                        />
-                                                    </Col>
-                                                </Row>
-                                            )}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Total</strong></td>
-                                        <td>BDT {(settlementProject.capital + (settlementProject.profit ?? settlementProfitEdit)).toLocaleString()}</td>
-                                    </tr>
-                                </tbody>
-                            </Table>
-                            <Form.Group className='mb-3'>
-                                <Form.Label><strong>Settlement Option</strong></Form.Label>
-                                <Form.Check
-                                    type='radio'
-                                    id='opt-withdraw-all'
-                                    label={`Withdraw All — investor receives BDT ${(settlementProject.capital + (settlementProject.profit ?? settlementProfitEdit)).toLocaleString()}`}
-                                    value='withdraw_all'
-                                    checked={settlementOption === 'withdraw_all'}
-                                    onChange={() => setSettlementOption('withdraw_all')}
-                                />
-                                <Form.Check
-                                    type='radio'
-                                    id='opt-reinvest-capital'
-                                    label={`Withdraw Profit, Reinvest Capital — cash payout BDT ${(settlementProject.profit ?? settlementProfitEdit).toLocaleString()}, reinvest BDT ${settlementProject.capital.toLocaleString()}`}
-                                    value='withdraw_profit_reinvest_capital'
-                                    checked={settlementOption === 'withdraw_profit_reinvest_capital'}
-                                    onChange={() => setSettlementOption('withdraw_profit_reinvest_capital')}
-                                />
-                                <Form.Check
-                                    type='radio'
-                                    id='opt-full-reinvest'
-                                    label='Full Reinvest + Top-up'
-                                    value='full_reinvest'
-                                    checked={settlementOption === 'full_reinvest'}
-                                    onChange={() => setSettlementOption('full_reinvest')}
-                                />
-                            </Form.Group>
-                            {(settlementOption === 'withdraw_profit_reinvest_capital' || settlementOption === 'full_reinvest') && settlementProject && (
-                                <>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>New Project <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Select value={settlementNewProjectId} onChange={e => {
-                                                const pid = Number(e.target.value);
-                                                setSettlementNewProjectId(pid);
-                                                setSettlementUnits(0);
-                                                setSettlementPartnerSelections({});
-                                                if (pid > 0) fetchSettlementPartners(pid);
-                                                else setSettlementAvailablePartners([]);
-                                            }}>
-                                                <option value={0}>— Select project —</option>
-                                                {availableProjects.map(p => (
-                                                    <option key={p.idProjects} value={p.idProjects}>
-                                                        {p.projectName} (BDT {p.unitInvestmentValue.toLocaleString()} / unit)
-                                                    </option>
-                                                ))}
-                                            </Form.Select>
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Units to Reinvest <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='number'
-                                                min={1}
-                                                value={settlementUnits}
-                                                onChange={e => { setSettlementUnits(Number(e.target.value)); setSettlementPartnerSelections({}); }}
-                                            />
-                                            {(() => {
-                                                const selectedUnitValue = availableProjects.find(p => p.idProjects === settlementNewProjectId)?.unitInvestmentValue ?? 0;
-                                                const reinvestValue = settlementUnits * selectedUnitValue;
-                                                const effectiveProfit = settlementProject.profit ?? settlementProfitEdit;
-                                                const required = settlementOption === 'withdraw_profit_reinvest_capital'
-                                                    ? settlementProject.capital
-                                                    : settlementProject.capital + effectiveProfit + Number(settlementTopUp);
-                                                const exactUnits = selectedUnitValue > 0 ? required / selectedUnitValue : 0;
-                                                const isWhole = Number.isInteger(exactUnits);
-                                                if (settlementNewProjectId > 0 && selectedUnitValue > 0) {
-                                                    const hint = `Required: BDT ${required.toLocaleString()} = ${isWhole ? exactUnits : exactUnits.toFixed(2)} units`;
-                                                    if (settlementUnits > 0 && reinvestValue === required) {
-                                                        return <Form.Text className='text-success'>= BDT {reinvestValue.toLocaleString()} ✓</Form.Text>;
-                                                    }
-                                                    return <Form.Text className={settlementUnits > 0 ? 'text-danger' : 'text-muted'}>{hint}{settlementUnits > 0 ? ` (current: BDT ${reinvestValue.toLocaleString()})` : ''}</Form.Text>;
-                                                }
-                                                return null;
-                                            })()}
-                                        </Col>
-                                    </Form.Group>
-                                    {settlementOption === 'full_reinvest' && (
-                                        <Form.Group as={Row} className='mb-3'>
-                                            <Form.Label column sm='4'>Top-up Amount (fresh cash)</Form.Label>
-                                            <Col sm='8'>
-                                                <Form.Control
-                                                    type='number'
-                                                    min={0}
-                                                    value={settlementTopUp}
-                                                    onChange={e => setSettlementTopUp(Number(e.target.value))}
-                                                />
-                                            </Col>
-                                        </Form.Group>
-                                    )}
-                                    {settlementOption === 'full_reinvest' && settlementTopUp > 0 && (
-                                        <Form.Group as={Row} className='mb-3'>
-                                            <Form.Label column sm='4'>Top-up Proof of Payment</Form.Label>
-                                            <Col sm='8'>
-                                                <Form.Control
-                                                    type='file'
-                                                    accept='image/jpeg,image/png'
-                                                    ref={settlementTopUpFileRef}
-                                                    onChange={e => setSettlementTopUpFile((e.target as HTMLInputElement).files?.[0] || null)}
-                                                />
-                                                <Form.Text className='text-muted'>Upload bank receipt for the top-up cash (JPG/PNG)</Form.Text>
-                                            </Col>
-                                        </Form.Group>
-                                    )}
-                                    {settlementAvailablePartners.length > 0 && settlementNewProjectId > 0 && settlementUnits > 0 && (
-                                        <Form.Group className='mb-3'>
-                                            <Form.Label><strong>Partner Assignment</strong></Form.Label>
-                                            <Table bordered size='sm'>
-                                                <thead>
-                                                    <tr>
-                                                        <th>Partner</th>
-                                                        <th>Capacity</th>
-                                                        <th>Units to Assign</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {settlementAvailablePartners.map(p => {
-                                                        const remaining = p.partnerUnitCapacity === 0 ? Infinity : p.partnerUnitCapacity - p.investorConfirmedBookingCount;
-                                                        return (
-                                                            <tr key={p.idProjectPartners}>
-                                                                <td>{p.partnerName}</td>
-                                                                <td>{p.partnerUnitCapacity === 0 ? 'Unlimited' : `${p.partnerUnitCapacity} (${remaining} left)`}</td>
-                                                                <td>
-                                                                    <Form.Control
-                                                                        type='number'
-                                                                        min={0}
-                                                                        max={remaining === Infinity ? undefined : remaining}
-                                                                        size='sm'
-                                                                        value={settlementPartnerSelections[p.idProjectPartners] ?? 0}
-                                                                        onChange={e => setSettlementPartnerSelections(prev => ({
-                                                                            ...prev,
-                                                                            [p.idProjectPartners]: Number(e.target.value),
-                                                                        }))}
-                                                                    />
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </Table>
-                                            {(() => {
-                                                const total = Object.values(settlementPartnerSelections).reduce((a, b) => a + b, 0);
-                                                return (
-                                                    <Form.Text className={total === settlementUnits ? 'text-success' : 'text-danger'}>
-                                                        {total} of {settlementUnits} units assigned to partners
-                                                    </Form.Text>
-                                                );
-                                            })()}
-                                        </Form.Group>
-                                    )}
-                                </>
-                            )}
-                        </>
-                    )}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant='secondary' onClick={() => setSettlementModalShow(false)}>Cancel</Button>
-                    <Button variant='success' onClick={handleSettlement} disabled={settlementLoading}>
-                        {settlementLoading ? 'Processing...' : 'Confirm'}
-                    </Button>
-                </Modal.Footer>
             </Modal>
         </Container>
 

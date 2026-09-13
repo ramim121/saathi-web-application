@@ -14,6 +14,11 @@ const ProjectCategory = sequelize.define<ProjectCategoryModel>('ProjectCategory'
         type: DataTypes.STRING,
         allowNull: false
     },
+    // Bangla counterpart — migration 002_bangla_columns.sql.
+    categoryNameBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     categoryImage: {
         type: DataTypes.STRING,
         allowNull: true

@@ -4,7 +4,7 @@ import { Container, Table, Button, Pagination } from "react-bootstrap";
 import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface ListProps {
 	idProjects: number,
@@ -159,7 +159,7 @@ function List() {
 
 
 	return (
-		<Container fluid>
+		<Container>
 			<h4 className="text-start">Projects List</h4>
 			<hr />
 			<Table responsive striped bordered hover size="sm">

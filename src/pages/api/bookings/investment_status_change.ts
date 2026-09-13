@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }, investorUser!);
             }
 
-            const investorBookingStatus = await ProjectInvestorStatusEntry(investmentStatus, idProjectInvestors, userInfo.idUsers, '', transaction);
+            const investorBookingStatus = await ProjectInvestorStatusEntry('ready_for_withdrawal', idProjectInvestors, userInfo.idUsers, '', transaction);
             if (!investorBookingStatus) {
                 await transaction.rollback();
                 throw new Error('Error updating investor booking status');

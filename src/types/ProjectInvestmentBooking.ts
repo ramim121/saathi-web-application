@@ -7,7 +7,7 @@ export default interface ProjectInvestmentBooking {
     idProjectInvestmentBookings: number;
     idUsers: number;
     paymentMethod: 'beftn' | 'rtgs' | 'npsb' | 'cash' | 'cheque';
-    paymentConfirmationStatus: 'pending' | 'uploaded' | 'confirmed' | 'denied';
+    paymentConfirmationStatus: 'pending' | 'uploaded' | 'proof_submitted' | 'confirmed' | 'denied';
     bookingId?: string;
     paymentAmount?: number;
     paymentDate?: string;
@@ -23,9 +23,6 @@ export default interface ProjectInvestmentBooking {
     collectionDate?: string | null;
     collectionLocation?: string | null;
     cancelled: 'yes' | 'no';
-    bookingType?: 'fresh' | 'reinvestment';
-    reinvestedAmount?: number;
-    idSourceProjectInvestors?: number | null;
     ProjectInvestors?: ProjectInvestor[];
 }
 

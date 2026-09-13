@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL, S3_URL } from '@/config/constants';
+import { API_URL, S3_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 
 interface PartnershipFormData {
     idPartnerships?: number;
     name: string;
+    nameBn: string;
     image: string | File;
     priority: number | null;
 }
@@ -26,6 +27,7 @@ function PartnershipPage() {
     const [formData, setFormData] = useState<PartnershipFormData>({
         idPartnerships: undefined,
         name: '',
+        nameBn: '',
         image: '',
         priority: null
     });
@@ -156,6 +158,7 @@ function PartnershipPage() {
                     newFormData.append('idPartnerships', formData.idPartnerships.toString());
                 }
                 newFormData.append('name', formData.name);
+                newFormData.append('nameBn', formData.nameBn || '');
                 if (formData.image instanceof File) {
                     newFormData.append('image', formData.image);
                 }
@@ -180,6 +183,7 @@ function PartnershipPage() {
                         setFormData({
                             idPartnerships: undefined,
                             name: '',
+                            nameBn: '',
                             image: '',
                             priority: null
                         });
@@ -213,6 +217,7 @@ function PartnershipPage() {
         setFormData({
             idPartnerships: item.idPartnerships,
             name: item.name,
+            nameBn: item.nameBn || '',
             image: item.image,
             priority: item.priority
         });
@@ -267,7 +272,7 @@ function PartnershipPage() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Partnerships</h4>
@@ -283,6 +288,23 @@ function PartnershipPage() {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         value={formData.name}
                                     />
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row}>
+                                {/* Bangla counterpart. Optional — content is written in
+                                    English first and translated afterwards, so leaving
+                                    this blank simply falls back to the English name. */}
+                                <Form.Label column sm='4' className='mb-3'>Name (বাংলা)</Form.Label>
+                                <Col sm='8'>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="অংশীদারের নাম লিখুন"
+                                        name="nameBn"
+                                        lang="bn"
+                                        onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
+                                        value={formData.nameBn}
+                                    />
+                                    <Form.Text muted>Optional. Falls back to the English name if left blank.</Form.Text>
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
@@ -328,7 +350,7 @@ function PartnershipPage() {
                     </Col>
                 </Row>
             </Container>
-            <Container fluid className='mt-5'>
+            <Container className='mt-5'>
                 <h4 className="text-start">Partnership List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

@@ -81,7 +81,7 @@ const AccountDeletionForm = () => {
   };
 
   return (
-    <Container fluid className="py-3">
+    <Container className="py-3">
       <img width={60} className='m-3 ms-0' src="/assets/images/logo-header.png" alt="" />
       <h2>Delete Your Account</h2>
       <hr />

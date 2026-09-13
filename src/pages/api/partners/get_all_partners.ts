@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project, File, ProjectCategory, PartnerAdditionalInfo } from '@/models/__associations'
 import { Op } from 'sequelize'
+import { publicPartnerAttributes } from '@/utils/publicFields'
 
 export default async function handler(
 	req: NextApiRequest,
@@ -50,6 +51,13 @@ export default async function handler(
 		try {
 			// Fetching the User data with related models, filtering based on conditions
 			const result = await User.findAll({
+				// SECURITY: this endpoint is public (the app's Partners tab is reachable
+				// before login), so the projection is an explicit allowlist. Without it
+				// Sequelize returns every users column — which on a production row means
+				// email, phoneNumber, nidNumber and the NID image keys go out unauthenticated.
+				// Only add a column here if it is safe for an anonymous caller to read.
+				// `disability` stays because the app renders it as a badge and filters on it.
+				attributes: publicPartnerAttributes(),
 				include: [
 					{
 						model: ProjectPartner,

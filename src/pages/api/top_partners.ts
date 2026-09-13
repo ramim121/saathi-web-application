@@ -8,9 +8,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const result = await User.findAll({
                 attributes: [
+                    // SECURITY: public endpoint — `phoneNumber` removed. No app screen
+                    // reads a partner's phone; the admin listing keeps its own projection.
                     'idUsers',
                     'fullName',
-                    'phoneNumber',
                     'age',
                     'location',
                     'role',
@@ -20,6 +21,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     'joiningDate',
                     'education',
                     'disability',
+                    // Bangla counterparts, so the Bangla site can render this
+                    // homepage list without a second request.
+                    'fullNameBn',
+                    'roleBn',
+                    'bioBn',
+                    'skillsBn',
+                    'locationBn',
+                    'interestedInBn',
+                    'educationBn',
                     [
                         sequelize.literal(`(
                                             SELECT COUNT(*)

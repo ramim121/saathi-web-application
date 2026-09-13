@@ -6,9 +6,9 @@ import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import { Container, Row, Table, Col, Tab, Tabs, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 import Carousel from 'react-bootstrap/Carousel';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { GetServerSidePropsContext } from "next";
 import ProjectType from "@/types/Project";
 import { getProjectDetails } from "@/pages/api/projects/details/[id]";
@@ -99,7 +99,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
 
 
     return (
-        <Container fluid>
+        <Container>
             <h4 className="text-start"> Project Details ({projectData.projectName})</h4>
             <hr />
             <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
@@ -361,6 +361,11 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     const projectId = context.params?.id;
 
     const projectData = await getProjectDetails(projectId as string);
+
+    // A deleted or mistyped id returns null, and the component reads
+    // projectData.projectName unconditionally — which crashed the render and
+    // served a 500 instead of a not-found page.
+    if (!projectData) return { notFound: true };
 
     return {
         props: {

@@ -195,7 +195,10 @@ export async function createBank(req: NextApiRequest, res: NextApiResponse, user
 
     try {
         if (req.body.default === 'yes') {
-            UserBank.update({ default: 'no' }, { where: { idUsers }, transaction });
+            // Was missing `await` — the clear-other-defaults update raced the create
+            // below, so adding a new default account could leave two rows flagged
+            // `default: 'yes'`. The PUT branch above already awaits the same call.
+            await UserBank.update({ default: 'no' }, { where: { idUsers }, transaction });
         }
 
         const userBank = await UserBank.create({

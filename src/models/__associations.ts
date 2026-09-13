@@ -1,3 +1,5 @@
+import AppOtp from "./AppOtp";
+import EmailVerification from "./EmailVerification";
 import User from "./User";
 import ProjectCategory from "./ProjectCategory";
 import Project from "./Project";
@@ -198,5 +200,7 @@ export {
 	ProductOrderItem,
 	ProductOrderStatus,
 	Partnership,
-	PartnerAdditionalInfo
+	PartnerAdditionalInfo,
+	AppOtp,
+	EmailVerification
 };

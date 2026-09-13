@@ -37,7 +37,10 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         allowNull: true
     },
     paymentConfirmationStatus: {
-        type: DataTypes.ENUM('pending', 'uploaded', 'confirmed', 'denied'),
+        // 'uploaded' is the legacy name for 'proof_submitted'; both are accepted
+        // while the app release that understands the new one rolls out.
+        // See src/utils/bookingStatus.ts.
+        type: DataTypes.ENUM('pending', 'uploaded', 'proof_submitted', 'confirmed', 'denied'),
         allowNull: false
     },
     bookingId: {
@@ -76,20 +79,6 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('yes', 'no'),
         allowNull: false,
         defaultValue: 'no'
-    },
-    bookingType: {
-        type: DataTypes.ENUM('fresh', 'reinvestment'),
-        allowNull: false,
-        defaultValue: 'fresh'
-    },
-    reinvestedAmount: {
-        type: DataTypes.DECIMAL(12, 2),
-        allowNull: false,
-        defaultValue: 0
-    },
-    idSourceProjectInvestors: {
-        type: DataTypes.INTEGER,
-        allowNull: true
     }
 }, {
     tableName: 'project_investment_bookings',

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import Cookies from "js-cookie";
 import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { useRouter } from 'next/router';
@@ -74,7 +74,7 @@ const LoginPage = () => {
 		<div style={{ height: "95vh" }} className="App">
 			<div className="h-100 d-flex justify-content-center align-items-center">
 
-				<Container fluid>
+				<Container>
 					<Row className="justify-content-md-center">
 						<Col md="4">
 							{/* eslint-disable-next-line @next/next/no-img-element */}

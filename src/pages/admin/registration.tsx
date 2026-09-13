@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import Swal from 'sweetalert2';
 import { postRequestOptions } from '@/utils/Fetch';
@@ -68,7 +68,7 @@ function Registration() {
 
 
     return (
-        <Container fluid>
+        <Container>
             <Row className="justify-content-center">
                 <Col md={6}>
                     <h2 className="text-center mt-2">Admin Registration</h2>

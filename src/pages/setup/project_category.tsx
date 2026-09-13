@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { API_URL } from '@/config/constants';
+import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import { S3_URL } from '@/config/constants';
+import { S3_URL } from '@/config/public';
 
 interface FormDataType {
     idProjectCategories?: number
     categoryName: string
+    categoryNameBn: string
     categoryImage: File | null
 }
 
@@ -26,6 +27,7 @@ function ProjectCategory() {
 
     const [formData, setFormData] = useState<FormDataType>({
         categoryName: '',
+        categoryNameBn: '',
         categoryImage: null
     });
 
@@ -151,6 +153,7 @@ function ProjectCategory() {
             if (result.value) {
                 const newFormData = new FormData();
                 newFormData.append('categoryName', formData.categoryName);
+                newFormData.append('categoryNameBn', formData.categoryNameBn || '');
 
                 if (formData.categoryImage !== null) {
                     newFormData.append('categoryImage', formData.categoryImage);
@@ -171,6 +174,7 @@ function ProjectCategory() {
                         setReload(true);
                         setFormData({
                             categoryName: '',
+                            categoryNameBn: '',
                             categoryImage: null
                         });
                         if (fileInputRef.current) {
@@ -202,7 +206,7 @@ function ProjectCategory() {
 
     return (
         <>
-            <Container fluid>
+            <Container>
                 <Row className="justify-content-center">
                     <Col md={6}>
                         <h4 className="text-start">Project Category</h4>
@@ -212,6 +216,17 @@ function ProjectCategory() {
                                 <Form.Label column sm='4' className='mb-3'>Category Name<span className='text-danger'>*</span></Form.Label>
                                 <Col sm='8'>
                                     <Form.Control type="text" name="categoryName" value={formData.categoryName} onChange={(e) => setFormData({ ...formData, categoryName: e.target.value })} required />
+                                    {/* Bangla counterpart — optional; blank falls back to English. */}
+                                    <Form.Control
+                                        className="mt-2"
+                                        type="text"
+                                        name="categoryNameBn"
+                                        lang="bn"
+                                        placeholder="বিভাগের নাম (বাংলা) — ঐচ্ছিক"
+                                        value={formData.categoryNameBn}
+                                        onChange={(e) => setFormData({ ...formData, categoryNameBn: e.target.value })}
+                                    />
+                                    <Form.Text muted>Bangla name is optional. Falls back to the English name if left blank.</Form.Text>
                                 </Col>
                             </Form.Group>
                             <Form.Group as={Row}>
@@ -237,7 +252,7 @@ function ProjectCategory() {
             </Container>
 
 
-            <Container fluid className='mt-5'>
+            <Container className='mt-5'>
                 <h4 className="text-start">Project Category List</h4>
                 <hr />
                 <Table responsive striped bordered hover>

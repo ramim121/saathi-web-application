@@ -14,6 +14,7 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import Cors from 'micro-cors';
 import sequelize from '@/config/db';
+import { PROOF_SUBMITTED_WRITE_VALUE } from '@/utils/bookingStatus';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -99,7 +100,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const params: any = {
                 Bucket: S3_BUCKET_NAME,
                 ContentType: proofOfPaymentFile.mimetype!,
-                ACL: 'public-read',
+                // No public ACL. These are bank receipts, deposit slips and cheque
+
+                // images; they are read through /api/files/proof-of-payment/{bookingId},
+
+                // which checks ownership and issues a five-minute presigned URL.
                 Body: fs.createReadStream(proofOfPaymentFile.filepath),
                 Key: 'proof-of-payment/' + proofOfPaymentFileName
             };
@@ -113,7 +118,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await upload.done();
 
             booking.proofOfPayment = proofOfPaymentFileName;
-            booking.paymentConfirmationStatus = 'uploaded';
+            booking.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
 
             await booking.save({ transaction });
 

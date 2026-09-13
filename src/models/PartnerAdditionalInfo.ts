@@ -34,6 +34,17 @@ const PartnerAdditionalInfo = sequelize.define<PartnerAdditionalInfoModel>('Part
         type: DataTypes.STRING,
         allowNull: false
     },
+    // Bangla counterparts — migration 002_bangla_columns.sql. These two render
+    // on the public partner profile, so they need translating; the household and
+    // dependents counts are numbers and do not.
+    livelihood_activity_bn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    primary_goal_bn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false

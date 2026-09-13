@@ -18,6 +18,16 @@ const AppStatPanel = sequelize.define<AppStatPanelModel>('AppStatPanel', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    // Bangla counterparts — migration 002_bangla_columns.sql. Only meaningful
+    // for statType 'text' / 'number'; every live row is currently 'image'.
+    statLabelBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    statValueBn: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     statType: {
         type: DataTypes.ENUM('text', 'number', 'image'),
         allowNull: false

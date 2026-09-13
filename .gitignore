@@ -1,40 +1,43 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
+# Build output
+.next
+out
+build
 *.tsbuildinfo
 next-env.d.ts
 
+# Secrets.
+# `.env`, `.env.production.local` and friends hold live database credentials,
+# JWT signing secrets, SES and S3 keys. `.env.example` documents the key names
+# with no values and is the only one tracked.
 .env
-.claude
-DatabaseDump
-.github/.next/
+.env.*
+!.env.example
+
+*.pem
+*.p8
+*.key
+*serviceAccount*.json
+
+# Generated email previews — build artefacts produced by db/preview-emails.ts,
+# regenerated on demand. Committing them means every copy change shows up as
+# dozens of unreadable HTML diffs.
+db/email-preview/
+
+# Local tooling
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea
+.vscode/*
+!.vscode/extensions.json
+coverage
+
+# Stale build cache with secrets baked into webpack bundles; never commit build output
+.next.previous/
+
+# Live Firebase service-account credential
+src/config/firebase.json

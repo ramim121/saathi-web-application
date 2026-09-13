@@ -51,11 +51,28 @@ const schema = Joi.object({
                         "number.min": "Invested units can not be less than 0",
                     }),
                 })
-            ).required().messages({
-                "any.required": "Project partner must be selected",
-            }),
+            )
+                // Same hole as `projects`: an empty array passed validation and
+                // produced an investor record with no partner attached, so the
+                // money was recorded against nobody.
+                .min(1)
+                .required()
+                .messages({
+                    "array.min": "Project partner must be selected",
+                    "any.required": "Project partner must be selected",
+                }),
         })
-    ).required(),
+    )
+        // `.required()` alone accepts `[]`, which created a booking row with no
+        // projects, no investors and a consumed booking number — a ghost record
+        // that no screen can render and no admin can act on. At least one
+        // project is what "a booking" means.
+        .min(1)
+        .required()
+        .messages({
+            "array.min": "Select at least one project",
+            "any.required": "Select at least one project",
+        }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -98,9 +115,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: 'Please verify your email or phone number before making any investment' });
         }
 
-        // if (userVerification.nidVerified === 'no' || userVerification.nidVerified === null) {
-        //     return res.status(400).json({ success: false, message: 'Please verify your NID before making any investment' });
-        // }
+        /**
+         * NID must be verified before any investment.
+         *
+         * This check existed but was commented out, so the API accepted
+         * bookings from accounts with no verified identity. Turned on by an
+         * explicit decision from the client.
+         *
+         * Note for support: existing investors who never completed NID
+         * verification will be blocked here until an admin approves their
+         * submission. `pending` is called out separately so the message tells
+         * them to wait rather than to start again.
+         */
+        if (userVerification.nidVerified !== 'yes') {
+            const pending = userVerification.nidVerificationStatus === 'pending';
+            return res.status(400).json({
+                success: false,
+                code: pending ? 'NID_PENDING' : 'NID_UNVERIFIED',
+                message: pending
+                    ? 'Your NID is still being reviewed. You can invest as soon as it is approved.'
+                    : 'Please verify your NID before making any investment',
+            });
+        }
 
         const transaction = await sequelize.transaction();
 
