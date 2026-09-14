@@ -12,7 +12,7 @@ jobs:
       - name: rsync deployments
         uses: burnett01/rsync-deployments@5.1
         with:
-          switches: -avzr --exclude=".git" --exclude=".github" --exclude=".env.example" --exclude=".editorconfig" --exclude=".gitignore" --exclude="ecosystem.config.js" --exclude="node_modules" --exclude="src/config/constants.ts"
+          switches: -avzr --exclude=".git" --exclude=".github" --exclude=".env.example" --exclude=".editorconfig" --exclude=".gitignore" --exclude="ecosystem.config.js" --exclude="node_modules" --exclude=".env" --exclude=".env.*"
           path: ./
           remote_path: /var/www/html/saathi-web-application
           remote_host: ${{ secrets.DEV_SSH_HOST}}
@@ -29,7 +29,12 @@ jobs:
           port: ${{ secrets.DEV_SSH_PORT }}
           script: |
             cd /var/www/html/saathi-web-application
-            npm install
-            pm2 delete saathi-app
+            npm ci
+            # Build BEFORE touching pm2. The old order deleted the process
+            # first, so a failed build left the site deleted and down.
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
-            pm2 start ecosystem.config.js
+            # Restart by name; start from the env-specific config only if it is
+            # not running. `pm2 start ecosystem.config.js` here used to start
+            # production under staging's name.
+            pm2 restart saathi-app --update-env || pm2 start ecosystem.config.js
+            pm2 save
