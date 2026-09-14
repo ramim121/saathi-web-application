@@ -59,10 +59,37 @@
     --bs-border-color: var(--sa-200);
     --bs-border-radius: var(--sa-radius);
     --bs-border-radius-sm: var(--sa-radius-sm);
-    --bs-body-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, "Helvetica Neue", Arial, sans-serif;
+    /*
+     * TYPOGRAPHY
+     *
+     * This used to lead with "Inter", which is not loaded anywhere in the app —
+     * no @font-face, no next/font, no stylesheet link. Every browser silently
+     * fell through to the next entry, so the intended typeface never actually
+     * rendered and the stack was decoration.
+     *
+     * Rather than add a webfont, this now names the system UI font on purpose.
+     * The admin builds on the EC2 box, and `next/font/google` downloads at build
+     * time — an outbound fetch that, if it fails, fails the deploy (the same
+     * trap EC2-DEPLOYMENT-RUNBOOK.md documents for the website's Montserrat).
+     * Trading a reliable deploy for a slightly different sans is a bad deal on a
+     * dense internal tool, and the system stack also renders instantly with no
+     * layout shift.
+     *
+     * `-apple-system` / `Segoe UI` / `Roboto` cover Mac, Windows and Android;
+     * "Noto Sans Bengali" is listed because several fields hold Bangla and the
+     * default Windows fallback for it is noticeably worse.
+     */
+    --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, "Helvetica Neue", "Noto Sans Bengali", Arial, sans-serif;
     --bs-body-font-size: 0.9rem;
     --bs-emphasis-color: var(--sa-900);
+
+    /* Control geometry, shared by inputs, selects and buttons so a button
+     * placed beside a field lines up with it instead of sitting a pixel or two
+     * proud. Bootstrap derives these separately per component by default. */
+    --sa-control-h: 38px;
+    --sa-control-px: 0.7rem;
+    --sa-focus-ring: 0 0 0 3px rgba(7, 86, 53, 0.15);
 }
 
 body {
@@ -103,6 +130,35 @@ a:hover { text-decoration: underline; }
     background: var(--sa-25);
     border-top: 1px solid var(--sa-100);
 }
+
+/*
+ * A card nested inside a form is a field group, not a page section.
+ *
+ * The long create/edit forms wrap related fields in their own Card — the
+ * "Investment Plan" block on a project, for instance. At the page card's weight
+ * those inner blocks stacked border on border and shadow on shadow, so a form
+ * read as a pile of boxes rather than as one form with groups in it. Nested
+ * cards drop the shadow and take a tinted header, which is enough to group
+ * without competing with the card that contains them.
+ */
+.card .card {
+    box-shadow: none;
+    border-color: var(--sa-200);
+}
+
+.card .card > .card-header {
+    background: var(--sa-50);
+    color: var(--sa-700);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.6rem 0.9rem;
+}
+
+/* Consistent breathing room; Bootstrap's default 1rem is tight for a form. */
+.card-body { padding: 1.1rem; }
+.card .card > .card-body { padding: 0.9rem; }
 
 /* ---------------------------------------------------------------- tables -- */
 /*
@@ -152,7 +208,7 @@ a:hover { text-decoration: underline; }
 .table-responsive { border-radius: var(--sa-radius); }
 
 /* Sortable header affordance for the drill-down tables. */
-.drill-table th.sortable { cursor: pointer; user-select: none; }
+.drill-table th.sortable { cursor: pointer; -webkit-user-select: none; user-select: none; }
 .drill-table th.sortable:hover { color: var(--sa-900); background: var(--sa-100); }
 .drill-table .sort-mark { margin-left: 0.3rem; opacity: 0.45; font-size: 0.75em; }
 .drill-table th[aria-sort] .sort-mark { opacity: 1; color: var(--sa-brand); }
@@ -280,26 +336,231 @@ a:hover { text-decoration: underline; }
     }
 }
 
-/* ---------------------------------------------------------------- forms -- */
+/* ---------------------------------------------------------------- forms --
+ *
+ * The admin's forms are long: creating a project is roughly thirty fields
+ * across several grouped cards. They are laid out horizontally — the label in
+ * one grid column, the control in the next — which is fine for scanning a
+ * record, but it only works if the label and its control sit on the same
+ * baseline and every control is the same height. Neither was true.
+ *
+ * These rules are all presentational. No markup changes, so all 32 form pages
+ * pick them up and nothing can break behaviourally.
+ */
 
 .form-control, .form-select {
     border-color: var(--sa-300);
     border-radius: var(--sa-radius-sm);
     font-size: 0.9rem;
-    padding: 0.45rem 0.7rem;
+    padding: 0.45rem var(--sa-control-px);
+    min-height: var(--sa-control-h);
+    color: var(--sa-900);
+    background-color: var(--sa-0);
+    /* Bootstrap animates border and shadow on every keystroke-triggered state
+     * change; on a thirty-field form that is a lot of paint for no information. */
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.form-control:hover:not(:disabled):not([readonly]),
+.form-select:hover:not(:disabled) {
+    border-color: var(--sa-500);
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--sa-brand);
-    box-shadow: 0 0 0 3px rgba(7, 86, 53, 0.12);
+    box-shadow: var(--sa-focus-ring);
 }
 
-.form-label {
+/*
+ * Placeholders were the same grey as entered values in several themes, which
+ * makes an empty required field look filled in at a glance. This is clearly
+ * lighter than `--sa-900` but still passes contrast as non-essential text.
+ */
+.form-control::placeholder { color: var(--sa-500); opacity: 1; }
+
+/*
+ * Disabled vs read-only are different states and should not look identical.
+ * Disabled means "not applicable"; read-only means "real value, not editable
+ * here" — the second still needs to be legible, so it keeps full text colour.
+ */
+.form-control:disabled, .form-select:disabled {
+    background-color: var(--sa-100);
+    color: var(--sa-500);
+    border-color: var(--sa-200);
+    cursor: not-allowed;
+}
+.form-control[readonly] {
+    background-color: var(--sa-25);
+    color: var(--sa-900);
+}
+
+/*
+ * Number fields hold money and unit counts. Tabular figures keep them aligned
+ * with the same values in tables, and the spinner arrows are removed because
+ * they invite click-stepping through a currency amount and steal horizontal
+ * room from the value itself.
+ */
+.form-control[type="number"] {
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.form-control[type="number"]::-webkit-outer-spin-button,
+.form-control[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Dates and times are read as figures too. */
+.form-control[type="date"],
+.form-control[type="datetime-local"],
+.form-control[type="time"] { font-variant-numeric: tabular-nums; }
+
+/*
+ * A textarea that opens one row tall makes people type a paragraph through a
+ * slot. Resize is limited to vertical so dragging one cannot break the grid.
+ */
+.form-control textarea, textarea.form-control {
+    min-height: 92px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+/*
+ * The select chevron is drawn here rather than left to Bootstrap's default,
+ * which is a near-black arrow that reads heavier than the text beside it.
+ */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236b7789' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M4 6l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.6rem center;
+    background-size: 14px 14px;
+    padding-right: 2rem;
+}
+
+/* ------------------------------------------------------------ form labels -- */
+
+/*
+ * Labels in this admin come in two shapes: `.form-label` (stacked) and
+ * `.col-form-label`, which Bootstrap emits for `<Form.Label column>` in the
+ * horizontal layout these pages use. They were styled for the first only, so
+ * in the horizontal forms — which is most of them — labels fell back to body
+ * size and weight and did not read as labels at all.
+ */
+.form-label,
+.col-form-label {
     color: var(--sa-700);
     font-size: 0.8rem;
     font-weight: 600;
+    line-height: 1.35;
     margin-bottom: 0.3rem;
 }
+
+/*
+ * A `column` label is vertically centred against its control rather than
+ * sitting on the first text line, so a two-line label stays visually attached
+ * to the single field it belongs to.
+ */
+.col-form-label {
+    display: flex;
+    align-items: center;
+    min-height: var(--sa-control-h);
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/*
+ * Required marker.
+ *
+ * Pages write this as `<span class="text-danger">*</span>`, which renders a
+ * full-size red asterisk sitting on the baseline — loud enough that a form with
+ * twenty required fields looks like a page of errors. Red is also doing double
+ * duty here for "required" and for "something went wrong". Toned to a muted
+ * marker, raised, and given a screen-reader label so it is not colour-only.
+ */
+.col-form-label .text-danger,
+.form-label .text-danger {
+    color: var(--sa-500) !important;
+    font-weight: 700;
+    margin-left: 0.15rem;
+}
+
+/* Helper text under a control. */
+.form-text {
+    color: var(--sa-500);
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+}
+
+/* ------------------------------------------------ checkboxes and radios -- */
+
+/*
+ * These were Bootstrap's default blue, the one colour on the page that belonged
+ * to no part of the palette.
+ */
+.form-check-input {
+    border-color: var(--sa-300);
+    width: 1.05em;
+    height: 1.05em;
+    margin-top: 0.15em;
+}
+.form-check-input:checked {
+    background-color: var(--sa-brand);
+    border-color: var(--sa-brand);
+}
+.form-check-input:focus {
+    border-color: var(--sa-brand);
+    box-shadow: var(--sa-focus-ring);
+}
+.form-check-label { color: var(--sa-900); }
+/* The box and its label are one target. */
+.form-check-input, .form-check-label { cursor: pointer; }
+
+/* Switches use the brand colour in their "on" knob too. */
+.form-switch .form-check-input:checked {
+    background-color: var(--sa-brand);
+    border-color: var(--sa-brand);
+}
+
+/* ----------------------------------------------------------- validation -- */
+
+.form-control.is-invalid, .form-select.is-invalid,
+.was-validated .form-control:invalid {
+    border-color: #c0392b;
+}
+.form-control.is-invalid:focus, .form-select.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+}
+.invalid-feedback { font-size: 0.78rem; }
+
+/* ---------------------------------------------------------- input groups -- */
+
+/*
+ * An input-group addon shares the control height so the seam between them is
+ * flush; at Bootstrap's defaults the addon was a pixel taller than the field.
+ */
+.input-group-text {
+    background-color: var(--sa-50);
+    border-color: var(--sa-300);
+    color: var(--sa-700);
+    font-size: 0.85rem;
+    min-height: var(--sa-control-h);
+}
+
+/* --------------------------------------------------------------- files --- */
+
+.form-control[type="file"] { padding: 0.3rem var(--sa-control-px); }
+.form-control[type="file"]::file-selector-button {
+    background: var(--sa-100);
+    border: 0;
+    border-radius: var(--sa-radius-sm);
+    color: var(--sa-700);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 0.7rem;
+    padding: 0.35rem 0.7rem;
+}
+.form-control[type="file"]::file-selector-button:hover { background: var(--sa-200); }
 
 /* -------------------------------------------------------------- buttons -- */
 
@@ -308,9 +569,42 @@ a:hover { text-decoration: underline; }
     font-size: 0.85rem;
     font-weight: 600;
     padding: 0.45rem 0.9rem;
+    /* Matches the control height, so a button next to a field or inside an
+     * input group aligns with it instead of sitting slightly proud. */
+    min-height: var(--sa-control-h);
+    /* Buttons on these pages mix text with react-icons glyphs, which are
+     * inline SVGs; without this the icon sits on the text baseline and pushes
+     * the label up by a pixel or two. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    line-height: 1.2;
+    transition: background-color 0.12s ease, border-color 0.12s ease,
+        color 0.12s ease;
 }
 
-.btn-sm { font-size: 0.78rem; padding: 0.3rem 0.65rem; }
+/* A button in a table row should not be as tall as one in a form. */
+.btn-sm {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.6rem;
+    min-height: 30px;
+}
+
+/* Bootstrap dims a disabled button with opacity, which also dims its border
+ * into the row behind it. An explicit flat state is steadier. */
+.btn:disabled, .btn.disabled {
+    opacity: 1;
+    background-color: var(--sa-200);
+    border-color: var(--sa-200);
+    color: var(--sa-500);
+    cursor: not-allowed;
+}
+.btn-outline-primary:disabled, .btn-outline-secondary:disabled {
+    background-color: transparent;
+    border-color: var(--sa-200);
+    color: var(--sa-500);
+}
 
 .btn-primary {
     --bs-btn-bg: var(--sa-brand);
