@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import { checkNidEligibility } from '@/utils/nidGate';
 
 const cors = Cors({
     origin: '*',
@@ -123,19 +124,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
          * explicit decision from the client.
          *
          * Note for support: existing investors who never completed NID
-         * verification will be blocked here until an admin approves their
-         * submission. `pending` is called out separately so the message tells
-         * them to wait rather than to start again.
+         * verification are blocked here until an admin approves their
+         * submission. The three refusals read differently on purpose — waiting,
+         * rejected, and never-submitted need different things done about them.
+         * See src/utils/nidGate.ts, which the website's booking route shares.
          */
-        if (userVerification.nidVerified !== 'yes') {
-            const pending = userVerification.nidVerificationStatus === 'pending';
-            return res.status(400).json({
-                success: false,
-                code: pending ? 'NID_PENDING' : 'NID_UNVERIFIED',
-                message: pending
-                    ? 'Your NID is still being reviewed. You can invest as soon as it is approved.'
-                    : 'Please verify your NID before making any investment',
-            });
+        const nidRefusal = checkNidEligibility(userVerification);
+        if (nidRefusal) {
+            return res.status(400).json({ success: false, ...nidRefusal });
         }
 
         const transaction = await sequelize.transaction();

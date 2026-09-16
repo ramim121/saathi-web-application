@@ -5,20 +5,23 @@ import JWTPayload from '@/types/JWTPayload';
 import { User } from '@/models/__associations';
 import { withCors } from '@/utils/auth';
 import createBooking from '@/pages/api/bookings/create';
+import { checkNidEligibility } from '@/utils/nidGate';
 
 /**
  * Booking creation **for the website only**.
  *
  * WHY THIS EXISTS
- * `POST /api/bookings/create` enforces contact verification but **not** NID:
- * the NID check is present and commented out (see the block above the
- * transaction in that file). The website's rule is stricter — a verified
- * contact **and** a verified NID are both required before a booking.
+ * It pre-dates the NID check being enabled in `POST /api/bookings/create`. At
+ * the time that route enforced contact verification but not NID — the check was
+ * present and commented out — and the website's rule was already the stricter
+ * one, so this wrapper added the missing guard.
  *
- * Turning the check back on in the original route would change behaviour for
- * the shipped mobile app, where an unknown number of existing investors have no
- * verified NID and would suddenly be unable to book. That is a product
- * decision, not a refactor, so the original is left exactly as it is.
+ * The original route now runs the same guard, from the same shared helper, so
+ * this file no longer adds a rule. It is kept because the website calls this
+ * path and because the contact-verification wording below is the site's rather
+ * than the app's. If the two ever need to differ again, this is where that
+ * belongs; until then both go through `checkNidEligibility`, which is the point
+ * — the rule cannot be changed in one place and forgotten in the other.
  *
  * WHY THIS DELEGATES INSTEAD OF COPYING
  * Everything after the eligibility check — booking id allocation, the
@@ -65,18 +68,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
     }
 
-    // NID must be *approved*, not merely submitted. `pending` is reported with
-    // its own code so the site can say "we are reviewing it" rather than
-    // "you have not done this", which reads as though the upload was lost.
-    if (user.nidVerified !== 'yes') {
-        const pending = user.nidVerificationStatus === 'pending';
-        return res.status(400).json({
-            success: false,
-            code: pending ? 'NID_PENDING' : 'NID_UNVERIFIED',
-            message: pending
-                ? 'Your NID is still being reviewed. You can invest as soon as it is approved.'
-                : 'Verify your NID before investing.',
-        });
+    // NID must be *approved*, not merely submitted. Each refusal carries its own
+    // code and sentence: "we are reviewing it", "we turned it down, send it
+    // again", and "you have not done this" are three different situations and
+    // the first two both used to read as the third.
+    //
+    // Shared with api/bookings/create so the app and the site cannot drift.
+    const nidRefusal = checkNidEligibility(user);
+    if (nidRefusal) {
+        return res.status(400).json({ success: false, ...nidRefusal });
     }
 
     // Eligible. Hand off to the original implementation.
