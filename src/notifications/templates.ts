@@ -144,10 +144,16 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                         : 'Before committing to anything you can see each project\'s term, its unit value, and which partner is running it.',
                 ),
                 button(bn ? 'প্রকল্পগুলো দেখুন' : 'Browse projects', url('/projects')),
+                /*
+                 * Asks for the NID without calling it a condition of booking.
+                 * It was one until 2026-11-13; it is not now, and an email that
+                 * says "before you can book" would be telling new investors
+                 * something the booking endpoint no longer does.
+                 */
                 note(
                     bn
-                        ? 'বুকিং করার আগে আপনার এনআইডি যাচাই করা প্রয়োজন। এটি একবারই করতে হয়, আর এটিই নিশ্চিত করে যে আপনার অর্থ সঠিক ব্যক্তির কাছে ফেরত যাবে।'
-                        : 'Before you can book, your NID has to be verified. It is a one-time step, and it is what makes sure a payout reaches the right person.',
+                        ? 'প্রোফাইল থেকে আপনার এনআইডি জমা দিন। এটি একবারই করতে হয়, আর এটিই নিশ্চিত করে যে আপনার অর্থ সঠিক ব্যক্তির কাছে ফেরত যাবে।'
+                        : 'Please submit your NID from your profile. It is a one-time step, and it is what makes sure a payout reaches the right person.',
                 ),
             ],
             [
@@ -161,8 +167,8 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 url('/projects'),
                 '',
                 bn
-                    ? 'বুকিং করার আগে এনআইডি যাচাই করতে হবে — একবারই।'
-                    : 'Before you can book, your NID has to be verified — a one-time step.',
+                    ? 'প্রোফাইল থেকে আপনার এনআইডি জমা দিন — একবারই।'
+                    : 'Please submit your NID from your profile — a one-time step.',
             ],
         );
     },
@@ -231,14 +237,16 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
         return build(
             l,
             bn ? 'আপনার এনআইডি যাচাই সম্পন্ন' : 'Your NID is verified',
-            bn ? 'এখন আপনি বুকিং করতে পারবেন।' : 'You can now place a booking.',
+            bn ? 'এই ধাপটি আর কখনো করতে হবে না।' : 'You will never need to do this step again.',
             [
                 heading(bn ? 'এনআইডি যাচাই সম্পন্ন' : 'NID verified'),
                 paragraph(greeting(d.fullName, l)),
+                // No "you can now book": booking stopped depending on this on
+                // 2026-11-13, so the investor may already have one.
                 paragraph(
                     bn
-                        ? 'আপনার জাতীয় পরিচয়পত্র যাচাই হয়ে গেছে। এখন আপনি প্রকল্পে বুকিং দিতে পারবেন — এই ধাপটি আর কখনো করতে হবে না।'
-                        : 'Your national ID has been verified. You can now place bookings on projects, and you will never need to do this step again.',
+                        ? 'আপনার জাতীয় পরিচয়পত্র যাচাই হয়ে গেছে। এই ধাপটি আর কখনো করতে হবে না।'
+                        : 'Your national ID has been verified. You will never need to do this step again.',
                 ),
                 button(bn ? 'প্রকল্পগুলো দেখুন' : 'Browse projects', url('/projects')),
                 note(
@@ -251,8 +259,8 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 greetingText(d.fullName, l),
                 '',
                 bn
-                    ? 'আপনার এনআইডি যাচাই সম্পন্ন হয়েছে। এখন বুকিং করতে পারবেন।'
-                    : 'Your NID has been verified. You can now place bookings.',
+                    ? 'আপনার এনআইডি যাচাই সম্পন্ন হয়েছে।'
+                    : 'Your NID has been verified.',
                 '',
                 url('/projects'),
             ],
@@ -287,8 +295,8 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 button(bn ? 'আবার চেষ্টা করুন' : 'Try again', url('/account')),
                 note(
                     bn
-                        ? 'বুকিং করার আগে এনআইডি যাচাই আবশ্যক। কিছু আটকে গেলে info@digigramventures.com ঠিকানায় লিখুন।'
-                        : 'NID verification is required before a booking can be placed. If something is stuck, write to info@digigramventures.com.',
+                        ? 'কিছু আটকে গেলে info@digigramventures.com ঠিকানায় লিখুন।'
+                        : 'If something is stuck, write to info@digigramventures.com.',
                 ),
             ],
             [

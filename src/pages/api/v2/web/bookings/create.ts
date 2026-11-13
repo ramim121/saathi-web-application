@@ -5,31 +5,26 @@ import JWTPayload from '@/types/JWTPayload';
 import { User } from '@/models/__associations';
 import { withCors } from '@/utils/auth';
 import createBooking from '@/pages/api/bookings/create';
-import { checkNidEligibility } from '@/utils/nidGate';
 
 /**
  * Booking creation **for the website only**.
  *
  * WHY THIS EXISTS
- * It pre-dates the NID check being enabled in `POST /api/bookings/create`. At
- * the time that route enforced contact verification but not NID — the check was
- * present and commented out — and the website's rule was already the stricter
- * one, so this wrapper added the missing guard.
+ * The website calls this path. It answers an unverified contact with the site's
+ * own wording and a machine-readable `CONTACT_UNVERIFIED` code, which the
+ * shared route does not return, and it refuses a deleted account.
  *
- * The original route now runs the same guard, from the same shared helper, so
- * this file no longer adds a rule. It is kept because the website calls this
- * path and because the contact-verification wording below is the site's rather
- * than the app's. If the two ever need to differ again, this is where that
- * belongs; until then both go through `checkNidEligibility`, which is the point
- * — the rule cannot be changed in one place and forgotten in the other.
+ * It used to enforce NID approval as well. That rule is gone: since 2026-11-13
+ * an approved NID is not required to book, here or in
+ * `POST /api/bookings/create`. A verified phone or email is the only
+ * eligibility rule left on either route.
  *
  * WHY THIS DELEGATES INSTEAD OF COPYING
  * Everything after the eligibility check — booking id allocation, the
  * transaction across `project_investors` and `project_partner_investors`, unit
  * accounting, notifications — is intricate and must not exist in two versions
- * that can drift. So this route adds the missing guard and then calls the
- * original handler, which repeats its own token check and does the work. The
- * duplicated part is the guard; the valuable part is shared.
+ * that can drift. So this route checks contact verification and then calls the
+ * original handler, which repeats its own token check and does the work.
  */
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -52,7 +47,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const user = await User.findOne({
         where: { idUsers: userInfo.idUsers },
-        attributes: ['idUsers', 'status', 'emailVerified', 'phoneVerified', 'nidVerified', 'nidVerificationStatus'],
+        attributes: ['idUsers', 'status', 'emailVerified', 'phoneVerified'],
     });
 
     if (!user || user.status === 'deleted') {
@@ -66,17 +61,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             code: 'CONTACT_UNVERIFIED',
             message: 'Verify your phone number or email address before investing.',
         });
-    }
-
-    // NID must be *approved*, not merely submitted. Each refusal carries its own
-    // code and sentence: "we are reviewing it", "we turned it down, send it
-    // again", and "you have not done this" are three different situations and
-    // the first two both used to read as the third.
-    //
-    // Shared with api/bookings/create so the app and the site cannot drift.
-    const nidRefusal = checkNidEligibility(user);
-    if (nidRefusal) {
-        return res.status(400).json({ success: false, ...nidRefusal });
     }
 
     // Eligible. Hand off to the original implementation.

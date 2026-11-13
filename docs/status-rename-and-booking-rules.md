@@ -4,6 +4,16 @@ Changes made after the client's decisions on 2026-08-10.
 
 ## 1. NID is now required to book
 
+> **Reversed on 2026-11-13.** NID approval is no longer required to book. The
+> check was removed from `bookings/create` and `v2/web/bookings/create`,
+> `src/utils/nidGate.ts` was deleted, and `bookingBlockers` reports contact
+> verification only. NID upload (`profile/nid`) and admin approval (`verify`)
+> are unchanged. The rest of this section is kept as history.
+>
+> The website repo has its own copy of this rule (`bookingBlockers` in
+> `lib/auth/session.ts`, shown by `BookingGate`). Until that is removed too,
+> the website still hides the checkout from accounts without an approved NID.
+
 `bookings/create` had the NID check **commented out**. It is now enforced, on
 the client's explicit instruction:
 

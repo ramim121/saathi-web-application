@@ -44,10 +44,10 @@ import { generateNotification } from '@/notifications';
  *      Refused if releasing it would leave that account with no way back in;
  *   3. address is held by nobody → create the account.
  *
- * Case 3 is new. Signup used to be app-only; it now happens here too. The
- * financial bar is untouched — `bookingBlockers` still requires a verified NID
- * before any money moves, so a web signup can browse and complete a profile and
- * nothing else.
+ * Case 3 is new. Signup used to be app-only; it now happens here too. Signing
+ * in with Google proves the address, which is the verified contact that
+ * `bookingBlockers` asks for — so an account created here can book. (NID
+ * approval used to be required as well; that rule was removed 2026-11-13.)
  */
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);

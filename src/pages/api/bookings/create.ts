@@ -8,7 +8,6 @@ import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
-import { checkNidEligibility } from '@/utils/nidGate';
 
 const cors = Cors({
     origin: '*',
@@ -117,22 +116,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         /**
-         * NID must be verified before any investment.
+         * NID approval is NOT required to book.
          *
-         * This check existed but was commented out, so the API accepted
-         * bookings from accounts with no verified identity. Turned on by an
-         * explicit decision from the client.
+         * A check here refused any account whose NID an admin had not approved.
+         * It was removed on 2026-11-13 as a product decision: a verified phone
+         * or email (above) is the only eligibility rule.
          *
-         * Note for support: existing investors who never completed NID
-         * verification are blocked here until an admin approves their
-         * submission. The three refusals read differently on purpose — waiting,
-         * rejected, and never-submitted need different things done about them.
-         * See src/utils/nidGate.ts, which the website's booking route shares.
+         * Nothing else about NID changed. Investors still upload it
+         * (api/profile/nid), admins still approve or reject it (api/verify),
+         * and the result is still stored on the user. It just no longer stands
+         * between an investor and a booking.
          */
-        const nidRefusal = checkNidEligibility(userVerification);
-        if (nidRefusal) {
-            return res.status(400).json({ success: false, ...nidRefusal });
-        }
 
         const transaction = await sequelize.transaction();
 

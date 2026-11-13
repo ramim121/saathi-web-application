@@ -125,9 +125,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
          * is gone — registering on the website is now allowed, and the code is
          * sent whether or not the number is known.
          *
-         * The financial bar did not move. `bookingBlockers` still requires a
-         * verified NID before a booking can be placed, so a number that signs
-         * up here can browse and fill in a profile and nothing more.
+         * Entering the code proves the number, which is the verified contact
+         * `bookingBlockers` asks for — so a number that signs up here can
+         * book. (NID approval used to be required as well; that rule was
+         * removed 2026-11-13.)
          *
          * A useful side effect: the response no longer differs between a known
          * and an unknown number, so this endpoint has stopped being a way to

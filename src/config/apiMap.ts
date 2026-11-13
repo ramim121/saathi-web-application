@@ -124,7 +124,7 @@ export const API_MAP: ApiEntry[] = [
         kind: 'shared',
         webProxy: '/api/account/nid',
         notes:
-            'Multipart, fields `nidfront` / `nidback`. Sets `nidVerificationStatus = pending`; an admin approves. Required before booking.',
+            'Multipart, fields `nidfront` / `nidback`. Sets `nidVerificationStatus = pending`; an admin approves. Not required before booking (that rule was removed 2026-11-13).',
     },
     {
         path: '/api/profile/picture',
@@ -288,7 +288,7 @@ export const API_MAP: ApiEntry[] = [
         kind: 'shared',
         webProxy: '/api/bookings/create',
         notes:
-            'Now requires a verified contact **and** a verified NID (the NID check was previously commented out). `projects` and `projectPartners` now require at least one entry — an empty array used to create a ghost booking.',
+            'Requires a verified phone or email. **NID approval is not required** (that check was removed 2026-11-13). `projects` and `projectPartners` require at least one entry — an empty array used to create a ghost booking.',
     },
     {
         path: '/api/v2/web/bookings/create',
@@ -298,7 +298,7 @@ export const API_MAP: ApiEntry[] = [
         consumers: ['web'],
         kind: 'new-v2',
         notes:
-            'Added when the shared route did not enforce NID. **Now largely redundant** — the shared route enforces both checks itself. It still returns a machine-readable `CONTACT_UNVERIFIED` code. Candidate for retirement: point the website proxy at `/api/bookings/create` and delete this.',
+            'Added to enforce NID for the website when the shared route did not. NID is no longer checked on either route (removed 2026-11-13), so this is **largely redundant**: it still returns a machine-readable `CONTACT_UNVERIFIED` code and refuses deleted accounts. Candidate for retirement: point the website proxy at `/api/bookings/create` and delete this.',
     },
     {
         path: '/api/bookings/details/[id]',
@@ -690,8 +690,8 @@ export const FEATURE_MATRIX: FeatureRow[] = [
     {
         feature: 'Bookings',
         capability: 'Eligibility to book',
-        shared: 'Verified contact + verified NID, enforced in /api/bookings/create',
-        note: 'Identical rules on both platforms since the NID check was turned on.',
+        shared: 'Verified phone or email, enforced in /api/bookings/create',
+        note: 'Identical on both platforms. NID approval stopped being required on 2026-11-13.',
     },
     {
         feature: 'Bookings',

@@ -11,10 +11,10 @@ import type { UserModel } from '@/models/User';
  *   Everything else (address, date of birth, bank) is deferred to the profile
  *   screen and can be skipped indefinitely.
  *
- *   `bookingBlockers` — a verified contact channel and a verified NID. This is
- *   the financial bar and it is unchanged by web signup: someone can register
- *   on the website, browse, and complete their profile, but cannot place a
- *   booking until an admin has verified their NID.
+ *   `bookingBlockers` — a verified contact channel. This is the only bar in
+ *   front of a booking. An approved NID used to be part of it and no longer is
+ *   (removed 2026-11-13): NID is still collected and reviewed, but it does not
+ *   stop anyone investing.
  *
  * Keeping both in one file is the point. The website, the app and the booking
  * endpoint have to agree on what "ready" means, and they only will if there is
@@ -22,7 +22,7 @@ import type { UserModel } from '@/models/User';
  */
 
 export type ProfileGap = 'name' | 'gender';
-export type BookingBlocker = 'contact' | 'nid' | 'nid_pending';
+export type BookingBlocker = 'contact';
 
 /** Name and gender — the two things asked straight after signup. */
 export function profileGaps(user: Pick<UserModel, 'fullName' | 'gender'>): ProfileGap[] {
@@ -37,14 +37,13 @@ export function needsProfile(user: Pick<UserModel, 'fullName' | 'gender'>): bool
 }
 
 /**
- * Why this account cannot place a booking yet, in the order worth fixing.
+ * Why this account cannot place a booking yet.
  *
- * `nid_pending` is separated from `nid` on purpose: someone who has submitted
- * their NID and is waiting on review must not be shown a form they already
- * completed, because that reads as though their submission was lost.
+ * NID is deliberately absent. It mirrors `api/bookings/create`, which no longer
+ * looks at NID status at all.
  */
 export function bookingBlockers(
-    user: Pick<UserModel, 'emailVerified' | 'phoneVerified' | 'nidVerified' | 'nidVerificationStatus'>,
+    user: Pick<UserModel, 'emailVerified' | 'phoneVerified'>,
 ): BookingBlocker[] {
     const blockers: BookingBlocker[] = [];
 
@@ -54,15 +53,11 @@ export function bookingBlockers(
         blockers.push('contact');
     }
 
-    if (user.nidVerified !== 'yes') {
-        blockers.push(user.nidVerificationStatus === 'pending' ? 'nid_pending' : 'nid');
-    }
-
     return blockers;
 }
 
 export function canBook(
-    user: Pick<UserModel, 'emailVerified' | 'phoneVerified' | 'nidVerified' | 'nidVerificationStatus'>,
+    user: Pick<UserModel, 'emailVerified' | 'phoneVerified'>,
 ): boolean {
     return bookingBlockers(user).length === 0;
 }
