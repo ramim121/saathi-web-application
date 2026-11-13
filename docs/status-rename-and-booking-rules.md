@@ -10,6 +10,11 @@ Changes made after the client's decisions on 2026-08-10.
 > verification only. NID upload (`profile/nid`) and admin approval (`verify`)
 > are unchanged. The rest of this section is kept as history.
 >
+> Because unapproved investors can now book, the admin booking page
+> (`/bookings/details/{id}`) shows the investor's NID state, and the Confirm
+> dialog warns when it is not approved. It is information only — confirming
+> is never blocked.
+>
 > The website repo has its own copy of this rule (`bookingBlockers` in
 > `lib/auth/session.ts`, shown by `BookingGate`). Until that is removed too,
 > the website still hides the checkout from accounts without an approved NID.

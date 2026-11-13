@@ -22,6 +22,8 @@ interface DetailsProps {
     User: {
         fullName: string;
         phoneNumber: string;
+        nidVerified?: string;
+        nidVerificationStatus?: string;
     },
     paymentConfirmationStatus: string;
     UserBank: {
@@ -80,6 +82,34 @@ interface DetailsProps {
         }
     }[];
 
+}
+
+/**
+ * The investor's NID state, in words an admin can act on.
+ *
+ * WHY THIS IS ON THE BOOKING PAGE
+ * An approved NID used to be required before anyone could book, so every
+ * booking that reached this screen came from an approved investor and there
+ * was nothing to show. That rule was removed on 2026-11-13. Bookings now
+ * arrive from investors whose NID is pending, rejected or was never uploaded,
+ * and confirming the payment here is the last point at which a person looks
+ * at the booking — so this is where the state has to be visible.
+ *
+ * `nidVerified` decides "approved", not the status column: approval sets both,
+ * and a row reading `approved` while `nidVerified` is still `no` has not been
+ * approved.
+ */
+function investorNidState(user?: { nidVerified?: string; nidVerificationStatus?: string }) {
+    if (user?.nidVerified === 'yes') {
+        return { approved: true, label: 'Approved', badge: 'bg-success' };
+    }
+    if (user?.nidVerificationStatus === 'pending') {
+        return { approved: false, label: 'Pending review', badge: 'bg-warning text-dark' };
+    }
+    if (user?.nidVerificationStatus === 'rejected') {
+        return { approved: false, label: 'Rejected', badge: 'bg-danger' };
+    }
+    return { approved: false, label: 'Not submitted', badge: 'bg-secondary' };
 }
 
 interface FormDataProps {
@@ -907,6 +937,23 @@ function Details() {
                                         <td>{details.User?.fullName} ( {details.User?.phoneNumber} )</td>
                                     </tr>
                                     <tr>
+                                        <td>Investor NID</td>
+                                        <td>
+                                            {/* Nothing until the booking has loaded: an empty
+                                                state would read as "Not submitted" for a moment. */}
+                                            {details.User &&
+                                                <>
+                                                    <span className={`badge ${investorNidState(details.User).badge}`}>
+                                                        {investorNidState(details.User).label}
+                                                    </span>
+                                                    {!investorNidState(details.User).approved &&
+                                                        <Link href='/users' className='ms-2 small'>Review on Investors page</Link>
+                                                    }
+                                                </>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <td>Payment Status</td>
                                         <td>
                                             <span className={`badge ${details.paymentConfirmationStatus === 'confirmed' ? 'bg-success' : details.paymentConfirmationStatus === 'denied' ? 'bg-danger' : 'bg-warning'}`}>
@@ -1265,6 +1312,16 @@ function Details() {
                     <Modal.Title>Confirm Booking</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    {/* Shown, never enforced: confirming still works. An
+                        approved NID is no longer required to book, so this is
+                        the one moment the admin is told before money is
+                        recorded against the investor. */}
+                    {details.User && !investorNidState(details.User).approved &&
+                        <div className='alert alert-warning py-2' role='alert'>
+                            This investor&apos;s NID is not approved ({investorNidState(details.User).label.toLowerCase()}).
+                            You can still confirm the booking.
+                        </div>
+                    }
                     <Form onSubmit={handleSubmit}>
                         <Form.Group as={Row} className='mb-3'>
                             <Form.Label column sm='4'>Payment Method <span className='text-danger'>*</span></Form.Label>
