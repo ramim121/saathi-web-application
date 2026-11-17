@@ -42,7 +42,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const sourceBooking = sourceInvestor.ProjectInvestmentBooking as any;
-        const capital = Number(sourceInvestor.unitPurchased) * Number((sourceInvestor as any).Project.unitInvestmentValue);
+
+        /*
+         * Capital is the money recorded against this investment when it was
+         * booked — the sum of its partner allocations — not units x the
+         * project's price today.
+         *
+         * Projects are reused across cycles and repriced between them, so the
+         * current price is the wrong one for any investment made before a
+         * change. It already went wrong once: a 200,000 investment whose line
+         * said 4 units came out as 400,000 at the project's 100,000 price, and
+         * the project's price was edited down to make the figure right — which
+         * then halved the displayed amount of every other investor in it.
+         *
+         * Units x current price stays only as a fallback for a line that has no
+         * partner allocation recorded (none do today).
+         */
+        const recordedCapital = Number(
+            (await ProjectPartnerInvestor.sum('amountInvested', {
+                where: { idProjectInvestors: sourceInvestor.idProjectInvestors },
+                transaction,
+            })) || 0,
+        );
+        const capital = recordedCapital > 0
+            ? recordedCapital
+            : Number(sourceInvestor.unitPurchased) * Number((sourceInvestor as any).Project.unitInvestmentValue);
         const profit = Number(actualProfitAmount) || Number(sourceInvestor.actualProfitAmount) || 0;
         const profitPercent = Number(actualProfitPercentage) || Number(sourceInvestor.actualProfitPercentage) || 0;
 
