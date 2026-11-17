@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import Swal from "sweetalert2";
-import { Container, Table, Button, Pagination, Row } from "react-bootstrap";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { getRequestOptions } from "@/utils/Fetch";
+import { cx } from "@/ui/primitives";
+import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { bdt, date } from "@/ui/format";
+
+/**
+ * Active bookings — positions with money working, soonest to mature first in
+ * the API's order. Redesigned 2026-11-17; the request, paging and figures are
+ * unchanged (amount = units × the project's unit value, as before).
+ */
 
 interface BookingListProps {
     Project: {
@@ -36,20 +45,6 @@ interface FilterProps {
     pageSize: number;
 }
 
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.toLocaleString("en-GB", { month: "short" });
-    const year = date.getFullYear();
-    const j = day % 10, k = day % 100;
-    let suffix = "th";
-    if (j === 1 && k !== 11) suffix = "st";
-    else if (j === 2 && k !== 12) suffix = "nd";
-    else if (j === 3 && k !== 13) suffix = "rd";
-    return `${day}${suffix} ${month} ${year}`;
-}
-
 function ActiveBooking() {
     const [bookingList, setBookingList] = useState<BookingListProps[]>([]);
     const [filter, setFilter] = useState<FilterProps>({
@@ -59,10 +54,12 @@ function ActiveBooking() {
         pageSize: 10
     });
     const [total, setTotal] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchBookingList = async () => {
             const query = new URLSearchParams(filter as any).toString();
+            setLoading(true);
             try {
                 const res = await fetch(`/api/bookings/active-booking?${query}`, getRequestOptions());
                 const data = await res.json();
@@ -74,100 +71,82 @@ function ActiveBooking() {
                 }
             } catch (err: any) {
                 Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+            } finally {
+                setLoading(false);
             }
         };
         fetchBookingList();
     }, [filter]);
 
-    const handlePageChange = (page: number) => setFilter({ ...filter, page });
-
-    const renderPagination = () => {
-        const totalPages = Math.ceil(total / filter.pageSize);
-        if (totalPages <= 1) return null;
-
-        const pages: (number | string)[] = [1];
-        if (filter.page > 3) pages.push("...");
-        const start = Math.max(2, filter.page - 1);
-        const end = Math.min(totalPages - 1, filter.page + 1);
-        for (let i = start; i <= end; i++) pages.push(i);
-        if (filter.page < totalPages - 2) pages.push("...");
-        if (totalPages > 1) pages.push(totalPages);
-
-        return pages.map((p, i) =>
-            p === "..." ? (
-                <Pagination.Ellipsis key={i} />
-            ) : (
-                <Pagination.Item key={p} active={p === filter.page} onClick={() => handlePageChange(p as number)}>
-                    {p}
-                </Pagination.Item>
-            )
-        );
-    };
+    const totalPages = Math.max(1, Math.ceil(total / filter.pageSize));
+    const handlePageChange = (page: number) => setFilter({ ...filter, page: Math.min(Math.max(1, page), totalPages) });
 
     return (
-        <Container>
-            <h4 className="text-start">Active Booking List</h4>
-            <hr />
-            <Row className="mt-3">
-                <Pagination className="d-flex justify-content-center">
-                    <Pagination.Prev onClick={() => handlePageChange(Math.max(1, filter.page - 1))} disabled={filter.page === 1} />
-                    {renderPagination()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === Math.ceil(total / filter.pageSize)} />
-                </Pagination>
-            </Row>
-            <Table responsive striped bordered hover size="sm">
+        <div className="ui">
+            <PageHeader
+                eyebrow="Bookings"
+                title="Active bookings"
+                description="Every position with money working, with its expected return and time to maturity."
+                actions={
+                    <span className="tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-600 tw-ring-1 tw-ring-slate-200">
+                        {loading ? "Loading…" : `${total.toLocaleString("en-IN")} active`}
+                    </span>
+                }
+            />
+
+            <TableCard footer={<Pager page={filter.page} totalPages={totalPages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${totalPages}` : undefined} />}>
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Booking Id</th>
-                        <th>Investor Name</th>
-                        <th>Project Name</th>
-                        <th>Unit Purchased</th>
-                        <th>Return</th>
-                        <th>Unit Price</th>
-                        <th>Investment Amount</th>
-                        <th>Returnable Amount</th>
-                        <th>Tenure</th>
-                        <th>Start Date</th>
-                        <th>Maturity Date</th>
-                        <th>Remaining</th>
-                        <th>Actions</th>
+                        <th className={TH}>Booking</th>
+                        <th className={TH}>Project</th>
+                        <th className={cx(TH, "tw-text-right")}>Amount</th>
+                        <th className={cx(TH, "tw-text-right")}>Returnable</th>
+                        <th className={TH}>Term</th>
+                        <th className={TH}>Remaining</th>
+                        <th className={TH}><span className="tw-sr-only">Open</span></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className={cx(loading && "tw-opacity-60 tw-transition-opacity")}>
                     {bookingList.length > 0 ? bookingList.map((b, i) => {
                         const { Project: p, ProjectInvestmentBooking: pib } = b;
                         const investmentAmount = b.unitPurchased * p.unitInvestmentValue;
                         return (
-                            <tr key={i}>
-                                <td>{b.idProjectInvestmentBookings}</td>
-                                <td>{pib?.bookingId}</td>
-                                <td>{pib?.User?.fullName}</td>
-                                <td>{p?.projectName}</td>
-                                <td>{b.unitPurchased}</td>
-                                <td>{`${p.returnRangeMin}% - ${p.returnRangeMax}%`}</td>
-                                <td>{p.unitInvestmentValue}</td>
-                                <td>{investmentAmount}</td>
-                                <td>{b.totalReturnRange}</td>
-                                <td>{p?.tenure ? `${p.duration} ${p.tenure}` : "-"}</td>
-                                <td>{formatDate(pib?.paymentDate)}</td>
-                                <td>{b.maturityDate !== '-' ? formatDate(b.maturityDate) : ''}</td>
-                                <td>{b.remainingTimeFormatted}</td>
-                                <td>
-                                    <Link href={`/bookings/details/${b.idProjectInvestmentBookings}`}>
-                                        <Button size="sm" variant="primary">Details</Button>
+                            <tr key={i} className={TR}>
+                                <td className={TD}>
+                                    <Link href={`/bookings/details/${b.idProjectInvestmentBookings}`} className="tw-font-semibold tw-tabular-nums tw-text-slate-900 hover:tw-text-brand-700">
+                                        #{pib?.bookingId || b.idProjectInvestmentBookings}
+                                    </Link>
+                                    <span className="tw-block tw-text-xs tw-text-slate-500">{pib?.User?.fullName}</span>
+                                </td>
+                                <td className={TD}>
+                                    <span className="tw-block tw-font-medium tw-text-slate-800">{p?.projectName}</span>
+                                    <span className="tw-block tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                        {b.unitPurchased} × {bdt(Number(p.unitInvestmentValue))} · {`${p.returnRangeMin}–${p.returnRangeMax}%`}
+                                    </span>
+                                </td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-text-right tw-font-semibold tw-tabular-nums tw-text-slate-900")}>{bdt(investmentAmount)}</td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-text-right tw-tabular-nums tw-text-emerald-700")}>{b.totalReturnRange}</td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600")}>
+                                    {date(pib?.paymentDate)} <span className="tw-text-slate-300">→</span> {b.maturityDate !== '-' ? date(b.maturityDate) : '—'}
+                                    <span className="tw-block tw-text-xs tw-text-slate-400">{p?.tenure ? `${p.duration} ${p.tenure}` : "—"}</span>
+                                </td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-text-slate-700")}>{b.remainingTimeFormatted}</td>
+                                <td className={cx(TD, "tw-text-right")}>
+                                    <Link
+                                        href={`/bookings/details/${b.idProjectInvestmentBookings}`}
+                                        className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-lg tw-px-2 tw-py-1 tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-bg-brand-50"
+                                    >
+                                        Details <ArrowUpRight className="tw-h-3.5 tw-w-3.5" aria-hidden />
                                     </Link>
                                 </td>
                             </tr>
                         );
                     }) : (
-                        <tr>
-                            <td colSpan={14} className="text-center">No Active Booking Found</td>
-                        </tr>
+                        <EmptyRow colSpan={7} title={loading ? "Loading active bookings…" : "No active bookings"} />
                     )}
                 </tbody>
-            </Table>
-        </Container>
+            </TableCard>
+        </div>
     );
 }
 

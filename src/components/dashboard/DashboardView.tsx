@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { ArrowRight, ArrowUpRight, Banknote, CalendarClock, Clock3, Hourglass, TrendingUp, Users, Wallet, type LucideIcon } from 'lucide-react';
 import type { Dashboard, StatCard, Drill } from '@/utils/dashboard';
 import type { DashboardDetail } from '@/utils/dashboardDetail';
 import { DrillSet } from './DrillSets';
+import { bdt } from '@/ui/format';
+import { dhakaStamp } from '@/ui/status';
+import { cx } from '@/ui/primitives';
+import { PageHeader } from '@/ui/layout';
 
 /**
- * The management dashboard.
+ * The management dashboard. Redesigned 2026-11-17 (Tailwind); the figures,
+ * their sources and the drill-downs are unchanged.
  *
  * WHAT IT IS FOR
  * Three questions, in the order an operator asks them: how much money is
@@ -13,31 +19,34 @@ import { DrillSet } from './DrillSets';
  * is a link to the section that owns it.
  *
  * NUMBERS ARE STATED WITH THEIR BASIS
- * Every figure here is derived — units times unit value — because no amount is
- * stored. A dashboard that shows a total without saying what it counts invites
- * someone to reconcile it against a list that counts something else, so each
- * block says which statuses it includes, and every tile opens the exact rows
- * its figure counts.
+ * Every figure here is derived — units times unit value. A dashboard that shows
+ * a total without saying what it counts invites someone to reconcile it against
+ * a list that counts something else, so each block says which statuses it
+ * includes, and every tile opens the exact rows its figure counts.
  *
- * Built with the Bootstrap classes the rest of the admin already uses, restyled
- * globally by styles/admin-theme.css rather than page by page.
+ * The "generated" time is formatted in Asia/Dhaka from parts: formatting it in
+ * the viewer's timezone made the server and the browser disagree and broke
+ * hydration for every admin in Bangladesh.
  */
 
-/*
- * Tone drives both the tile's accent edge and the figure's colour, so it is one
- * class defined in admin-theme.css rather than a pair of Bootstrap utilities —
- * `border-primary` would repaint all four sides, not just the accent edge.
- */
-const TONE_CLASS: Record<StatCard['tone'], string> = {
-    brand: 'tone-brand',
-    good: 'tone-good',
-    warn: 'tone-warn',
-    alert: 'tone-alert',
-    info: 'tone-info',
+const TONE: Record<StatCard['tone'], { chip: string; value: string; ring: string }> = {
+    brand: { chip: 'tw-bg-brand-50 tw-text-brand-700', value: 'tw-text-brand-800', ring: 'hover:tw-ring-brand-600/25' },
+    good: { chip: 'tw-bg-emerald-50 tw-text-emerald-700', value: 'tw-text-emerald-700', ring: 'hover:tw-ring-emerald-600/25' },
+    warn: { chip: 'tw-bg-amber-50 tw-text-amber-700', value: 'tw-text-amber-700', ring: 'hover:tw-ring-amber-600/25' },
+    alert: { chip: 'tw-bg-rose-50 tw-text-rose-700', value: 'tw-text-rose-700', ring: 'hover:tw-ring-rose-600/25' },
+    info: { chip: 'tw-bg-sky-50 tw-text-sky-700', value: 'tw-text-sky-700', ring: 'hover:tw-ring-sky-600/25' },
 };
 
-function money(value: number): string {
-    return `BDT ${value.toLocaleString('en-IN')}`;
+/** An icon for each tile, chosen by what its label talks about. */
+function iconFor(label: string): LucideIcon {
+    const l = label.toLowerCase();
+    if (l.includes('overdue') || l.includes('matured') || l.includes('payout')) return Hourglass;
+    if (l.includes('pending') || l.includes('await') || l.includes('proof')) return Clock3;
+    if (l.includes('investor')) return Users;
+    if (l.includes('matur') || l.includes('due')) return CalendarClock;
+    if (l.includes('raised') || l.includes('total')) return TrendingUp;
+    if (l.includes('active') || l.includes('working') || l.includes('capital')) return Wallet;
+    return Banknote;
 }
 
 /** Compact label for a raw enum value from the database. */
@@ -50,58 +59,56 @@ function prettyType(value: string | null): string {
 }
 
 function StatTile({ card, onOpen }: { card: StatCard; onOpen: (d: Drill) => void }) {
-    /*
-     * A tile with a breakdown is a button, not a div with a click handler —
-     * keyboard users reach it by tab and fire it with Enter for free, and a
-     * screen reader announces it as activatable. Tiles without a breakdown stay
-     * inert rather than looking clickable and doing nothing.
-     *
-     * `h-100` is right here and wrong on the panels below: these five are peers
-     * in a single row, and a ragged row of KPI tiles reads as a mistake.
-     */
+    // A tile with a breakdown is a real button (keyboard and screen readers get
+    // it for free); one without stays inert instead of looking clickable.
     const drill = card.drill;
+    const tone = TONE[card.tone];
+    const Icon = iconFor(card.label);
     const body = (
-        <div className="card-body py-3">
-            <div className="stat-label">{card.label}</div>
-            <div className={`stat-value ${TONE_CLASS[card.tone]}`}>
-                {card.money ? money(card.value) : card.value.toLocaleString('en-IN')}
+        <>
+            <div className="tw-flex tw-items-center tw-gap-2 tw-text-[13px] tw-font-medium tw-text-slate-500">
+                <span className={cx('tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-lg', tone.chip)}>
+                    <Icon className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                </span>
+                <span className="tw-truncate">{card.label}</span>
             </div>
-            <div className="stat-note">{card.note}</div>
-            {drill && <span className="stat-more">View breakdown →</span>}
-        </div>
-    );
-
-    return (
-        <div className="col-12 col-sm-6 col-xl mb-3">
-            {drill ? (
-                <button
-                    type="button"
-                    className={`card stat-card stat-clickable h-100 w-100 text-start ${TONE_CLASS[card.tone]}`}
-                    onClick={() => onOpen(drill)}
-                    aria-label={`${card.label} — view breakdown`}
-                >
-                    {body}
-                </button>
-            ) : (
-                <div className={`card stat-card h-100 ${TONE_CLASS[card.tone]}`}>{body}</div>
+            <div className={cx('tw-mt-2.5 tw-text-[22px] tw-font-semibold tw-leading-7 tw-tracking-tight tw-tabular-nums', tone.value)}>
+                {card.money ? bdt(card.value) : card.value.toLocaleString('en-IN')}
+            </div>
+            <div className="tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">{card.note}</div>
+            {drill && (
+                <span className="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-text-brand-700 tw-opacity-0 tw-transition group-hover:tw-opacity-100 group-focus-visible:tw-opacity-100 [@media(hover:none)]:tw-opacity-100">
+                    View breakdown <ArrowRight className="tw-h-3 tw-w-3" aria-hidden />
+                </span>
             )}
-        </div>
+        </>
+    );
+    const base = 'tw-h-full tw-w-full tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-text-left tw-shadow-card';
+    return drill ? (
+        <button
+            type="button"
+            onClick={() => onOpen(drill)}
+            aria-label={`${card.label} — view breakdown`}
+            className={cx(
+                base,
+                'tw-group tw-ring-1 tw-ring-transparent tw-transition hover:-tw-translate-y-px hover:tw-shadow-pop focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500',
+                tone.ring,
+            )}
+        >
+            {body}
+        </button>
+    ) : (
+        <div className={base}>{body}</div>
     );
 }
 
-/**
- * A bar sized against the largest row.
- *
- * A table of amounts is read one line at a time; a bar behind the number makes
- * the distribution visible without a charting library, and degrades to a plain
- * table if styles fail to load.
- */
+/** A thin bar sized against the largest row — the distribution at a glance. */
 function Bar({ value, max }: { value: number; max: number }) {
     const percent = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
     return (
-        <div className="progress mt-1" style={{ height: 4 }} role="presentation">
-            <div className="progress-bar" style={{ width: `${percent}%` }} />
-        </div>
+        <span className="tw-mt-1.5 tw-block tw-h-1 tw-w-full tw-overflow-hidden tw-rounded-full tw-bg-slate-100" role="presentation">
+            <span className="tw-block tw-h-full tw-rounded-full tw-bg-brand-600" style={{ width: `${percent}%` }} />
+        </span>
     );
 }
 
@@ -109,37 +116,48 @@ function Panel({
     title,
     subtitle,
     action,
+    footnote,
     children,
 }: {
     title: string;
     subtitle?: string;
     action?: { href: string; label: string };
+    footnote?: React.ReactNode;
     children: React.ReactNode;
 }) {
-    /*
-     * No `h-100`. Panels size to their content; the columns they sit in do the
-     * stacking, so a short panel never has to match a tall neighbour.
-     */
+    // Panels size to their content; each column stacks its own panels, so a
+    // short one never has to match a tall neighbour.
     return (
-        <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-start gap-2">
-                <div>
-                    <h2 className="h6 mb-0 fw-bold">{title}</h2>
-                    {subtitle && <div className="text-muted small">{subtitle}</div>}
+        <section className="tw-overflow-hidden tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-shadow-card">
+            <div className="tw-flex tw-items-start tw-justify-between tw-gap-3 tw-px-5 tw-pb-3 tw-pt-4">
+                <div className="tw-min-w-0">
+                    <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">{title}</h2>
+                    {subtitle && <p className="tw-mt-0.5 tw-text-xs tw-text-slate-500">{subtitle}</p>}
                 </div>
                 {action && (
-                    <Link href={action.href} className="btn btn-sm btn-outline-secondary flex-shrink-0">
+                    <Link
+                        href={action.href}
+                        className="tw-inline-flex tw-shrink-0 tw-items-center tw-gap-1 tw-rounded-lg tw-px-2 tw-py-1 tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-bg-brand-50"
+                    >
                         {action.label}
+                        <ArrowUpRight className="tw-h-3.5 tw-w-3.5" aria-hidden />
                     </Link>
                 )}
             </div>
-            <div className="card-body p-0">{children}</div>
-        </div>
+            {children}
+            {footnote && <p className="tw-border-t tw-border-slate-100 tw-px-5 tw-py-2.5 tw-text-xs tw-text-slate-500">{footnote}</p>}
+        </section>
     );
 }
 
+const th = 'tw-whitespace-nowrap tw-bg-slate-50/80 tw-px-5 tw-py-2 tw-text-left tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500';
+const thR = `${th} tw-text-right`;
+const td = 'tw-px-5 tw-py-2.5';
+const tdR = `${td} tw-text-right tw-tabular-nums`;
+const tr = 'tw-border-t tw-border-slate-100 hover:tw-bg-slate-50/60';
+
 function Empty({ children }: { children: React.ReactNode }) {
-    return <p className="text-muted small mb-0 p-3">{children}</p>;
+    return <p className="tw-px-5 tw-pb-5 tw-text-sm tw-text-slate-500">{children}</p>;
 }
 
 export function DashboardView({ data, detail }: { data: Dashboard; detail: DashboardDetail }) {
@@ -152,110 +170,96 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
 
     return (
         <>
-            <div className="page-head">
-                <div>
-                    <h1 className="page-title">Management dashboard</h1>
-                    <p className="page-subtitle">
-                        Amounts are units × unit value. Cancelled positions are excluded throughout.
-                        Every figure below opens the rows it counts.
-                    </p>
-                </div>
-                <div className="text-muted small">
-                    Generated {new Date(data.generatedAt).toLocaleString('en-GB')}
-                </div>
-            </div>
+            <PageHeader
+                eyebrow="Overview"
+                title="Dashboard"
+                description="Amounts are units × unit value. Cancelled positions are excluded throughout. Every figure opens the rows it counts."
+                actions={
+                    <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-text-slate-500 tw-ring-1 tw-ring-slate-200">
+                        <Clock3 className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                        Generated {dhakaStamp(data.generatedAt)}
+                    </span>
+                }
+            />
 
-            <div className="row g-0 gx-3">
+            <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-5">
                 {data.cards.map((card) => (
                     <StatTile key={card.label} card={card} onOpen={setDrill} />
                 ))}
             </div>
 
-            {/*
-             * Two flowing columns, not a grid of rows.
-             *
-             * Bootstrap rows align their columns to a shared top edge, so a
-             * short panel beside a tall one leaves the height difference as
-             * blank page — the payables forecast (four lines) sat beside the
-             * project table (ten rows) and left a hole the size of the table.
-             * Stacking within each column lets every panel take its own height.
-             */}
-            <div className="row g-3 mt-0 align-items-start">
-                <div className="col-12 col-xl-7 d-flex flex-column gap-3">
+            <div className="tw-mt-6 tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 xl:tw-grid-cols-12">
+                <div className="tw-flex tw-flex-col tw-gap-6 xl:tw-col-span-7">
                     <Panel
                         title="Payables forecast"
                         subtitle="Positions maturing ahead. Anything already overdue is on the card above."
+                        footnote={
+                            data.payables.some((p) => p.count > 0) ? (
+                                <>
+                                    Profit uses each project&apos;s <strong>minimum</strong> return. Windows are cumulative, so the 3-month row includes the
+                                    15-day one.
+                                </>
+                            ) : undefined
+                        }
                     >
                         {data.payables.every((p) => p.count === 0) ? (
                             <Empty>
-                                Nothing matures in the next three months. Positions already past
-                                maturity are on the <strong>Matured, awaiting payout</strong> card.
+                                Nothing matures in the next three months. Positions already past maturity are on the <strong>Matured, awaiting payout</strong> card.
                             </Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Window</th>
-                                            <th className="text-end">Positions</th>
-                                            <th className="text-end">Profit only</th>
-                                            <th className="text-end">Profit + capital</th>
+                                            <th className={th}>Window</th>
+                                            <th className={thR}>Positions</th>
+                                            <th className={thR}>Profit only</th>
+                                            <th className={thR}>Profit + capital</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.payables.map((row) => (
-                                            <tr key={row.label}>
-                                                <td className="fw-semibold">{row.label}</td>
-                                                <td className="text-end">{row.count}</td>
-                                                <td className="text-end">{money(row.profitOnly)}</td>
-                                                <td className="text-end fw-semibold">
-                                                    {money(row.profitAndCapital)}
-                                                </td>
+                                            <tr key={row.label} className={tr}>
+                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{row.label}</td>
+                                                <td className={tdR}>{row.count}</td>
+                                                <td className={tdR}>{bdt(row.profitOnly)}</td>
+                                                <td className={cx(tdR, 'tw-font-semibold tw-text-slate-900')}>{bdt(row.profitAndCapital)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
                         )}
-                        {data.payables.some((p) => p.count > 0) && (
-                            <p className="text-muted small mb-0 px-3 py-2 border-top">
-                                Profit uses each project&apos;s <strong>minimum</strong> return.
-                                Windows are cumulative, so the 3-month row includes the 15-day one.
-                            </p>
-                        )}
                     </Panel>
 
-                    <Panel
-                        title="Investment by project"
-                        action={{ href: '/projects/list', label: 'All projects' }}
-                    >
+                    <Panel title="Investment by project" action={{ href: '/projects/list', label: 'All projects' }}>
                         {data.byProject.length === 0 ? (
                             <Empty>No investments recorded yet.</Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Project</th>
-                                            <th>Type</th>
-                                            <th className="text-end">Investors</th>
-                                            <th className="text-end">Units</th>
-                                            <th className="text-end">Raised</th>
+                                            <th className={th}>Project</th>
+                                            <th className={th}>Type</th>
+                                            <th className={thR}>Investors</th>
+                                            <th className={thR}>Units</th>
+                                            <th className={thR}>Raised</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.byProject.map((row) => (
-                                            <tr key={row.idProjects}>
-                                                <td className="fw-semibold">{row.projectName}</td>
-                                                <td>
-                                                    <span className="badge bg-body-secondary text-body-secondary fw-normal">
+                                            <tr key={row.idProjects} className={tr}>
+                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{row.projectName}</td>
+                                                <td className={td}>
+                                                    <span className="tw-inline-flex tw-rounded-md tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-text-xs tw-text-slate-600">
                                                         {prettyType(row.investmentType)}
                                                     </span>
                                                 </td>
-                                                <td className="text-end">{row.investors}</td>
-                                                <td className="text-end">{row.units}</td>
-                                                <td className="text-end">
-                                                    {money(row.totalRaised)}
+                                                <td className={tdR}>{row.investors}</td>
+                                                <td className={tdR}>{row.units}</td>
+                                                <td className={cx(tdR, 'tw-min-w-[9rem]')}>
+                                                    {bdt(row.totalRaised)}
                                                     <Bar value={row.totalRaised} max={maxProject} />
                                                 </td>
                                             </tr>
@@ -265,28 +269,30 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                             </div>
                         )}
                     </Panel>
-                    <Panel title="By investment type">
+
+                    <Panel
+                        title="By investment type"
+                        footnote="An investor in both types is counted in both rows, so these do not sum to the investor count above."
+                    >
                         {data.byType.length === 0 ? (
                             <Empty>No investments recorded yet.</Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Type</th>
-                                            <th className="text-end">Investors</th>
-                                            <th className="text-end">Raised</th>
+                                            <th className={th}>Type</th>
+                                            <th className={thR}>Investors</th>
+                                            <th className={thR}>Raised</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.byType.map((row) => (
-                                            <tr key={row.investmentType}>
-                                                <td className="fw-semibold">
-                                                    {prettyType(row.investmentType)}
-                                                </td>
-                                                <td className="text-end">{row.investors}</td>
-                                                <td className="text-end">
-                                                    {money(row.totalRaised)}
+                                            <tr key={row.investmentType} className={tr}>
+                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{prettyType(row.investmentType)}</td>
+                                                <td className={tdR}>{row.investors}</td>
+                                                <td className={cx(tdR, 'tw-min-w-[9rem]')}>
+                                                    {bdt(row.totalRaised)}
                                                     <Bar value={row.totalRaised} max={maxType} />
                                                 </td>
                                             </tr>
@@ -295,35 +301,30 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                                 </table>
                             </div>
                         )}
-                        <p className="text-muted small mb-0 px-3 py-2 border-top">
-                            An investor in both types is counted in both rows, so these do not sum to
-                            the investor count above.
-                        </p>
                     </Panel>
-
                 </div>
 
-                <div className="col-12 col-xl-5 d-flex flex-column gap-3">
+                <div className="tw-flex tw-flex-col tw-gap-6 xl:tw-col-span-5">
                     <Panel title="Monthly trend" subtitle="Last six months, by payment date">
                         {data.byMonth.length === 0 ? (
                             <Empty>No investments recorded in the last six months.</Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Month</th>
-                                            <th className="text-end">Positions</th>
-                                            <th className="text-end">Raised</th>
+                                            <th className={th}>Month</th>
+                                            <th className={thR}>Positions</th>
+                                            <th className={thR}>Raised</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.byMonth.map((row) => (
-                                            <tr key={row.month}>
-                                                <td className="fw-semibold">{row.month}</td>
-                                                <td className="text-end">{row.investments}</td>
-                                                <td className="text-end">
-                                                    {money(row.totalRaised)}
+                                            <tr key={row.month} className={tr}>
+                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{row.month}</td>
+                                                <td className={tdR}>{row.investments}</td>
+                                                <td className={cx(tdR, 'tw-min-w-[9rem]')}>
+                                                    {bdt(row.totalRaised)}
                                                     <Bar value={row.totalRaised} max={maxMonth} />
                                                 </td>
                                             </tr>
@@ -334,32 +335,28 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                         )}
                     </Panel>
 
-                    <Panel
-                        title="Top partners"
-                        subtitle="By capital managed"
-                        action={{ href: '/partners/list', label: 'All partners' }}
-                    >
+                    <Panel title="Top partners" subtitle="By capital managed" action={{ href: '/partners/list', label: 'All partners' }}>
                         {data.topPartners.length === 0 ? (
                             <Empty>No partner allocations recorded yet.</Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th style={{ width: '2.5rem' }}>#</th>
-                                            <th>Partner</th>
-                                            <th className="text-end">Positions</th>
-                                            <th className="text-end">Managed</th>
+                                            <th className={cx(th, 'tw-w-10')}>#</th>
+                                            <th className={th}>Partner</th>
+                                            <th className={thR}>Positions</th>
+                                            <th className={thR}>Managed</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.topPartners.map((row, index) => (
-                                            <tr key={`${row.name}-${index}`}>
-                                                <td className="text-muted">{index + 1}</td>
-                                                <td className="fw-semibold">{row.name}</td>
-                                                <td className="text-end">{row.investments}</td>
-                                                <td className="text-end">
-                                                    {money(row.totalManaged)}
+                                            <tr key={`${row.name}-${index}`} className={tr}>
+                                                <td className={cx(td, 'tw-tabular-nums tw-text-slate-400')}>{index + 1}</td>
+                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{row.name}</td>
+                                                <td className={tdR}>{row.investments}</td>
+                                                <td className={cx(tdR, 'tw-min-w-[9rem]')}>
+                                                    {bdt(row.totalManaged)}
                                                     <Bar value={row.totalManaged} max={maxPartner} />
                                                 </td>
                                             </tr>

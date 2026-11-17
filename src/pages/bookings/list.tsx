@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import Swal from "sweetalert2";
-import { Container, Table, Button, Pagination, Row, Form, Nav } from "react-bootstrap";
 import Link from "next/link";
+import { ArrowUpRight, Plus } from "lucide-react";
 import { getRequestOptions } from "@/utils/Fetch";
+import { Pill, Segmented, cx } from "@/ui/primitives";
+import { Field, Input, LinkButton, SearchInput, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { investmentStatus, paymentStatus } from "@/ui/status";
+import { date } from "@/ui/format";
+
+/**
+ * All bookings. Redesigned 2026-11-17; the request, its filters and the
+ * server-side paging are exactly as before (`/api/bookings/list` with the same
+ * query parameters). The Current/Cancelled tabs and the "Cancelled" filter are
+ * one control now: Current, Cancelled, or All.
+ */
 
 interface BookingListProps {
     idProjectInvestmentBookings: number;
@@ -34,8 +46,9 @@ interface FilterProps {
     orderType: string;
     page: number;
     pageSize: number;
-
 }
+
+type Tab = "current" | "cancelled" | "all";
 
 function List() {
 
@@ -53,11 +66,12 @@ function List() {
     });
 
     const [total, setTotal] = useState<number>(0);
-    const [activeTab, setActiveTab] = useState<string>("current");
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchBookingList = async () => {
             const query = new URLSearchParams(filter as any).toString();
+            setLoading(true);
             try {
                 const res = await fetch(`/api/bookings/list?${query}`, getRequestOptions());
                 const data = await res.json();
@@ -77,6 +91,8 @@ function List() {
                     title: 'Error',
                     text: err.message,
                 });
+            } finally {
+                setLoading(false);
             }
         }
         fetchBookingList();
@@ -91,212 +107,155 @@ function List() {
         });
     }
 
-    const handleTabChange = (tab: string) => {
-        setActiveTab(tab);
+    const tab: Tab = filter.cancelled === "yes" ? "cancelled" : filter.cancelled === "no" ? "current" : "all";
+    const handleTabChange = (next: Tab) => {
         setFilter({
             ...filter,
-            cancelled: tab === "cancelled" ? "yes" : "no",
+            cancelled: next === "cancelled" ? "yes" : next === "current" ? "no" : "",
             page: 1,
         });
     };
 
-    const pagesNumber = () => {
-        if (total === 0) return [];
-
-        const totalPageCount = Math.ceil(total / filter.pageSize);
-        const currentPage = filter.page;
-
-        let pagesArray = [];
-
-        // Always show the first page
-        pagesArray.push(1);
-
-        // If current page is greater than 3, add an ellipsis before the first middle range
-        if (currentPage > 3) {
-            pagesArray.push("...");
-        }
-
-        // Add a range of pages around the current page
-        let startPage = Math.max(2, currentPage - 1);
-        let endPage = Math.min(totalPageCount - 1, currentPage + 1);
-
-        for (let page = startPage; page <= endPage; page++) {
-            pagesArray.push(page);
-        }
-
-        // Add an ellipsis after the last middle range if there are more pages
-        if (currentPage < totalPageCount - 2) {
-            pagesArray.push("...");
-        }
-
-        // Always show the last page
-        if (totalPageCount > 1) {
-            pagesArray.push(totalPageCount);
-        }
-
-        return pagesArray;
-    };
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber, index) => {
-            if (pageNumber === "...") {
-                return <Pagination.Ellipsis key={`ellipsis-${index}`} />;
-            } else {
-                return (
-                    <Pagination.Item
-                        key={pageNumber}
-                        active={pageNumber === filter.page}
-                        onClick={() => handlePageChange(pageNumber as number)}
-                    >
-                        {pageNumber}
-                    </Pagination.Item>
-                );
-            }
-        });
-    };
-
-
+    const totalPages = Math.max(1, Math.ceil(total / filter.pageSize));
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), totalPages)
         })
     }
 
     return (
-        <Container>
-            <h4 className="text-start">Booking List</h4>
-            <hr />
-            <Nav variant="tabs" activeKey={activeTab} onSelect={(selectedKey) => handleTabChange(selectedKey || "current")}>
-                <Nav.Item>
-                    <Nav.Link eventKey="current">Current Bookings</Nav.Link>
-                </Nav.Item>
-                <Nav.Item>
-                    <Nav.Link eventKey="cancelled">Cancelled Bookings</Nav.Link>
-                </Nav.Item>
-            </Nav>
-            <Row className="mt-3">
-                <Pagination className="d-flex justify-content-center">
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} />
-                </Pagination>
-            </Row>
-            <Table responsive striped bordered hover size="sm">
+        <div className="ui">
+            <PageHeader
+                eyebrow="Bookings"
+                title="All bookings"
+                description="Confirm payments, review proof and follow each booking to maturity."
+                actions={
+                    <LinkButton href="/bookings/create" variant="primary">
+                        <Plus className="tw-h-4 tw-w-4" aria-hidden /> New booking
+                    </LinkButton>
+                }
+            />
+
+            <TableCard
+                toolbar={
+                    <div className="tw-flex tw-flex-col tw-gap-3">
+                        <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
+                            <Segmented<Tab>
+                                label="Which bookings"
+                                value={tab}
+                                onChange={handleTabChange}
+                                options={[
+                                    { value: "current", label: "Current" },
+                                    { value: "cancelled", label: "Cancelled" },
+                                    { value: "all", label: "All" },
+                                ]}
+                            />
+                            <span className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? "Loading…" : `${total.toLocaleString("en-IN")} bookings`}</span>
+                        </div>
+                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 md:tw-grid-cols-4">
+                            <Field label="Booking ref">
+                                <SearchInput placeholder="e.g. 000182" name="bookingId" onChange={handleInputOnChange} value={filter.bookingId} />
+                            </Field>
+                            <Field label="Investor">
+                                <SearchInput placeholder="Name" name="investorName" onChange={handleInputOnChange} value={filter.investorName} />
+                            </Field>
+                            <Field label="Payment">
+                                <Select name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus}>
+                                    <option value="">All</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="uploaded">Proof submitted (uploaded)</option>
+                                    <option value="proof_submitted">Proof submitted</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="denied">Denied</option>
+                                </Select>
+                            </Field>
+                            <Field label="Internal #">
+                                <Input type="number" placeholder="e.g. 372" name="idProjectInvestmentBookings" onChange={handleInputOnChange} value={filter.idProjectInvestmentBookings} />
+                            </Field>
+                        </div>
+                    </div>
+                }
+                footer={
+                    <Pager
+                        page={filter.page}
+                        totalPages={totalPages}
+                        onChange={handlePageChange}
+                        summary={total ? `Page ${filter.page} of ${totalPages}` : undefined}
+                    />
+                }
+            >
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Booking Id</th>
-                        <th>Investor Name</th>
-                        <th>Payment Status</th>
-                        <th>Projects</th>
-                        <th>Project Status</th>
-                        <th>Unit Purchased</th>
-                        <th>Investment Date</th>
-                        <th>Maturity Date</th>
-                        <th>Cancelled</th>
-                        <th>Actions</th>
-
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="number" className="form-control form-control-sm" placeholder="Search" name="idProjectInvestmentBookings" onChange={handleInputOnChange} value={filter.idProjectInvestmentBookings} />
-                        </td>
-                        <td>
-                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="bookingId" onChange={handleInputOnChange} value={filter.bookingId} />
-                        </td>
-                        <td>
-                            <input type="text" className="form-control form-control-sm" placeholder="Search" name="investorName" onChange={handleInputOnChange} value={filter.investorName} />
-                        </td>
-                        <td>
-                            <Form.Select className="form-control form-control-sm" name="paymentConfirmationStatus" onChange={handleInputOnChange} value={filter.paymentConfirmationStatus}>
-                                <option value="">All</option>
-                                <option value="pending">Pending</option>
-                                <option value="uploaded">Proof submitted (uploaded)</option>
-                                <option value="proof_submitted">Proof submitted</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="denied">Denied</option>
-                            </Form.Select>
-                        </td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td>
-                            <Form.Select className="form-control form-control-sm" name="cancelled" onChange={handleInputOnChange} value={filter.cancelled}>
-                                <option value="">All</option>
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </Form.Select>
-                        </td>
-                        <td></td>
+                        <th className={TH}>Booking</th>
+                        <th className={TH}>Investor</th>
+                        <th className={TH}>Payment</th>
+                        <th className={TH}>Projects</th>
+                        <th className={cx(TH, "tw-text-right")}>Units</th>
+                        <th className={TH}>Term</th>
+                        <th className={cx(TH, "tw-text-right")}><span className="tw-sr-only">Open</span></th>
                     </tr>
                 </thead>
-                <tbody>
-                    {bookingList.length > 0 ? bookingList.map((booking, index) => (
-                        <tr key={index}>
-                            <td>{booking.idProjectInvestmentBookings}</td>
-                            <td>{booking.bookingId}</td>
-                            <td>{booking.User.fullName}</td>
-                            <td>{booking.paymentConfirmationStatus?.charAt(0).toUpperCase() + booking.paymentConfirmationStatus?.slice(1)}
-                            </td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.Project.projectName}</li>
-                                    ))
-                                    }
-                                </ul>
-                            </td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + invest.investmentStatus?.replace(/_/g, ' ').slice(1)}</li>
-                                    ))
-                                    }
-                                </ul>
-                            </td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.unitPurchased}</li>
-                                    ))
-                                    }
-                                </ul>
-                            </td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.investmentDate}</li>
-                                    ))
-                                    }
-                                </ul>
-                            </td>
-                            <td>
-                                <ul>
-                                    {booking.ProjectInvestors.map((invest, index) => (
-                                        <li key={index}>{invest.maturityDate}</li>
-                                    ))
-                                    }
-                                </ul>
-                            </td>
-                            <td>{booking.cancelled?.charAt(0).toUpperCase() + booking.cancelled?.slice(1)}</td>
-                            <td>
-                                <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`}>
-                                    <Button size="sm" variant="primary">Details</Button>
-                                </Link>
-                            </td>
-                        </tr>
-                    )) : (
-                        <tr>
-                            <td colSpan={11} className="text-center">No booking found</td>
-                        </tr>
+                <tbody className={cx(loading && "tw-opacity-60 tw-transition-opacity")}>
+                    {bookingList.length > 0 ? bookingList.map((booking, index) => {
+                        const pay = paymentStatus(booking.paymentConfirmationStatus, booking.cancelled);
+                        return (
+                            <tr key={index} className={TR}>
+                                <td className={TD}>
+                                    <Link href={`/bookings/details/${booking.idProjectInvestmentBookings}`} className="tw-font-semibold tw-tabular-nums tw-text-slate-900 hover:tw-text-brand-700">
+                                        #{booking.bookingId || booking.idProjectInvestmentBookings}
+                                    </Link>
+                                    <span className="tw-block tw-text-xs tw-tabular-nums tw-text-slate-400">internal {booking.idProjectInvestmentBookings}</span>
+                                </td>
+                                <td className={cx(TD, "tw-font-medium tw-text-slate-800")}>{booking.User?.fullName}</td>
+                                <td className={TD}>
+                                    <Pill tone={pay.tone}>{pay.label}</Pill>
+                                </td>
+                                <td className={TD}>
+                                    <ul className="tw-space-y-1.5">
+                                        {booking.ProjectInvestors.map((invest, i) => {
+                                            const st = investmentStatus(invest.investmentStatus);
+                                            return (
+                                                <li key={i} className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                                    <span className="tw-text-slate-800">{invest.Project?.projectName}</span>
+                                                    <Pill tone={st.tone} dot={false}>{st.label}</Pill>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </td>
+                                <td className={cx(TD, "tw-text-right tw-tabular-nums tw-text-slate-700")}>
+                                    <ul className="tw-space-y-1.5">
+                                        {booking.ProjectInvestors.map((invest, i) => (
+                                            <li key={i}>{invest.unitPurchased}</li>
+                                        ))}
+                                    </ul>
+                                </td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600")}>
+                                    <ul className="tw-space-y-1.5">
+                                        {booking.ProjectInvestors.map((invest, i) => (
+                                            <li key={i}>
+                                                {date(invest.investmentDate)} <span className="tw-text-slate-300">→</span> {invest.maturityDate ? date(invest.maturityDate) : "—"}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </td>
+                                <td className={cx(TD, "tw-text-right")}>
+                                    <Link
+                                        href={`/bookings/details/${booking.idProjectInvestmentBookings}`}
+                                        className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-lg tw-px-2 tw-py-1 tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-bg-brand-50"
+                                    >
+                                        Details <ArrowUpRight className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                    </Link>
+                                </td>
+                            </tr>
+                        );
+                    }) : (
+                        <EmptyRow colSpan={7} title={loading ? "Loading bookings…" : "No bookings found"} hint={loading ? undefined : "Try another tab or fewer filters."} />
                     )}
-
                 </tbody>
-            </Table>
-        </Container>
+            </TableCard>
+        </div>
     )
 
 }

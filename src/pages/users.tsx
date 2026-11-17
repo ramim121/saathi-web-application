@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Table, Button, Modal, Row, Col, Pagination } from "react-bootstrap";
+import { Modal } from "react-bootstrap";
 import { postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { User, UserBank, Bank, BankBranch } from "@/models/__associations";
@@ -9,18 +9,47 @@ import { S3_URL } from '@/config/public';
 import { NextPage, GetServerSidePropsContext } from "next";
 import { API_URL } from '@/config/public';
 import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
-import { Form } from "react-bootstrap";
+import { Check, Landmark, RotateCcw, X } from "lucide-react";
+import { Avatar, Pill, cx } from "@/ui/primitives";
+import { Button, Field, Input, SearchInput, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { capitalise, dhakaDmy } from "@/ui/status";
+import { date } from "@/ui/format";
+
+/**
+ * Users (investors, partners, admins). Redesigned 2026-11-17; the filters,
+ * paging, verification actions and both dialogs behave exactly as before.
+ *
+ * Changes that are not just looks:
+ * - the joining date is formatted in Asia/Dhaka (display and filter alike) —
+ *   the viewer's own timezone made the server and browser render different
+ *   text, which broke hydration for admins in Bangladesh;
+ * - users without a photo get their initials, not a random image fetched from
+ *   picsum.photos;
+ * - the server-side query no longer ships password hashes to the browser.
+ */
 
 interface UserListProps {
     users: UserType[];
 }
 
+const EMPTY_FILTERS = {
+    name: "",
+    phoneEmail: "",
+    userType: "",
+    age: "",
+    joining: "",
+    partnerType: "",
+    status: "",
+    nid: "",
+    email: "",
+    phone: "",
+};
+
 /**
- * The three verification states as compact ticks.
- *
- * Green means verified, grey means not — never red: an unverified account is a
- * normal state on the way in, not an error, and a column of red on a fresh
- * signup list reads as a system fault.
+ * The three verification states as compact ticks. Green means verified, grey
+ * means not — never red: an unverified account is a normal state on the way
+ * in, not an error.
  */
 function VerifyTicks({ nid, phone, email }: { nid: boolean; phone: boolean; email: boolean }) {
     const items: Array<[string, string, boolean]> = [
@@ -29,22 +58,40 @@ function VerifyTicks({ nid, phone, email }: { nid: boolean; phone: boolean; emai
         ["Email", "E", email],
     ];
     return (
-        <span className="verify-ticks">
+        <span className="tw-inline-flex tw-gap-1">
             {items.map(([label, letter, ok]) => (
                 <span
                     key={label}
-                    className={`verify-tick ${ok ? "is-ok" : "is-no"}`}
                     title={`${label} ${ok ? "verified" : "not verified"}`}
+                    className={cx(
+                        "tw-inline-flex tw-items-center tw-gap-0.5 tw-rounded-full tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold",
+                        ok ? "tw-bg-emerald-50 tw-text-emerald-700" : "tw-bg-slate-100 tw-text-slate-400",
+                    )}
                 >
                     {letter}
-                    <span aria-hidden="true">{ok ? "✓" : "·"}</span>
-                    <span className="visually-hidden">
+                    {ok ? <Check className="tw-h-3 tw-w-3" aria-hidden /> : <span aria-hidden>·</span>}
+                    <span className="tw-sr-only">
                         {label} {ok ? "verified" : "not verified"}
                     </span>
                 </span>
             ))}
         </span>
     );
+}
+
+function Photo({ user, size }: { user: UserType; size: "sm" | "lg" }) {
+    const dims = size === "lg" ? "tw-h-20 tw-w-20" : "tw-h-9 tw-w-9";
+    if (user.profileImage) {
+        return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img alt="" src={`${S3_URL}profile/${user.profileImage}`} className={cx(dims, "tw-shrink-0 tw-rounded-full tw-object-cover tw-ring-1 tw-ring-slate-200")} />
+        );
+    }
+    return <Avatar name={user.fullName || user.email || String(user.idUsers)} seed={user.idUsers} size={size === "lg" ? "lg" : "sm"} />;
+}
+
+function Verified({ ok }: { ok: boolean }) {
+    return ok ? <Pill tone="green">Verified</Pill> : <Pill tone="slate">Not verified</Pill>;
 }
 
 const UserList: NextPage<UserListProps> = ({ users }) => {
@@ -55,18 +102,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     const [showBankModal, setShowBankModal] = useState(false);
     const [bankModalUser, setBankModalUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [filters, setFilters] = useState({
-        name: "",
-        phoneEmail: "",
-        userType: "",
-        age: "",
-        joining: "",
-        partnerType: "",
-        status: "",
-        nid: "",
-        email: "",
-        phone: "",
-    });
+    const [filters, setFilters] = useState(EMPTY_FILTERS);
 
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 10;
@@ -132,7 +168,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
             tempUsers = tempUsers.filter(
                 (user) =>
                     user.createdAt &&
-                    new Date(user.createdAt).toLocaleDateString("en-In").includes(filters.joining)
+                    dhakaDmy(user.createdAt).includes(filters.joining)
             );
         }
         if (filters.partnerType) {
@@ -162,10 +198,6 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     }, [filters, usersList]);
 
     const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-    const pageNumbers = [];
-    for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-    }
 
     const paginateUsers = filteredUsers.slice(
         (currentPage - 1) * usersPerPage,
@@ -173,401 +205,333 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
     );
 
     const handlePageChange = (pageNumber: number) => {
-        setCurrentPage(pageNumber);
+        setCurrentPage(Math.min(Math.max(1, pageNumber), Math.max(1, totalPages)));
     };
 
-    const renderPagination = () => {
-        const maxPageLinks = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxPageLinks / 2));
-        let endPage = Math.min(totalPages, startPage + maxPageLinks - 1);
+    const set = (key: keyof typeof EMPTY_FILTERS) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+        setFilters({ ...filters, [key]: e.target.value });
+    const filtered = Object.values(filters).some(Boolean);
 
-        if (endPage - startPage < maxPageLinks - 1) {
-            startPage = Math.max(1, endPage - maxPageLinks + 1);
-        }
-
-        const pages = [];
-        if (startPage > 1) pages.push(<Pagination.Item key={1} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
-        if (startPage > 2) pages.push(<Pagination.Ellipsis key="dots-start" />);
-
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(
-                <Pagination.Item
-                    key={i}
-                    active={i === currentPage}
-                    onClick={() => handlePageChange(i)}
-                >
-                    {i}
-                </Pagination.Item>
-            );
-        }
-
-        if (endPage < totalPages - 1) pages.push(<Pagination.Ellipsis key="dots-end" />);
-        if (endPage < totalPages) pages.push(<Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
-
-        return (
-            <Row className="mt-3">
-                <Pagination className="d-flex justify-content-center">
-                    <Pagination.Prev disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} />
-                    {pages}
-                    <Pagination.Next disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} />
-                </Pagination>
-            </Row>
-        );
+    const openDetails = (user: UserType) => {
+        setSelectedUser(user);
+        setShowUserDetailsModal(true);
     };
-
 
     return (
-        <Container>
-            <h4 className="text-start">User List</h4>
-            <p>Total Users: {filteredUsers.length}</p>
-            <hr />
-            <Row className="mb-1">
-                <Col>
-                    <Form.Label>Search Name</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Search by Name"
-                        value={filters.name}
-                        onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+        <div className="ui">
+            <PageHeader
+                eyebrow="People"
+                title="Investors & users"
+                description="Everyone with an account — investors, partners and admins. Open a name for details and verification."
+                actions={
+                    <span className="tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-600 tw-ring-1 tw-ring-slate-200">
+                        {filteredUsers.length.toLocaleString("en-IN")} {filtered ? "matching" : "users"}
+                    </span>
+                }
+            />
+
+            <div className="tw-mb-4 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-card">
+                <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 lg:tw-grid-cols-4">
+                    <Field label="Name">
+                        <SearchInput placeholder="Search by name" value={filters.name} onChange={set("name")} />
+                    </Field>
+                    <Field label="Phone or email">
+                        <SearchInput placeholder="Search by phone or email" value={filters.phoneEmail} onChange={set("phoneEmail")} />
+                    </Field>
+                    <Field label="User type">
+                        <Select value={filters.userType} onChange={set("userType")}>
+                            <option value="">All</option>
+                            <option value="admin">Admin</option>
+                            <option value="investor">Investor</option>
+                            <option value="partner">Partner</option>
+                        </Select>
+                    </Field>
+                    <Field label="Status">
+                        <Select value={filters.status} onChange={set("status")}>
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="deleted">Deleted</option>
+                        </Select>
+                    </Field>
+                    <Field label="Age">
+                        <Input type="text" inputMode="numeric" placeholder="e.g. 32" value={filters.age} onChange={set("age")} />
+                    </Field>
+                    <Field label="Joining date" hint="d/m/yyyy, or part of it">
+                        <Input type="text" placeholder="e.g. 12/8/2026" value={filters.joining} onChange={set("joining")} />
+                    </Field>
+                    <div className="tw-grid tw-grid-cols-3 tw-gap-3 lg:tw-col-span-2">
+                        <Field label="NID">
+                            <Select value={filters.nid} onChange={set("nid")}>
+                                <option value="">All</option>
+                                <option value="yes">Verified</option>
+                                <option value="no">Not verified</option>
+                            </Select>
+                        </Field>
+                        <Field label="Email">
+                            <Select value={filters.email} onChange={set("email")}>
+                                <option value="">All</option>
+                                <option value="yes">Verified</option>
+                                <option value="no">Not verified</option>
+                            </Select>
+                        </Field>
+                        <Field label="Phone">
+                            <Select value={filters.phone} onChange={set("phone")}>
+                                <option value="">All</option>
+                                <option value="yes">Verified</option>
+                                <option value="no">Not verified</option>
+                            </Select>
+                        </Field>
+                    </div>
+                </div>
+                {filtered && (
+                    <div className="tw-mt-3 tw-flex tw-justify-end">
+                        <Button size="sm" variant="ghost" onClick={() => setFilters(EMPTY_FILTERS)}>
+                            <RotateCcw className="tw-h-3.5 tw-w-3.5" aria-hidden /> Clear filters
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            <TableCard
+                footer={
+                    <Pager
+                        page={currentPage}
+                        totalPages={totalPages}
+                        onChange={handlePageChange}
+                        summary={
+                            filteredUsers.length
+                                ? `Showing ${(currentPage - 1) * usersPerPage + 1}–${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length.toLocaleString("en-IN")}`
+                                : "No users"
+                        }
                     />
-                </Col>
-                <Col>
-                    <Form.Label>Search Phone/Email</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Search by Phone or Email"
-                        value={filters.phoneEmail}
-                        onChange={(e) => setFilters({ ...filters, phoneEmail: e.target.value })}
-                    />
-                </Col>
-                <Col>
-                    <Form.Label>User Type</Form.Label>
-                    <Form.Select
-                        value={filters.userType}
-                        onChange={(e) => setFilters({ ...filters, userType: e.target.value })}
-                    >
-                        <option value="">All</option>
-                        <option value="admin">Admin</option>
-                        <option value="investor">Investor</option>
-                        <option value="partner">Partner</option>
-                    </Form.Select>
-                </Col>
-            </Row>
-            <Row className="mb-1">
-                <Col>
-                    <Form.Label>Age</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Search by Age"
-                        value={filters.age}
-                        onChange={(e) => setFilters({ ...filters, age: e.target.value })}
-                    />
-                </Col>
-                <Col>
-                    <Form.Label>Joining Date</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Search by Joining Date"
-                        value={filters.joining}
-                        onChange={(e) => setFilters({ ...filters, joining: e.target.value })}
-                    />
-                </Col>
-                <Col>
-                    <Form.Label>Satus</Form.Label>
-                    <Form.Select
-                        value={filters.status}
-                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    >
-                        <option value="">All</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="deleted">Deleted</option>
-                    </Form.Select>
-                </Col>
-            </Row>
-            <Row className="mb-2">
-                <Col>
-                    <Form.Label>NID Verification</Form.Label>
-                    <Form.Select
-                        value={filters.nid}
-                        onChange={(e) => setFilters({ ...filters, nid: e.target.value })}
-                    >
-                        <option value="">All</option>
-                        <option value="yes">Verified</option>
-                        <option value="no">Not Verified</option>
-                    </Form.Select>
-                </Col>
-                <Col>
-                    <Form.Label>Email Verification</Form.Label>
-                    <Form.Select
-                        value={filters.email}
-                        onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                    >
-                        <option value="">All</option>
-                        <option value="yes">Verified</option>
-                        <option value="no">Not Verified</option>
-                    </Form.Select>
-                </Col>
-                <Col>
-                    <Form.Label>Phone Verification</Form.Label>
-                    <Form.Select
-                        value={filters.phone}
-                        onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
-                    >
-                        <option value="">All</option>
-                        <option value="yes">Verified</option>
-                        <option value="no">Not Verified</option>
-                    </Form.Select>
-                </Col>
-            </Row>
-            {renderPagination()}
-            <Table responsive striped bordered hover size="sm">
+                }
+            >
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th></th>
-                        <th>Name</th>
-                        <th>Phone / Email</th>
-                        <th>Type</th>
-                        <th>Age</th>
-                        <th>Joining</th>
-                        <th>Disability</th>
-                        <th>status</th>
-                        <th>Documents</th>
-                        <th>Bank</th>
+                        <th className={cx(TH, "tw-w-16")}>#</th>
+                        <th className={TH}>User</th>
+                        <th className={TH}>Contact</th>
+                        <th className={TH}>Age</th>
+                        <th className={TH}>Joined</th>
+                        <th className={TH}>Disability</th>
+                        <th className={TH}>Status</th>
+                        <th className={TH}>Verified</th>
+                        <th className={TH}>Bank</th>
                     </tr>
                 </thead>
                 <tbody>
                     {paginateUsers.length > 0 ? (
                         paginateUsers.map((user, index) => (
-                            <tr key={index}>
-                                <td>{user.idUsers}</td>
-                                <td>
-                                    {user.profileImage ? (
-                                        <img
-                                            alt="profile"
-                                            height="50"
-                                            width="50"
-                                            src={S3_URL + "profile/" + user.profileImage}
-                                            onClick={() => {
-                                                setSelectedUser(user);
-                                                setShowUserDetailsModal(true);
-                                            }}
-                                            style={{ cursor: "pointer" }}
-                                        />
-                                    ) : (
-                                        <img
-                                            alt="profile"
-                                            height="50"
-                                            width="50"
-                                            src="https://picsum.photos/id/185/50/50"
-                                            onClick={() => {
-                                                setSelectedUser(user);
-                                                setShowUserDetailsModal(true);
-                                            }}
-                                            style={{ cursor: "pointer" }}
-                                        />
-                                    )}
+                            <tr key={index} className={TR}>
+                                <td className={cx(TD, "tw-tabular-nums tw-text-slate-400")}>{user.idUsers}</td>
+                                <td className={TD}>
+                                    <button type="button" onClick={() => openDetails(user)} className="tw-group tw-flex tw-items-center tw-gap-3 tw-text-left">
+                                        <Photo user={user} size="sm" />
+                                        <span className="tw-min-w-0">
+                                            <span className="tw-block tw-whitespace-nowrap tw-font-medium tw-text-slate-900 group-hover:tw-text-brand-700">
+                                                {user.fullName || <span className="tw-text-slate-400">No name</span>}
+                                            </span>
+                                            <span className="tw-block tw-text-xs tw-capitalize tw-text-slate-500">{user.userType}</span>
+                                        </span>
+                                    </button>
                                 </td>
-                                <td>
-                                    <Button
-                                        style={{ whiteSpace: "nowrap" }}
-                                        type="button"
-                                        variant="link"
-                                        className="p-0"
-                                        onClick={() => {
-                                            setSelectedUser(user);
-                                            setShowUserDetailsModal(true);
-                                        }}
-                                    >
-                                        {user.fullName}
-                                    </Button>
+                                <td className={cx(TD, "tw-text-slate-600")}>
+                                    <span className="tw-block tw-tabular-nums">{user.phoneNumber}</span>
+                                    <span className="tw-block tw-text-xs tw-text-slate-500">{user.email}</span>
                                 </td>
-                                <td>
-                                    {user.phoneNumber}
-                                    <br />
-                                    {user.email}
+                                <td className={cx(TD, "tw-tabular-nums tw-text-slate-600")}>{user.age ?? <span className="tw-text-slate-300">—</span>}</td>
+                                <td className={cx(TD, "tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600")}>{dhakaDmy(user.createdAt)}</td>
+                                <td className={cx(TD, "tw-capitalize tw-text-slate-600")}>{user.disability}</td>
+                                <td className={TD}>
+                                    <Pill tone={user.status === "active" ? "green" : user.status === "deleted" ? "rose" : "slate"}>{capitalise(user.status)}</Pill>
                                 </td>
-                                <td className="text-capitalize">{user.userType}</td>
-                                <td>{user.age}</td>
-                                <td>{new Date(user.createdAt).toLocaleDateString("en-In")}</td>
-                                <td>{user.disability}</td>
-                                <td className="text-capitalize">{user.status}</td>
-                                {/*
-                                  * Three ticks, not three sentences. Scanning a
-                                  * page of users for who still needs verifying
-                                  * is the actual job here, and "NID Verified:
-                                  * No" repeated down a column defeats it — the
-                                  * word that matters is buried at the end of
-                                  * each line. The letter carries the meaning
-                                  * and the colour carries the state, with the
-                                  * full wording in the title for screen readers
-                                  * and anyone who needs it spelled out.
-                                  */}
-                                <td style={{ whiteSpace: "nowrap" }}>
-                                    <VerifyTicks
-                                        nid={user.nidVerified === "yes"}
-                                        phone={user.phoneVerified === "yes"}
-                                        email={user.emailVerified === "yes"}
-                                    />
+                                <td className={cx(TD, "tw-whitespace-nowrap")}>
+                                    <VerifyTicks nid={user.nidVerified === "yes"} phone={user.phoneVerified === "yes"} email={user.emailVerified === "yes"} />
                                 </td>
-                                <td>
+                                <td className={TD}>
                                     {user.UserBanks && user.UserBanks.length > 0 ? (
-                                        <Button
-                                            variant="link"
-                                            className="p-0"
-                                            style={{ whiteSpace: "nowrap" }}
+                                        <button
+                                            type="button"
                                             onClick={() => {
                                                 setBankModalUser(user);
                                                 setShowBankModal(true);
                                             }}
+                                            className="tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-lg tw-px-2 tw-py-1 tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-bg-brand-50"
                                         >
-                                            Bank Information
-                                        </Button>
+                                            <Landmark className="tw-h-3.5 tw-w-3.5" aria-hidden /> View
+                                        </button>
                                     ) : (
-                                        <span className="text-muted">—</span>
+                                        <span className="tw-text-slate-300">—</span>
                                     )}
                                 </td>
                             </tr>
                         ))
                     ) : (
-                        <tr>
-                            <td colSpan={11} className="text-center">
-                                No data found
-                            </td>
-                        </tr>
+                        <EmptyRow colSpan={9} title="No users match" hint={filtered ? "Try fewer filters." : undefined} />
                     )}
                 </tbody>
-            </Table>
+            </TableCard>
+
             {selectedUser && (
-                <Modal
-                    size="lg"
-                    show={showUserDetailsModal}
-                    onHide={() => setShowUserDetailsModal(false)}
-                >
-                    <Modal.Body>
-                        <Row>
-                            <Col md={4}>
-                                <img
-                                    alt="profile"
-                                    height="150"
-                                    width="150"
-                                    src={
-                                        selectedUser.profileImage
-                                            ? `${S3_URL}profile/${selectedUser.profileImage}`
-                                            : "https://picsum.photos/id/185/150/150"
-                                    }
-                                />
-                            </Col>
-                            <Col md={8}>
-                                <Col md={8}>
-                                    <h5>Personal Information</h5>
-                                    <hr />
-                                    <p className="my-1">Name: {selectedUser!.fullName}</p>
-                                    <p className="my-1">
-                                        Email: {selectedUser!.email}
-                                        {
-                                            selectedUser!.emailVerified == 'yes' ?
-                                                <span className="text-success"> (Verified)</span> :
-                                                <>
-                                                    <span className="text-danger"> (Not Verified)</span>
-                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "email") }}>Mark as verified</Button>
-                                                </>
-                                        }
-                                    </p>
-                                    <p className="my-1">
-                                        Phone: {selectedUser!.phoneNumber}
-                                        {
-                                            selectedUser!.phoneVerified == 'yes' ?
-                                                <span className="text-success"> (Verified)</span> :
-                                                <>
-                                                    <span className="text-danger"> (Not Verified)</span>
-                                                    <Button disabled={isLoading} variant="primary" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "phone") }}>Mark as verified</Button>
-                                                </>
-                                        }
-                                    </p>
-                                    <p className="my-1">Date of Birth: {new Date(selectedUser!.dateOfBirth).toLocaleDateString()}</p>
-                                    <p className="my-1">Interested in: {selectedUser!.interestedIn}</p>
-                                    <p className="my-1">Skills: {selectedUser!.skills}</p>
-                                    <p className="my-1">Bio: {selectedUser!.bio}</p>
-                                    <p className="my-1">Location: {selectedUser!.location}</p>
-                                    <p className="my-1">Role: {selectedUser!.role}</p>
-                                    <p className="my-1">Age: {selectedUser!.age}</p>
-                                    <p className="my-1">Education: {selectedUser!.education}</p>
-                                    <p className="my-1">Disability: {selectedUser!.disability}</p>
-                                    <p className="my-1">Partner Type: {selectedUser!.partnerType}</p>
-                                    {
-                                        selectedUser.nidVerificationStatus != 'none' &&
-                                        <>
-                                            <p className="my-1">
-                                                NID number: {selectedUser!.nidNumber}
-                                                {
-                                                    selectedUser!.nidVerified == 'yes' ?
-                                                        <span className="text-success"> (Verified)</span> :
-                                                        <>
-                                                            <span className="text-danger"> {selectedUser.nidVerificationStatus}</span>
-                                                            {
-                                                                selectedUser.nidVerificationStatus == 'pending' &&
-                                                                <>
-                                                                    <Button className="mx-3" disabled={isLoading} variant="success" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "approved") }}>Approve</Button>
-                                                                    <Button disabled={isLoading} variant="danger" size="sm" onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "rejected") }}>Reject</Button>
-                                                                </>
-                                                            }
-                                                        </>
-                                                }
+                <Modal size="lg" show={showUserDetailsModal} onHide={() => setShowUserDetailsModal(false)}>
+                    <Modal.Body className="tw-p-0">
+                        <div className="ui">
+                            <div className="tw-flex tw-items-start tw-gap-4 tw-border-b tw-border-slate-100 tw-p-6">
+                                <Photo user={selectedUser} size="lg" />
+                                <div className="tw-min-w-0 tw-flex-1">
+                                    <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                                        <div>
+                                            <h2 className="tw-text-lg tw-font-semibold tw-text-slate-900">{selectedUser.fullName || "No name"}</h2>
+                                            <p className="tw-text-sm tw-capitalize tw-text-slate-500">
+                                                {selectedUser.userType} · #{selectedUser.idUsers}
                                             </p>
-                                            <hr />
-                                            {/* Served through an authenticated route rather than the
-                                                public bucket URL. These are national ID cards; the route
-                                                checks that the caller is the owner or an admin and
-                                                redirects to a five-minute presigned URL. It takes the
-                                                user id, not a filename, so a leaked filename grants
-                                                nothing. */}
-                                            <Row>
-                                                <Col>
-                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=front`} alt="NID Front"></img>
-                                                </Col>
-                                                <Col>
-                                                    <img width={"100%"} src={`/api/files/nid/${selectedUser!.idUsers}?side=back`} alt="NID Back"></img>
-                                                </Col>
-                                            </Row>
-                                        </>
-                                    }
-                                </Col>
-                            </Col>
-                        </Row>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowUserDetailsModal(false)}
+                                            className="tw-rounded-lg tw-p-1.5 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-600"
+                                            aria-label="Close"
+                                        >
+                                            <X className="tw-h-5 tw-w-5" aria-hidden />
+                                        </button>
+                                    </div>
+                                    <div className="tw-mt-3 tw-space-y-2 tw-text-sm">
+                                        <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                            <span className="tw-w-14 tw-text-slate-500">Email</span>
+                                            <span className="tw-text-slate-800">{selectedUser.email || "—"}</span>
+                                            <Verified ok={selectedUser.emailVerified == "yes"} />
+                                            {selectedUser.emailVerified != "yes" && (
+                                                <Button size="sm" variant="primary" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "email") }}>
+                                                    Mark as verified
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                            <span className="tw-w-14 tw-text-slate-500">Phone</span>
+                                            <span className="tw-tabular-nums tw-text-slate-800">{selectedUser.phoneNumber || "—"}</span>
+                                            <Verified ok={selectedUser.phoneVerified == "yes"} />
+                                            {selectedUser.phoneVerified != "yes" && (
+                                                <Button size="sm" variant="primary" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "phone") }}>
+                                                    Mark as verified
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <dl className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-3 tw-p-6 tw-text-sm sm:tw-grid-cols-2">
+                                {(
+                                    [
+                                        ["Date of birth", selectedUser.dateOfBirth ? date(String(selectedUser.dateOfBirth)) : "—"],
+                                        ["Age", selectedUser.age],
+                                        ["Location", selectedUser.location],
+                                        ["Role", selectedUser.role],
+                                        ["Education", selectedUser.education],
+                                        ["Disability", selectedUser.disability],
+                                        ["Partner type", selectedUser.partnerType],
+                                        ["Interested in", selectedUser.interestedIn],
+                                        ["Skills", selectedUser.skills],
+                                    ] as [string, React.ReactNode][]
+                                ).map(([label, value]) => (
+                                    <div key={label}>
+                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">{label}</dt>
+                                        <dd className="tw-mt-0.5 tw-text-slate-800">{value || "—"}</dd>
+                                    </div>
+                                ))}
+                                <div className="sm:tw-col-span-2">
+                                    <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bio</dt>
+                                    <dd className="tw-mt-0.5 tw-whitespace-pre-line tw-text-slate-800">{selectedUser.bio || "—"}</dd>
+                                </div>
+                            </dl>
+
+                            {selectedUser.nidVerificationStatus != "none" && (
+                                <div className="tw-border-t tw-border-slate-100 tw-p-6">
+                                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                        <h3 className="tw-text-sm tw-font-semibold tw-text-slate-900">NID</h3>
+                                        <span className="tw-text-sm tw-tabular-nums tw-text-slate-600">{selectedUser.nidNumber}</span>
+                                        {selectedUser.nidVerified == "yes" ? (
+                                            <Pill tone="green">Verified</Pill>
+                                        ) : (
+                                            <Pill tone={selectedUser.nidVerificationStatus == "rejected" ? "rose" : "amber"}>{capitalise(selectedUser.nidVerificationStatus)}</Pill>
+                                        )}
+                                        {selectedUser.nidVerified != "yes" && selectedUser.nidVerificationStatus == "pending" && (
+                                            <span className="tw-ml-auto tw-flex tw-gap-2">
+                                                <Button size="sm" variant="success" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "approved") }}>
+                                                    Approve
+                                                </Button>
+                                                <Button size="sm" variant="danger" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "rejected") }}>
+                                                    Reject
+                                                </Button>
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* Served through an authenticated route rather than the
+                                        public bucket URL. These are national ID cards; the route
+                                        checks that the caller is the owner or an admin and
+                                        redirects to a five-minute presigned URL. It takes the
+                                        user id, not a filename, so a leaked filename grants
+                                        nothing. */}
+                                    <div className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2">
+                                        {(["front", "back"] as const).map((side) => (
+                                            <figure key={side} className="tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img className="tw-w-full" src={`/api/files/nid/${selectedUser.idUsers}?side=${side}`} alt={`NID ${side}`} />
+                                                <figcaption className="tw-border-t tw-border-slate-200 tw-px-3 tw-py-1.5 tw-text-xs tw-capitalize tw-text-slate-500">{side}</figcaption>
+                                            </figure>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </Modal.Body>
                 </Modal>
             )}
             {bankModalUser && bankModalUser.UserBanks && (
-                <Modal
-                    size="lg"
-                    show={showBankModal}
-                    onHide={() => setShowBankModal(false)}
-                >
+                <Modal size="lg" show={showBankModal} onHide={() => setShowBankModal(false)}>
                     <Modal.Header closeButton>
-                        <Modal.Title>Bank Information — {bankModalUser.fullName}</Modal.Title>
+                        <Modal.Title>Bank information — {bankModalUser.fullName}</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        {bankModalUser.UserBanks.map((ub, i) => (
-                            <div key={i} className={i > 0 ? "mt-4 pt-4 border-top" : ""}>
-                                <p className="my-1"><strong>Account Name:</strong> {ub.accountHolderName}</p>
-                                <p className="my-1"><strong>Account Number:</strong> {ub.accountNumber}</p>
-                                {ub.Bank && (
-                                    <p className="my-1"><strong>Bank:</strong> {ub.Bank.bankNameFull} ({ub.Bank.bankNameShort})</p>
-                                )}
-                                {ub.BankBranch && (
-                                    <>
-                                        <p className="my-1"><strong>Branch:</strong> {ub.BankBranch.branchName}</p>
-                                        <p className="my-1"><strong>Routing Number:</strong> {ub.BankBranch.routingNumber}</p>
-                                    </>
-                                )}
-                            </div>
-                        ))}
+                        <div className="ui tw-space-y-3">
+                            {bankModalUser.UserBanks.map((ub, i) => (
+                                <dl key={i} className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-2 tw-rounded-xl tw-border tw-border-slate-200 tw-p-4 tw-text-sm sm:tw-grid-cols-2">
+                                    <div>
+                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account name</dt>
+                                        <dd className="tw-mt-0.5 tw-text-slate-800">{ub.accountHolderName}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account number</dt>
+                                        <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.accountNumber}</dd>
+                                    </div>
+                                    {ub.Bank && (
+                                        <div>
+                                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bank</dt>
+                                            <dd className="tw-mt-0.5 tw-text-slate-800">
+                                                {ub.Bank.bankNameFull} ({ub.Bank.bankNameShort})
+                                            </dd>
+                                        </div>
+                                    )}
+                                    {ub.BankBranch && (
+                                        <>
+                                            <div>
+                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Branch</dt>
+                                                <dd className="tw-mt-0.5 tw-text-slate-800">{ub.BankBranch.branchName}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Routing number</dt>
+                                                <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.BankBranch.routingNumber}</dd>
+                                            </div>
+                                        </>
+                                    )}
+                                </dl>
+                            ))}
+                        </div>
                     </Modal.Body>
                 </Modal>
             )}
-        </Container>
+        </div>
     );
 };
 
@@ -585,6 +549,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     if (!requireAdminPage(context)) return redirectToLogin;
 
     const users = await User.findAll({
+        // Everything the page shows, minus the password hash: it is never
+        // displayed, and every row's hash was being serialised into the HTML.
+        attributes: { exclude: ['password'] },
         order: [['idUsers', 'DESC']],
         include: [
             {
