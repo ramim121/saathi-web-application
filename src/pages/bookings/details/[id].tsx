@@ -18,6 +18,8 @@ interface DetailsProps {
     idUsers: number;
     bookingId: string;
     cancelled: string;
+    /** `fresh` or `reinvestment`. A reinvestment carries no payment method. */
+    bookingType?: string;
     idUserBanks: number;
     User: {
         fullName: string;
@@ -110,6 +112,21 @@ function investorNidState(user?: { nidVerified?: string; nidVerificationStatus?:
         return { approved: false, label: 'Rejected', badge: 'bg-danger' };
     }
     return { approved: false, label: 'Not submitted', badge: 'bg-secondary' };
+}
+
+/**
+ * Price paid per unit on one investment line: recorded money / units.
+ *
+ * Units come from the partner rows, which is where the money is recorded too,
+ * so the two always describe the same thing. Falls back to the line's own unit
+ * count if a partner row carries no units.
+ */
+function unitPricePaid(line: { unitPurchased: number; ProjectPartnerInvestors: { amountInvested: number; investedUnit: number }[] }) {
+    const partners = line.ProjectPartnerInvestors ?? [];
+    const amount = partners.reduce((sum, p) => sum + Number(p.amountInvested || 0), 0);
+    const units = partners.reduce((sum, p) => sum + Number(p.investedUnit || 0), 0) || Number(line.unitPurchased || 0);
+    if (!units) return '—';
+    return (amount / units).toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 interface FormDataProps {
@@ -1033,7 +1050,12 @@ function Details() {
                                     <tr>
                                         <td>Payment Method</td>
                                         <td>
-                                            {details.paymentMethod?.charAt(0).toUpperCase() + details.paymentMethod?.slice(1)}
+                                            {/* A reinvestment has no payment method — the money came
+                                                from a finished investment, not a transfer. The old
+                                                expression added two `undefined`s and printed "NaN". */}
+                                            {details.paymentMethod
+                                                ? details.paymentMethod.charAt(0).toUpperCase() + details.paymentMethod.slice(1)
+                                                : details.bookingType === 'reinvestment' ? 'Reinvestment' : '—'}
                                         </td>
                                     </tr>
                                     <tr>
@@ -1188,7 +1210,18 @@ function Details() {
                                                 {project.Project.duration} {project.Project.tenure?.charAt(0).toUpperCase() + project.Project.tenure?.slice(1) + '(' + project.Project.returnRangeMin + '% -' + project.Project.returnRangeMax + '%'}
                                             </td>
                                             <td>
-                                                {project.ProjectPartnerInvestors[0]?.amountInvested}
+                                                {/* What the investor paid per unit: the money recorded
+                                                    on this line divided by its units.
+
+                                                    This cell used to print the amount allocated to the
+                                                    FIRST partner, which only equals the unit price when
+                                                    that partner holds exactly one unit. A 12-unit
+                                                    booking at 25,000 split 4/4/4 showed 100,000.
+
+                                                    Taken from the booking's own figures rather than the
+                                                    project's current price, so it stays right if the
+                                                    project is repriced later. */}
+                                                {unitPricePaid(project)}
                                             </td>
                                             <td>
                                                 {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
