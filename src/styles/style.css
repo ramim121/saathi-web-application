@@ -838,7 +838,14 @@ body {
     cursor: pointer;
   }
   
-  a {
+  /*
+   * Links take their text colour from what they sit in, on every Bootstrap
+   * page. Redesigned screens (`.ui`) are excluded: there a link's colour comes
+   * from its Tailwind class, and an !important `inherit` here silently beat
+   * every one of them (the new sidebar's labels rendered dark on navy).
+   * Inside `.ui`, links without a colour class still inherit — ui.css does that.
+   */
+  a:not(.ui a) {
     color: inherit !important;
   }
   
