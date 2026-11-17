@@ -7,6 +7,7 @@ import { requireAdminPage, redirectToLogin } from '@/utils/pageAuth';
 import { loadDashboard, type Dashboard } from '@/utils/dashboard';
 import { loadDashboardDetail, type DashboardDetail } from '@/utils/dashboardDetail';
 import { DashboardView } from '@/components/dashboard/DashboardView';
+import { ArrowRight, CalendarCheck2, FolderKanban, Handshake, Users, type LucideIcon } from 'lucide-react';
 
 /**
  * Admin landing page.
@@ -28,13 +29,13 @@ import { DashboardView } from '@/components/dashboard/DashboardView';
  * useful for navigation.
  */
 
-type Shortcut = { href: string; title: string; body: string };
+type Shortcut = { href: string; title: string; body: string; icon: LucideIcon };
 
 const SHORTCUTS: Shortcut[] = [
-    { href: '/bookings/list', title: 'Bookings', body: 'Confirm payments, review proof, cancel.' },
-    { href: '/users', title: 'Investors', body: 'Verify NIDs, check contact details.' },
-    { href: '/projects/list', title: 'Projects', body: 'Units, pricing, partner assignment.' },
-    { href: '/partners/list', title: 'Partners', body: 'Shathi partners and their capacity.' },
+    { href: '/bookings/list', title: 'Bookings', body: 'Confirm payments, review proof, cancel.', icon: CalendarCheck2 },
+    { href: '/users', title: 'Investors', body: 'Verify NIDs, check contact details.', icon: Users },
+    { href: '/projects/list', title: 'Projects', body: 'Units, pricing, partner assignment.', icon: FolderKanban },
+    { href: '/partners/list', title: 'Partners', body: 'Shathi partners and their capacity.', icon: Handshake },
 ];
 
 type Props = {
@@ -45,33 +46,38 @@ type Props = {
 
 export default function Home({ dashboard, detail, error }: Props) {
     return (
-        <div className="container-fluid py-4">
+        <div className="ui">
             {error && (
-                <div className="alert alert-warning" role="alert">
+                <div className="tw-mb-6 tw-rounded-2xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-4 tw-text-sm tw-text-amber-900" role="alert">
                     <strong>The dashboard could not be loaded.</strong> {error}
-                    <div className="small mt-1">
-                        The sections below still work — only the figures on this page are affected.
-                    </div>
+                    <div className="tw-mt-1 tw-text-xs tw-text-amber-800">The sections below still work — only the figures on this page are affected.</div>
                 </div>
             )}
 
             {dashboard && detail && <DashboardView data={dashboard} detail={detail} />}
 
-            <div className="row g-3 mt-1">
-                {SHORTCUTS.map((item) => (
-                    <div className="col-12 col-sm-6 col-lg-3" key={item.href}>
-                        <Link href={item.href} className="text-decoration-none">
-                            <div className="card h-100">
-                                <div className="card-body py-3">
-                                    <div className="fw-bold text-dark">{item.title}</div>
-                                    <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                                        {item.body}
-                                    </div>
-                                </div>
-                            </div>
+            <div className="tw-mt-6 tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 lg:tw-grid-cols-4">
+                {SHORTCUTS.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className="tw-group tw-flex tw-items-start tw-gap-3 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-card tw-transition hover:-tw-translate-y-px hover:tw-shadow-pop"
+                        >
+                            <span className="tw-inline-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl tw-bg-brand-50 tw-text-brand-700">
+                                <Icon className="tw-h-[18px] tw-w-[18px]" aria-hidden />
+                            </span>
+                            <span className="tw-min-w-0">
+                                <span className="tw-flex tw-items-center tw-gap-1 tw-text-sm tw-font-semibold tw-text-slate-900 group-hover:tw-text-brand-700">
+                                    {item.title}
+                                    <ArrowRight className="tw-h-3.5 tw-w-3.5 tw-opacity-0 tw-transition group-hover:tw-opacity-100" aria-hidden />
+                                </span>
+                                <span className="tw-mt-0.5 tw-block tw-text-xs tw-text-slate-500">{item.body}</span>
+                            </span>
                         </Link>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
