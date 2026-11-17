@@ -36,6 +36,7 @@ export function investmentStatus(status: string | null | undefined): { label: st
             return { label: 'Paid out', tone: 'slate' };
         case 'reinvested_capital':
         case 'reinvested_full':
+        case 'reinvested_profit':
             return { label: 'Rolled over', tone: 'violet' };
         case 'cancelled':
             return { label: 'Cancelled', tone: 'rose' };
@@ -58,25 +59,30 @@ export function capitalise(value: string | null | undefined): string {
  * formatToParts (not .format) also keeps the punctuation identical, because
  * Node's and Chrome's ICU versions disagree on joiners like ", " vs " at ".
  */
-const DHAKA_PARTS = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Dhaka',
-    day: 'numeric',
-    month: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-});
+const partsIn = (timeZone: string) =>
+    new Intl.DateTimeFormat('en-GB', {
+        timeZone,
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    });
+const DHAKA_PARTS = partsIn('Asia/Dhaka');
+const UTC_PARTS = partsIn('UTC');
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function dhakaParts(value: string | number | Date | null | undefined) {
+function zoneParts(value: string | number | Date | null | undefined, format: Intl.DateTimeFormat) {
     if (!value) return null;
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     const p: Record<string, string> = {};
-    for (const part of DHAKA_PARTS.formatToParts(d)) p[part.type] = part.value;
+    for (const part of format.formatToParts(d)) p[part.type] = part.value;
     return { day: Number(p.day), month: Number(p.month), year: p.year, hour: p.hour, minute: p.minute };
 }
+
+const dhakaParts = (value: string | number | Date | null | undefined) => zoneParts(value, DHAKA_PARTS);
 
 /** d/m/yyyy in Bangladesh time — the same text on the server and in every browser. */
 export function dhakaDmy(value: string | number | Date | null | undefined): string {
@@ -87,5 +93,15 @@ export function dhakaDmy(value: string | number | Date | null | undefined): stri
 /** "17 Nov 2026, 21:40" in Bangladesh time. */
 export function dhakaStamp(value: string | number | Date | null | undefined): string {
     const p = dhakaParts(value);
+    return p ? `${p.day} ${MONTHS[p.month - 1]} ${p.year}, ${p.hour}:${p.minute}` : '—';
+}
+
+/**
+ * "20 Nov 2026, 22:00" as stored, read as UTC. For columns the API writes as
+ * wall-clock text rather than as an instant (a cheque or cash collection
+ * time), which the old screens also displayed in UTC.
+ */
+export function utcStamp(value: string | number | Date | null | undefined): string {
+    const p = zoneParts(value, UTC_PARTS);
     return p ? `${p.day} ${MONTHS[p.month - 1]} ${p.year}, ${p.hour}:${p.minute}` : '—';
 }

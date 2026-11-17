@@ -13,6 +13,15 @@ export function bdt(value: number | null | undefined): string {
     return `${sign}৳${grouped.format(Math.round(Math.abs(value)))}`;
 }
 
+const groupedExact = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
+
+/** ৳25,000 or ৳33,333.33 — keeps paisa when there are any (unit prices, receipts). */
+export function bdtExact(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+    const sign = value < 0 ? '−' : '';
+    return `${sign}৳${groupedExact.format(Math.abs(value))}`;
+}
+
 function trimmed(x: number): string {
     const fixed = x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
     return fixed.includes('.') ? fixed.replace(/0+$/, '').replace(/\.$/, '') : fixed;
