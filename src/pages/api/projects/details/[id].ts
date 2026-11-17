@@ -168,8 +168,9 @@ export async function getProjectDetails(projectId: string) {
                 include: [
                     {
                         model: User,
-                        // SECURITY: public route — `phoneNumber` removed. See note above.
-                        attributes: ['fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate',
+                        // Admin only (the page and the admin branch of this route both
+                        // check), so the partner's phone is back: the Partners tab shows it.
+                        attributes: ['idUsers', 'fullName', 'phoneNumber', 'role', 'location', 'interestedIn', 'disability', 'joiningDate',
                             'fullNameBn', 'roleBn', 'locationBn', 'interestedInBn'],
                         include: [
                             { model: File, as: 'ProfilePicture' }

@@ -45,6 +45,41 @@ export function investmentStatus(status: string | null | undefined): { label: st
     }
 }
 
+/** The project lifecycle (`projects.project_status`), in order. */
+export const PROJECT_STATUSES: { value: string; label: string; tone: Tone }[] = [
+    { value: 'created', label: 'Created', tone: 'slate' },
+    { value: 'collection_started', label: 'Collecting', tone: 'sky' },
+    { value: 'collection_done', label: 'Collection done', tone: 'violet' },
+    { value: 'project_started', label: 'Running', tone: 'green' },
+    { value: 'project_finished', label: 'Finished', tone: 'amber' },
+    { value: 'fund_disbursed', label: 'Funds disbursed', tone: 'green' },
+    { value: 'closed', label: 'Closed', tone: 'slate' },
+    { value: 'completed', label: 'Completed', tone: 'slate' },
+];
+
+export function projectStatus(status: string | null | undefined): { label: string; tone: Tone } {
+    const known = PROJECT_STATUSES.find((s) => s.value === status);
+    return known ? { label: known.label, tone: known.tone } : { label: status ? status.replace(/_/g, ' ') : '—', tone: 'slate' };
+}
+
+/** "Sustainable return" from `sustainable_return`. */
+export function words(value: string | null | undefined): string {
+    if (!value) return '—';
+    const spaced = value.replace(/_/g, ' ');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** "15%" when min and max agree (a fixed return), "15–20%" otherwise. */
+export function returnRange(min: number | string | null | undefined, max: number | string | null | undefined): string {
+    const lo = Number(min);
+    const hi = Number(max);
+    if (!Number.isFinite(lo) && !Number.isFinite(hi)) return '—';
+    if (!Number.isFinite(hi) || lo === hi) return `${trimPct(lo)}%`;
+    return `${trimPct(lo)}–${trimPct(hi)}%`;
+}
+
+const trimPct = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2))));
+
 export function capitalise(value: string | null | undefined): string {
     if (!value) return '—';
     return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');

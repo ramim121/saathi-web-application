@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, Row, Col, Button, Card, Table } from "react-bootstrap";
 import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions, postRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
-import Select, { components } from "react-select";
-import { PersonBadge, Telephone, GeoAltFill, Calendar2CheckFill, BookmarkFill, Calendar2RangeFill } from 'react-bootstrap-icons';
+import ReactSelect from "react-select";
 import Link from "next/link";
+import { ArrowUpRight, Network, Trash2 } from "lucide-react";
+import { Avatar, Card, cx } from "@/ui/primitives";
+import { Button, Field, Input, Required } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { selectStyles } from "@/ui/select";
+import { date } from "@/ui/format";
 
 interface PartnerProps {
 	idUsers: number,
@@ -16,28 +20,24 @@ interface PartnerProps {
 	joiningDate: string,
 	label: string,
 	value: number,
-	Partnerships: [
-		{
-			idProjectPartners: number,
-			Project: {
-				idProjects: number,
-				projectName: string,
-				location: string
-			},
-			partnerUnitCapacity: number,
-			alreadyInvested: number,
-			ProjectPartnerInvestors: [
-				{
-					ProjectInvestor: {
-						ProjectInvestmentBooking: {
-							bookingId: number,
-							idProjectInvestmentBookings: number
-						}
-					}
+	Partnerships: {
+		idProjectPartners: number,
+		Project: {
+			idProjects: number,
+			projectName: string,
+			location: string
+		},
+		partnerUnitCapacity: number,
+		alreadyInvested: number,
+		ProjectPartnerInvestors: {
+			ProjectInvestor: {
+				ProjectInvestmentBooking: {
+					bookingId: number,
+					idProjectInvestmentBookings: number
 				}
-			]
-		}
-	]
+			}
+		}[]
+	}[]
 }
 
 interface ProjectProps {
@@ -49,31 +49,6 @@ interface ProjectProps {
 	label: string,
 	value: number
 }
-
-
-const CustomOptionPartner = ({ data, ...props }: { data: PartnerProps, [key: string]: any }) => (
-	// @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
-	<components.Option {...props}>
-		<PersonBadge /> Name: {data.label}
-		<br />
-		<Telephone /> Mobile: {data.phoneNumber}
-		<br />
-		<GeoAltFill /> Location: {data.location}
-		<br />
-		<Calendar2CheckFill /> Joining Date: {data.joiningDate}
-	</components.Option>
-);
-
-const CustomOptionProject = ({ data, ...props }: { data: ProjectProps, [key: string]: any }) => (
-	// @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
-	<components.Option {...props}>
-		<BookmarkFill /> Project: {data.label}
-		<br />
-		<Calendar2RangeFill /> Tenure: {data.duration} {data.tenure}
-		<br />
-		<GeoAltFill /> Location: {data.location}
-	</components.Option>
-);
 
 function PartnerAssign() {
 	const [partnersList, setPartnersList] = useState<PartnerProps[]>([]);
@@ -244,120 +219,170 @@ function PartnerAssign() {
 		});
 	}
 
-	return (
-		<Container>
-			<h4 className="text-start">Partner Assign</h4>
-			<hr />
-			<Form onSubmit={handleSubmit}>
-				<Row>
-					<Col md={8}>
-						<Form.Group as={Row} className='mb-3'>
-							<Form.Label column sm='4' >Select Partner <span className='text-danger'>*</span></Form.Label>
-							<Col sm='8'>
-								<Select
-									options={partnersList}
-									isSearchable
-									isClearable
-									placeholder='Select Partner'
-									onChange={(selectedOption: any) => setSelectedPartner(selectedOption)}
-									value={selectedPartner}
-									components={{ Option: CustomOptionPartner }}
-								/>
-							</Col>
-						</Form.Group>
-						<Form.Group as={Row} className='mb-3'>
-							<Form.Label column sm='4' >Select Project <span className='text-danger'>*</span></Form.Label>
-							<Col sm='8'>
-								<Select
-									options={projectList}
-									isSearchable
-									isClearable
-									placeholder='Select Project'
-									components={{ Option: CustomOptionProject }}
-									onChange={(selectedOption: any) => setSelectedProject(selectedOption)}
-									value={selectedProject}
-									isDisabled={selectedPartner === null}
-								/>
-							</Col>
-						</Form.Group>
-						<Form.Group as={Row} className='mb-3'>
-							<Form.Label column sm='4' >Unit Capacity <span className='text-danger'>*</span></Form.Label>
-							<Col sm='8'>
-								<Form.Control type='number' value={partnerUnitCapacity} onChange={(e) => setPartnerUnitCapacity(parseInt(e.target.value))} />
-							</Col>
-						</Form.Group>
-						<Row>
-							<Col sm='4'></Col>
-							<Col sm='8'>
-								<Row className='justify-content-center'>
-									<Button className='w-50' variant="primary" type="submit">
-										Submit
-									</Button>
-								</Row>
-							</Col>
-						</Row>
-					</Col>
-				</Row>
-				<Row>
-					<Col className="pt-4" md={12}>
-						<Card>
-							<Card.Header>Existing Projects of Partner</Card.Header>
-							<Card.Body>
-								<Table size="sm">
-									<thead>
-										<tr>
-											<th>#</th>
-											<th>Project name</th>
-											<th>Location</th>
-											<th>Unit Capacity</th>
-											<th>Already Invested</th>
-											<th>Remaining Capacity</th>
-											<th>Booking info</th>
-											<th>Action</th>
-										</tr>
-									</thead>
-									<tbody>
-										{selectedPartner && selectedPartner.Partnerships.map((project, index: number) => (
-											<tr key={index}>
-												<td>{project.Project?.idProjects}</td>
-												<td>{project.Project?.projectName}</td>
-												<td>{project.Project?.location}</td>
-												<td className="text-center">{project.partnerUnitCapacity}</td>
-												<td className="text-center">{project.alreadyInvested}</td>
-												<td className="text-center">{project.partnerUnitCapacity - project?.alreadyInvested}</td>
-												<td>
-													{project.ProjectPartnerInvestors!
-														.map((investor, i, array) => {
-															const bookingId = investor?.ProjectInvestor?.ProjectInvestmentBooking?.bookingId;
-															const bookingUrl = `/bookings/details/${investor?.ProjectInvestor?.ProjectInvestmentBooking?.idProjectInvestmentBookings}`;
-															if (bookingId) {
-																return (
-																	<span key={bookingId}>
-																		<Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
-																			{bookingId}
-																		</Link>
-																		{i < array.length - 1 && ', '} {/* Add a comma except after the last item */}
-																	</span>
-																);
-															}
-															return null;
-														})
-														.filter(Boolean)}
-												</td>
-												<td>
-													{Number(project.alreadyInvested) === 0 && <Button variant="danger" size="sm" onClick={() => handleDelete(project.idProjectPartners)}>Delete</Button>}
-												</td>
+	const partnerships = selectedPartner?.Partnerships ?? [];
 
-											</tr>
-										))}
-									</tbody>
-								</Table>
-							</Card.Body>
-						</Card>
-					</Col>
-				</Row>
-			</Form>
-		</Container>
+	return (
+		<div className="ui">
+			<PageHeader
+				eyebrow="Projects"
+				title="Assign partners"
+				description="Choose a partner, then add them to a project with the number of units they can hold. Their current projects are listed alongside."
+			/>
+
+			<div className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-[22rem_minmax(0,1fr)]">
+				<Card className="tw-p-5">
+					<form onSubmit={handleSubmit} className="tw-space-y-4">
+						<Field label={<>Partner<Required /></>}>
+							<ReactSelect<PartnerProps>
+								instanceId="partner"
+								inputId="partner"
+								options={partnersList}
+								isSearchable
+								isClearable
+								placeholder="Search partners"
+								styles={selectStyles<PartnerProps>()}
+								onChange={(selectedOption: any) => setSelectedPartner(selectedOption)}
+								value={selectedPartner}
+								formatOptionLabel={(option, { context }) =>
+									context === 'menu' ? (
+										<div>
+											<div className="tw-font-medium">{option.label}</div>
+											<div className="tw-text-xs tw-text-slate-500">
+												{[option.phoneNumber, option.location, option.joiningDate ? `joined ${date(String(option.joiningDate))}` : null].filter(Boolean).join(' · ')}
+											</div>
+										</div>
+									) : (
+										option.label
+									)
+								}
+							/>
+						</Field>
+						<Field label={<>Project<Required /></>} hint={selectedPartner ? 'Projects this partner is not on yet.' : 'Choose a partner first.'}>
+							<ReactSelect<ProjectProps>
+								instanceId="project"
+								inputId="project"
+								options={projectList}
+								isSearchable
+								isClearable
+								placeholder="Search projects"
+								styles={selectStyles<ProjectProps>()}
+								onChange={(selectedOption: any) => setSelectedProject(selectedOption)}
+								value={selectedProject}
+								isDisabled={selectedPartner === null}
+								formatOptionLabel={(option, { context }) =>
+									context === 'menu' ? (
+										<div>
+											<div className="tw-font-medium">{option.label}</div>
+											<div className="tw-text-xs tw-text-slate-500">
+												{option.duration} {option.tenure}
+												{option.location ? ` · ${option.location}` : ''}
+											</div>
+										</div>
+									) : (
+										option.label
+									)
+								}
+							/>
+						</Field>
+						<Field label={<>Unit capacity<Required /></>} hint="How many units this partner can hold on the project.">
+							{/* Blank instead of "0" (or NaN once cleared): typing into "0" gave 50 for 5. */}
+							<Input type='number' min={0} placeholder="e.g. 10" value={partnerUnitCapacity ? partnerUnitCapacity : ''} onChange={(e) => setPartnerUnitCapacity(parseInt(e.target.value))} />
+						</Field>
+						<Button variant="primary" type="submit" className="tw-w-full">
+							<Network className="tw-h-4 tw-w-4" aria-hidden /> Assign partner
+						</Button>
+					</form>
+				</Card>
+
+				<TableCard
+					toolbar={
+						selectedPartner ? (
+							<div className="tw-flex tw-items-center tw-gap-3">
+								<Avatar name={selectedPartner.fullName || '?'} seed={selectedPartner.idUsers} size="sm" />
+								<div className="tw-min-w-0">
+									<p className="tw-text-sm tw-font-semibold tw-text-slate-900">{selectedPartner.fullName}&apos;s projects</p>
+									<p className="tw-text-xs tw-text-slate-500">{[selectedPartner.phoneNumber, selectedPartner.location].filter(Boolean).join(' · ') || '—'}</p>
+								</div>
+							</div>
+						) : (
+							<p className="tw-text-sm tw-font-semibold tw-text-slate-900">Current projects</p>
+						)
+					}
+				>
+					<thead>
+						<tr>
+							<th className={TH}>Project</th>
+							<th className={cx(TH, 'tw-text-right')}>Capacity</th>
+							<th className={cx(TH, 'tw-text-right')}>Invested</th>
+							<th className={cx(TH, 'tw-text-right')}>Remaining</th>
+							<th className={TH}>Bookings</th>
+							<th className={cx(TH, 'tw-text-right')}>
+								<span className="tw-sr-only">Actions</span>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						{!selectedPartner ? (
+							<EmptyRow colSpan={6} title="Choose a partner" hint="Their projects, capacity and bookings will show here." />
+						) : partnerships.length === 0 ? (
+							<EmptyRow colSpan={6} title="Not on any project yet" />
+						) : (
+							partnerships.map((project) => {
+								const bookings = (project.ProjectPartnerInvestors ?? [])
+									.map((investor) => investor?.ProjectInvestor?.ProjectInvestmentBooking)
+									.filter((booking) => booking?.bookingId);
+								return (
+									<tr key={project.idProjectPartners} className={TR}>
+										<td className={TD}>
+											<Link href={`/projects/details/${project.Project?.idProjects}`} className="tw-font-medium tw-text-slate-900 hover:tw-text-brand-700">
+												{project.Project?.projectName}
+											</Link>
+											<div className="tw-text-xs tw-text-slate-500">
+												#{project.Project?.idProjects}
+												{project.Project?.location ? ` · ${project.Project.location}` : ''}
+											</div>
+										</td>
+										<td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{project.partnerUnitCapacity}</td>
+										<td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{project.alreadyInvested}</td>
+										<td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{project.partnerUnitCapacity - project?.alreadyInvested}</td>
+										<td className={TD}>
+											<div className="tw-flex tw-flex-wrap tw-gap-1">
+												{bookings.length === 0 ? (
+													<span className="tw-text-xs tw-text-slate-400">None</span>
+												) : (
+													bookings.map((booking) => (
+														<Link
+															key={booking!.idProjectInvestmentBookings}
+															href={`/bookings/details/${booking!.idProjectInvestmentBookings}`}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="tw-inline-flex tw-items-center tw-gap-0.5 tw-rounded-md tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-700 hover:tw-bg-brand-50 hover:tw-text-brand-700"
+														>
+															{booking!.bookingId}
+															<ArrowUpRight className="tw-h-3 tw-w-3" aria-hidden />
+														</Link>
+													))
+												)}
+											</div>
+										</td>
+										<td className={cx(TD, 'tw-text-right')}>
+											{/* Only when nothing is allocated through this partnership: the
+											    database refuses to delete one that has allocations (past or
+											    pending), so the button could only ever fail there. */}
+											{Number(project.alreadyInvested) === 0 && (project.ProjectPartnerInvestors ?? []).length === 0 && (
+												<Button size="sm" variant="danger-outline" onClick={() => handleDelete(project.idProjectPartners)}>
+													<Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden /> Remove
+												</Button>
+											)}
+										</td>
+									</tr>
+								);
+							})
+						)}
+					</tbody>
+				</TableCard>
+			</div>
+		</div>
 	);
 }
 

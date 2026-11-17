@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Form, Row, Col, Button, Card, Table } from 'react-bootstrap';
 import MainLayout from '@/layouts/MainLayout';
 import { API_URL } from '@/config/public';
 import { deleteRequestOptions, getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
-import Select, { components } from 'react-select';
-import { BookmarkFill, Calendar2RangeFill, GeoAltFill, PersonBadge, Telephone } from 'react-bootstrap-icons';
+import ReactSelect from 'react-select';
+import { Link2, Plus, Trash2, X } from 'lucide-react';
+import { Avatar, Card, cx } from '@/ui/primitives';
+import { Button, Field, Input, Required } from '@/ui/controls';
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from '@/ui/layout';
+import { selectStyles } from '@/ui/select';
 
 interface ProjectOption {
     idProjects: number;
@@ -44,27 +47,28 @@ interface ExistingProjectPartner {
     };
 }
 
-const CustomOptionProject = ({ data, ...props }: { data: ProjectOption; [key: string]: any }) => (
-    // @ts-expect-error This error is expected because the props are spread into the component.
-    <components.Option {...props}>
-        <BookmarkFill /> Project: {data.label}
-        <br />
-        <Calendar2RangeFill /> Tenure: {data.duration} {data.tenure}
-        <br />
-        <GeoAltFill /> Location: {data.location}
-    </components.Option>
-);
+const projectLabel = (option: ProjectOption, { context }: { context: 'menu' | 'value' }) =>
+    context === 'menu' ? (
+        <div>
+            <div className="tw-font-medium">{option.label}</div>
+            <div className="tw-text-xs tw-text-slate-500">
+                {option.duration} {option.tenure}
+                {option.location ? ` · ${option.location}` : ''}
+            </div>
+        </div>
+    ) : (
+        option.label
+    );
 
-const CustomOptionPartner = ({ data, ...props }: { data: PartnerOption; [key: string]: any }) => (
-    // @ts-expect-error This error is expected because the props are spread into the component.
-    <components.Option {...props}>
-        <PersonBadge /> Name: {data.label}
-        <br />
-        <Telephone /> Mobile: {data.phoneNumber}
-        <br />
-        <GeoAltFill /> Location: {data.location}
-    </components.Option>
-);
+const partnerLabel = (option: PartnerOption, { context }: { context: 'menu' | 'value' }) =>
+    context === 'menu' ? (
+        <div>
+            <div className="tw-font-medium">{option.label}</div>
+            <div className="tw-text-xs tw-text-slate-500">{[option.phoneNumber, option.location].filter(Boolean).join(' · ') || '—'}</div>
+        </div>
+    ) : (
+        option.label
+    );
 
 function ProjectAssign() {
     const [projectList, setProjectList] = useState<ProjectOption[]>([]);
@@ -277,154 +281,166 @@ function ProjectAssign() {
         });
     };
 
-    return (
-        <Container>
-            <h4 className="text-start">Project Assign</h4>
-            <hr />
-            <Form onSubmit={handleSubmit}>
-                <Row>
-                    <Col md={9}>
-                        <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="3">
-                                Select Project <span className="text-danger">*</span>
-                            </Form.Label>
-                            <Col sm="9">
-                                <Select
-                                    options={projectList}
-                                    isSearchable
-                                    isClearable
-                                    placeholder="Select Project"
-                                    components={{ Option: CustomOptionProject }}
-                                    onChange={(selectedOption: ProjectOption | null) => setSelectedProject(selectedOption)}
-                                    value={selectedProject}
-                                />
-                            </Col>
-                        </Form.Group>
+    const canAddPartners = Boolean(selectedProject) && partnersList.length > 0;
+    const menuPortalTarget = typeof document !== 'undefined' ? document.body : undefined;
 
-                        {assignRows.map((row, index) => (
-                            <Row className="mb-3" key={`assign-row-${index}`}>
-                                <Col sm={7}>
-                                    <Select
-                                        options={partnersList.filter((partner) => {
-                                            if (row.partner?.value === partner.value) {
-                                                return true;
+    return (
+        <div className="ui">
+            <PageHeader
+                eyebrow="Projects"
+                title="Assign projects"
+                description="Choose a project, then add partners and the number of units each can hold. Partners already on the project are listed below."
+            />
+
+            <Card className="tw-p-5">
+                <form onSubmit={handleSubmit} className="tw-space-y-5">
+                    <Field label={<>Project<Required /></>} className="tw-max-w-xl">
+                        <ReactSelect<ProjectOption>
+                            instanceId="project"
+                            inputId="project"
+                            options={projectList}
+                            isSearchable
+                            isClearable
+                            placeholder="Search projects"
+                            styles={selectStyles<ProjectOption>()}
+                            formatOptionLabel={projectLabel}
+                            onChange={(selectedOption: ProjectOption | null) => setSelectedProject(selectedOption)}
+                            value={selectedProject}
+                        />
+                    </Field>
+
+                    <div>
+                        <div className="tw-mb-2 tw-flex tw-items-center tw-justify-between tw-gap-3">
+                            <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Partners to add</p>
+                            {selectedProject && partnersList.length === 0 && <p className="tw-text-xs tw-text-slate-500">Every partner is already on this project.</p>}
+                        </div>
+                        <ul className="tw-space-y-2">
+                            {assignRows.map((row, index) => (
+                                <li key={`assign-row-${index}`} className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-rounded-xl tw-border tw-border-slate-200 tw-p-3 sm:tw-flex-nowrap">
+                                    <span className="tw-inline-flex tw-h-6 tw-w-6 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-slate-100 tw-text-xs tw-font-semibold tw-tabular-nums tw-text-slate-500">
+                                        {index + 1}
+                                    </span>
+                                    <div className="tw-min-w-[14rem] tw-flex-1">
+                                        <ReactSelect<PartnerOption>
+                                            instanceId={`partner-${index}`}
+                                            aria-label={`Partner ${index + 1}`}
+                                            options={partnersList.filter((partner) => {
+                                                if (row.partner?.value === partner.value) {
+                                                    return true;
+                                                }
+                                                return !selectedPartnerIds.includes(partner.value);
+                                            })}
+                                            isSearchable
+                                            isClearable
+                                            isDisabled={!selectedProject || partnersList.length === 0}
+                                            placeholder={`Partner ${index + 1}`}
+                                            styles={selectStyles<PartnerOption>()}
+                                            menuPortalTarget={menuPortalTarget}
+                                            formatOptionLabel={partnerLabel}
+                                            onChange={(selectedOption: PartnerOption | null) =>
+                                                handleRowChange(index, {
+                                                    ...row,
+                                                    partner: selectedOption
+                                                })
                                             }
-                                            return !selectedPartnerIds.includes(partner.value);
-                                        })}
-                                        isSearchable
-                                        isClearable
-                                        isDisabled={!selectedProject || partnersList.length === 0}
-                                        placeholder={`Select Partner ${index + 1}`}
-                                        components={{ Option: CustomOptionPartner }}
-                                        onChange={(selectedOption: PartnerOption | null) =>
-                                            handleRowChange(index, {
-                                                ...row,
-                                                partner: selectedOption
-                                            })
-                                        }
-                                        value={row.partner}
-                                    />
-                                </Col>
-                                <Col sm={3}>
-                                    <Form.Control
-                                        type="number"
-                                        min={1}
-                                        placeholder="Unit Capacity"
-                                        value={row.partnerUnitCapacity || ''}
-                                        onChange={(e) =>
-                                            handleRowChange(index, {
-                                                ...row,
-                                                partnerUnitCapacity: Number(e.target.value)
-                                            })
-                                        }
-                                        disabled={!selectedProject}
-                                    />
-                                </Col>
-                                <Col sm={2} className="d-flex gap-2">
-                                    <Button
-                                        variant="outline-danger"
+                                            value={row.partner}
+                                        />
+                                    </div>
+                                    {/* Sized by the wrapper: the input's own w-full would win over a width class. */}
+                                    <div className="tw-w-28 tw-shrink-0">
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            placeholder="Units"
+                                            aria-label={`Unit capacity for partner ${index + 1}`}
+                                            value={row.partnerUnitCapacity || ''}
+                                            onChange={(e) =>
+                                                handleRowChange(index, {
+                                                    ...row,
+                                                    partnerUnitCapacity: Number(e.target.value)
+                                                })
+                                            }
+                                            disabled={!selectedProject}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
                                         onClick={() => removeRow(index)}
                                         disabled={assignRows.length === 1}
+                                        className="tw-rounded-lg tw-p-2 tw-text-slate-400 tw-transition hover:tw-bg-rose-50 hover:tw-text-rose-600 disabled:tw-cursor-not-allowed disabled:tw-opacity-40 disabled:hover:tw-bg-transparent disabled:hover:tw-text-slate-400"
+                                        aria-label={`Remove row ${index + 1}`}
                                     >
-                                        Remove
+                                        <X className="tw-h-4 tw-w-4" aria-hidden />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-t tw-border-slate-100 tw-pt-4">
+                        <Button onClick={addRow} disabled={!canAddPartners}>
+                            <Plus className="tw-h-4 tw-w-4" aria-hidden /> Add another partner
+                        </Button>
+                        <Button variant="primary" type="submit" disabled={!selectedProject} className="tw-ml-auto">
+                            <Link2 className="tw-h-4 tw-w-4" aria-hidden /> Assign {assignRows.length > 1 ? `${assignRows.length} partners` : 'partner'}
+                        </Button>
+                    </div>
+                </form>
+            </Card>
+
+            <TableCard
+                className="tw-mt-6"
+                toolbar={
+                    <p className="tw-text-sm tw-font-semibold tw-text-slate-900">
+                        {selectedProject ? `Partners on ${selectedProject.projectName}` : 'Partners on the project'}
+                    </p>
+                }
+            >
+                <thead>
+                    <tr>
+                        <th className={TH}>Partner</th>
+                        <th className={cx(TH, 'tw-text-right')}>Unit capacity</th>
+                        <th className={cx(TH, 'tw-text-right')}>Confirmed bookings</th>
+                        <th className={cx(TH, 'tw-text-right')}>Awaiting payment</th>
+                        <th className={cx(TH, 'tw-text-right')}>
+                            <span className="tw-sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {existingPartners.length === 0 && (
+                        <EmptyRow colSpan={5} title={selectedProject ? 'No partner assigned yet' : 'Select a project to view partners'} />
+                    )}
+                    {existingPartners.map((item) => (
+                        <tr key={item.idProjectPartners} className={TR}>
+                            <td className={TD}>
+                                <div className="tw-flex tw-items-center tw-gap-2.5">
+                                    <Avatar name={item.User?.fullName || '?'} seed={item.idUsers || item.idProjectPartners} size="sm" />
+                                    <div className="tw-min-w-0">
+                                        <div className="tw-font-medium tw-text-slate-900">{item.User?.fullName}</div>
+                                        {item.User?.phoneNumber && <div className="tw-text-xs tw-tabular-nums tw-text-slate-500">{item.User.phoneNumber}</div>}
+                                    </div>
+                                </div>
+                            </td>
+                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>
+                                {Number(item.partnerUnitCapacity) > 0 ? item.partnerUnitCapacity : <span className="tw-text-slate-400">No limit</span>}
+                            </td>
+                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{item.investorConfirmedBookingCount}</td>
+                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{item.investorAlreadyBookedCount}</td>
+                            <td className={cx(TD, 'tw-text-right')}>
+                                {/* A pending booking holds an allocation too, and the database
+                                    refuses to delete a partnership that has one. */}
+                                {Number(item.investorConfirmedBookingCount) === 0 && Number(item.investorAlreadyBookedCount) === 0 && (
+                                    <Button size="sm" variant="danger-outline" onClick={() => handleDelete(item.idProjectPartners)}>
+                                        <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden /> Remove
                                     </Button>
-                                </Col>
-                            </Row>
-                        ))}
-
-                        <Row className="mb-3">
-                            <Col sm={3} />
-                            <Col sm={9} className="d-flex gap-2">
-                                <Button
-                                    variant="outline-primary"
-                                    onClick={addRow}
-                                    type="button"
-                                    disabled={!selectedProject || partnersList.length === 0}
-                                >
-                                    Add Partner
-                                </Button>
-                                <Button variant="primary" type="submit" disabled={!selectedProject}>
-                                    Submit
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
-            </Form>
-
-            <Row>
-                <Col className="pt-4" md={12}>
-                    <Card>
-                        <Card.Header>Existing Partners of Selected Project</Card.Header>
-                        <Card.Body>
-                            <Table size="sm">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Partner Name</th>
-                                        <th>Phone</th>
-                                        <th>Unit Capacity</th>
-                                        <th>Confirmed Bookings</th>
-                                        <th>Pending Bookings</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {existingPartners.length === 0 && (
-                                        <tr>
-                                            <td colSpan={7} className="text-center">
-                                                {selectedProject ? 'No partner assigned yet' : 'Select a project to view partners'}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {existingPartners.map((item, index) => (
-                                        <tr key={item.idProjectPartners}>
-                                            <td>{index + 1}</td>
-                                            <td>{item.User?.fullName}</td>
-                                            <td>{item.User?.phoneNumber}</td>
-                                            <td className="text-center">{item.partnerUnitCapacity}</td>
-                                            <td className="text-center">{item.investorConfirmedBookingCount}</td>
-                                            <td className="text-center">{item.investorAlreadyBookedCount}</td>
-                                            <td>
-                                                {Number(item.investorConfirmedBookingCount) === 0 && (
-                                                    <Button
-                                                        variant="danger"
-                                                        size="sm"
-                                                        onClick={() => handleDelete(item.idProjectPartners)}
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </TableCard>
+        </div>
     );
 }
 
