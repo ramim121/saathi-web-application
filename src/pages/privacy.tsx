@@ -4,7 +4,7 @@ const PrivacyPolicy = () => {
     return (
         <div style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6', margin: '20px', padding: '20px', backgroundColor: '#f4f4f4' }}>
             <h1>Privacy Policy for Shathi App</h1>
-            <p><strong>Last updated:</strong> October 1st, 2024</p>
+            <p><strong>Last updated:</strong> November 17th, 2026</p>
 
             <p>At DigiGram Ventures, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the Shathi App, our investment and e-commerce platform designed to empower rural women farmers. Please read this policy carefully to understand our practices regarding your personal data and how we will treat it.</p>
 
@@ -47,7 +47,7 @@ const PrivacyPolicy = () => {
                 <li><strong>Deletion:</strong> You can request that we delete your personal data, subject to certain legal obligations.</li>
                 <li><strong>Withdrawal of Consent:</strong> If we are processing your personal data based on your consent, you can withdraw that consent at any time.</li>
             </ul>
-            <p>To exercise these rights, please contact us at [email].</p>
+            <p>To exercise these rights, please contact us at support@digigramventures.com.</p>
 
             <h2>6. Cookies and Tracking Technologies</h2>
             <p>We may use cookies and similar tracking technologies to collect information about your interactions with the app. This helps us improve user experience and analyze trends.</p>
