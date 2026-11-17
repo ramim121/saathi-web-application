@@ -88,12 +88,11 @@
     vertical-align: middle;
 }
 
-/* Printing a redesigned report prints the report, not the site chrome. */
+/* Printing a redesigned report prints the report on white. (The app shell's
+ * sidebar, top bar and footer hide themselves in print.) */
 @media print {
-    body:has(.ui-print-root) :is(.page-top, .footer-layout) {
-        display: none !important;
-    }
-    body:has(.ui-print-root) {
+    body:has(.ui-print-root),
+    body:has(.ui-print-root) .tw-bg-slate-50 {
         background: #fff !important;
     }
 }

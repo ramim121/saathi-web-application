@@ -31,21 +31,25 @@
     --sa-navy: #000a50;
     --sa-navy-700: #1a2470;
 
-    /* One cool grey ramp, light to dark. */
+    /*
+     * One cool grey ramp, light to dark. Since the 2026-11-17 redesign these
+     * are Tailwind's slate values, so Bootstrap pages and the redesigned
+     * (Tailwind) screens share one palette.
+     */
     --sa-0: #ffffff;
-    --sa-25: #fafbfc;
-    --sa-50: #f4f6f8;
-    --sa-100: #eceff3;
-    --sa-200: #dde2e9;
-    --sa-300: #c3ccd8;
-    --sa-500: #6b7789;
-    --sa-700: #3c4757;
-    --sa-900: #1b2432;
+    --sa-25: #fbfcfe;
+    --sa-50: #f8fafc;
+    --sa-100: #f1f5f9;
+    --sa-200: #e2e8f0;
+    --sa-300: #cbd5e1;
+    --sa-500: #64748b;
+    --sa-700: #334155;
+    --sa-900: #0f172a;
 
-    --sa-radius: 10px;
-    --sa-radius-sm: 7px;
+    --sa-radius: 12px;
+    --sa-radius-sm: 9px;
     /* Borders carry the structure, shadows only lift what floats. */
-    --sa-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --sa-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.04), 0 1px 3px 0 rgba(16, 24, 40, 0.06);
     --sa-shadow-lg: 0 12px 32px -8px rgba(16, 24, 40, 0.18);
 
     /* ---- Bootstrap overrides: these repaint every existing page ---- */
@@ -63,24 +67,19 @@
     /*
      * TYPOGRAPHY
      *
-     * This used to lead with "Inter", which is not loaded anywhere in the app —
-     * no @font-face, no next/font, no stylesheet link. Every browser silently
-     * fell through to the next entry, so the intended typeface never actually
-     * rendered and the stack was decoration.
+     * Inter, since the 2026-11-17 redesign. It is self-hosted from the
+     * @fontsource-variable/inter package through next/font/local (src/ui/font.ts)
+     * and exposed as --font-inter on :root by _app.tsx — NOT next/font/google,
+     * whose download at build time is an outbound fetch that fails deploys (it
+     * did, on this box, the same day). One preloaded woff2 with size-adjusted
+     * fallback metrics, so text does not jump when it arrives.
      *
-     * Rather than add a webfont, this now names the system UI font on purpose.
-     * The admin builds on the EC2 box, and `next/font/google` downloads at build
-     * time — an outbound fetch that, if it fails, fails the deploy (the same
-     * trap EC2-DEPLOYMENT-RUNBOOK.md documents for the website's Montserrat).
-     * Trading a reliable deploy for a slightly different sans is a bad deal on a
-     * dense internal tool, and the system stack also renders instantly with no
-     * layout shift.
-     *
-     * `-apple-system` / `Segoe UI` / `Roboto` cover Mac, Windows and Android;
-     * "Noto Sans Bengali" is listed because several fields hold Bangla and the
-     * default Windows fallback for it is noticeably worse.
+     * The system stack after it is the fallback while the font loads and for
+     * scripts Inter does not cover: "Noto Sans Bengali" is listed because
+     * several fields hold Bangla and the default Windows fallback for it is
+     * noticeably worse.
      */
-    --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    --bs-body-font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, "Helvetica Neue", "Noto Sans Bengali", Arial, sans-serif;
     --bs-body-font-size: 0.9rem;
     --bs-emphasis-color: var(--sa-900);
@@ -89,8 +88,8 @@
      * placed beside a field lines up with it instead of sitting a pixel or two
      * proud. Bootstrap derives these separately per component by default. */
     --sa-control-h: 38px;
-    --sa-control-px: 0.7rem;
-    --sa-focus-ring: 0 0 0 3px rgba(7, 86, 53, 0.15);
+    --sa-control-px: 0.75rem;
+    --sa-focus-ring: 0 0 0 4px rgba(7, 86, 53, 0.12);
 }
 
 body {
