@@ -1,7 +1,20 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { User, ProjectPartner, ProjectPartnerInvestor, Project, ProjectInvestor, ProjectInvestmentBooking, File, ProjectInvestmentBookingStatus } from '@/models/__associations';
+import { withCors, requireUser, canAccess } from '@/utils/auth';
+import { publicPartnerAttributes } from '@/utils/publicFields';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+/**
+ * An investor's investments — the app's My Investments, My Invested Projects
+ * and Pending Proof screens.
+ *
+ * SECURITY: this took the user id from the URL and checked nothing, so anyone
+ * could read any investor's investments, amounts and full user record (phone,
+ * date of birth, NID image names), plus every partner's full record. The app
+ * always sends the signed-in user's token and their own id, so this now
+ * requires that token and that id (or an admin), and partners carry only
+ * their public profile fields.
+ */
+async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
         try {
 
@@ -15,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 model: ProjectPartner,
                                 include: [
                                     { model: Project },
-                                    { model: User, include: [{ model: File, as: 'ProfilePicture' }] }
+                                    { model: User, attributes: publicPartnerAttributes(), include: [{ model: File, as: 'ProfilePicture' }] }
                                 ]
                             }
                         ]
@@ -89,3 +102,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default withCors(requireUser(async (req, res, auth) => {
+    if (!canAccess(auth, req.query.id as string)) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    return handler(req, res);
+}));

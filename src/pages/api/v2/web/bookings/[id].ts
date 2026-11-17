@@ -22,7 +22,12 @@ import bookingDetails from '@/pages/api/bookings/details/[id]';
  *
  * Admins may read any booking; that matches the admin panel's existing access.
  *
- * Retire the original once the app ships a build pointing here.
+ * Update 2026-11-17: the original is now locked after all — it requires a
+ * token and the booking must be the caller's own (or the caller an admin).
+ * The app always sends the signed-in user's token and opens only that user's
+ * bookings, so it is unaffected; a 401 there now means the token really is
+ * missing or expired. This route stays for the website, and delegating still
+ * works: the same request carries the same token through both checks.
  */
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {

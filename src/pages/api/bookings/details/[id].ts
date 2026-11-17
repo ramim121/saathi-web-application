@@ -1,9 +1,22 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File, ProjectSpecialBookingReq } from '@/models/__associations';
 import sequelize from '@/config/db';
+import { withCors, requireUser, canAccess, type AuthContext } from '@/utils/auth';
 // WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+/**
+ * One booking with its lines, partners, bank and history — the admin's
+ * booking page and the app's Order Details / My Order Details.
+ *
+ * SECURITY: this answered anyone, for any booking id: the investor's full
+ * user record (phone, date of birth, NID image names, Google id), their bank
+ * account, payment amounts and the history. SECURITY-REMEDIATION.md left it
+ * open because the app calls it — but the app always sends the signed-in
+ * user's token and opens only that user's own bookings (from the cart, the
+ * bank-transfer screen and their investment lists). So it now requires a
+ * token, and the booking must be the caller's own unless they are an admin.
+ */
+async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthContext): Promise<void> {
     if (req.method === 'GET') {
         try {
 
@@ -89,6 +102,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ]
             });
 
+            if (!result) {
+                return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+            if (!canAccess(auth, result.idUsers)) {
+                // 404, as the website's v2 route does: a 403 would confirm the booking exists.
+                return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+
             const resultMain = result?.get({ plain: true });
 
             const bookingHistory = await ProjectInvestmentBookingStatus.findAll({
@@ -168,3 +189,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
 }
+
+export default withCors(requireUser(handler));
