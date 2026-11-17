@@ -130,12 +130,18 @@ export async function getProjectDetails(projectId: string) {
             { model: User, as: 'CreatedBy', attributes: ['fullName'] },
             {
                 model: ProjectInvestor, as: 'ProjectInvestors',
-                include: [User, ProjectInvestmentBooking,
+                /*
+                 * Named columns only. A bare `User` here returned every column
+                 * of every investor's and partner's user row (email, date of
+                 * birth, Google/Apple ids, NID fields…) into the admin page's
+                 * server-rendered data. The page shows name, phone and photo.
+                 */
+                include: [{ model: User, attributes: ['idUsers', 'fullName', 'phoneNumber', 'profileImage'] }, ProjectInvestmentBooking,
                     {
                         model: ProjectPartnerInvestor,
                         include: [{
                             model: ProjectPartner,
-                            include: [User]
+                            include: [{ model: User, attributes: ['idUsers', 'fullName'] }]
                         }]
                     }
                 ]

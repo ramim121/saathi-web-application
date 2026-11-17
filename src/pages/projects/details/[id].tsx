@@ -12,6 +12,7 @@ import { API_URL } from '@/config/public';
 import { GetServerSidePropsContext } from "next";
 import ProjectType from "@/types/Project";
 import { getProjectDetails } from "@/pages/api/projects/details/[id]";
+import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
 import moment from "moment";
 
 interface ProjectDetailsProps {
@@ -358,6 +359,15 @@ Details.getLayout = function PageLayout(page: any) {
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+    /*
+     * SECURITY: this page had no sign-in check. It is rendered on the server,
+     * so anyone who opened /projects/details/<id> got the page — and with it,
+     * in the page data, the user record of every investor and partner on the
+     * project (phone, email, date of birth, Google/Apple ids, NID fields).
+     */
+    const auth = requireAdminPage(context);
+    if (!auth) return redirectToLogin;
+
     const projectId = context.params?.id;
 
     const projectData = await getProjectDetails(projectId as string);
