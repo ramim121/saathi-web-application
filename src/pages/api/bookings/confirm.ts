@@ -167,20 +167,53 @@ export default async function handler(
                     }
                 }
 
-                const userBooking = await ProjectInvestor.sum('unitPurchased', {
+                /**
+                 * Units this investor holds in the project RIGHT NOW, apart
+                 * from the line being confirmed.
+                 *
+                 * This used to add up every line the investor had ever had in
+                 * the project, whatever its status — cancelled bookings,
+                 * investments already paid out, and investments rolled over
+                 * into a new cycle all counted. Projects are reused across
+                 * cycles, so a returning investor's history grew until it
+                 * passed the cap by itself: someone holding 46 active units
+                 * was refused a 40-unit booking against a cap of 200, because
+                 * 146 units from finished cycles were still being counted.
+                 *
+                 * Only `confirmed` lines are money in the project today, which
+                 * is the same definition the two checks around this one use
+                 * (total units above, partner units below). Other bookings
+                 * still waiting for confirmation are not counted: each is
+                 * checked against the cap when its own turn comes.
+                 */
+                const activeUnits = await ProjectInvestor.sum('unitPurchased', {
                     where: {
                         idUsers: investor.idUsers,
                         idProjects: investor.idProjects,
+                        investmentStatus: 'confirmed',
                         idProjectInvestors: {
                             [Op.not]: investor.idProjectInvestors
                         },
                     }
                 });
 
-                if (userBooking && userBooking > 0 && projectInfo && projectInfo.investorUnitCapacity !== 0) {
-                    if (Number(userBooking) + Number(investor.unitPurchased) > projectInfo.investorUnitCapacity) {
+                // The old condition skipped the check entirely when the
+                // investor had no other line, so a first booking larger than
+                // the cap went straight through.
+                //
+                // 0 and NULL both mean "no per-investor limit": projects/create
+                // stores NULL when the field is left empty, and a NULL compared
+                // as a number is 0, which would refuse every confirmation.
+                const investorCap = Number(projectInfo?.investorUnitCapacity) || 0;
+                if (projectInfo && investorCap > 0) {
+                    const held = Number(activeUnits) || 0;
+                    const adding = Number(investor.unitPurchased);
+                    if (held + adding > investorCap) {
                         await transaction.rollback();
-                        return res.status(400).json({ success: false, message: 'Investor unit capacity excedded' });
+                        return res.status(400).json({
+                            success: false,
+                            message: `Investor unit capacity exceeded: this investor holds ${held} active unit(s) in ${projectInfo.projectName}, and ${adding} more would pass the limit of ${investorCap} per investor.`,
+                        });
                     }
                 }
 
