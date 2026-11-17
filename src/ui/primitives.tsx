@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { initials } from './format';
 
 /**
@@ -116,6 +116,18 @@ export function Segmented<T extends string>({
             })}
         </div>
     );
+}
+
+/**
+ * An image that shows `fallback` instead of the browser's broken-image icon
+ * when there is no source or it fails to load (a missing S3 object, or a
+ * bucket the browser blocks).
+ */
+export function SafeImg({ src, alt = '', className, fallback = null }: { src?: string | null; alt?: string; className?: string; fallback?: ReactNode }) {
+    const [failed, setFailed] = useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} className={className} loading="lazy" onError={() => setFailed(true)} />;
 }
 
 export function Kbd({ children }: { children: ReactNode }) {

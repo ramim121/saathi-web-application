@@ -53,6 +53,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         res.status(200).json({ success: true, message: 'Partnership Deleted Successfully' });
     } catch (error) {
         await transaction.rollback();
+        /*
+         * project_partner_investors references this row (ON DELETE NO ACTION),
+         * so a partnership that has ever carried an allocation cannot be
+         * deleted — which protects the investors' money records. Say so in
+         * words instead of passing MySQL's constraint text to the admin.
+         */
+        if ((error as Error).name === 'SequelizeForeignKeyConstraintError') {
+            res.status(409).json({
+                success: false,
+                message: 'This partner has bookings on this project (current or past), so the partnership cannot be removed.',
+            });
+            return;
+        }
         res.status(400).json({ success: false, message: (error as Error).message });
     }
 }

@@ -388,7 +388,10 @@ function Create() {
     const modalUnits = modalProject.projectPartners.reduce((sum, pp) => sum + (Number(pp.investedUnit) || 0), 0);
     const modalAmount = modalProject.projectPartners.reduce((sum, pp) => sum + unitValue * (Number(pp.investedUnit) || 0), 0);
     const modalBack = expectedBack(modalAmount, modalProject.project);
-    const remainingUnits = modalProject.project ? Number(modalProject.project.totalRemainingUnits) : null;
+    /* A project with no unit total has no cap; the API reports 0 left for it,
+       which read as "full". */
+    const unitsLeft = (project: ProjectDataType | null) =>
+        !project ? "—" : Number(project.totalAvailableUnits) > 0 ? String(Number(project.totalRemainingUnits) || 0) : "No cap";
 
     const investorOptions: InvestorType[] = investors.map((inv) => ({
         idUsers: inv.idUsers,
@@ -616,7 +619,7 @@ function Create() {
                                                 <div className="tw-font-medium">{option.projectName}</div>
                                                 <div className="tw-text-xs tw-text-slate-500">
                                                     {bdtExact(Number(option.unitInvestmentValue))} a unit · {option.returnRangeMin}–{option.returnRangeMax}% ·{" "}
-                                                    {plural(Number(option.totalRemainingUnits) || 0, "unit")} left
+                                                    {Number(option.totalAvailableUnits) > 0 ? `${plural(Number(option.totalRemainingUnits) || 0, "unit")} left` : "no unit cap"}
                                                 </div>
                                             </div>
                                         ) : (
@@ -633,7 +636,7 @@ function Create() {
                                             ["Unit price", bdtExact(Number(unitValue))],
                                             ["Return", `${modalProject.project.returnRangeMin}–${modalProject.project.returnRangeMax}%`],
                                             ["Duration", `${modalProject.project.duration} ${modalProject.project.tenure}`],
-                                            ["Units left", remainingUnits !== null && Number.isFinite(remainingUnits) ? String(remainingUnits) : "—"],
+                                            ["Units left", unitsLeft(modalProject.project)],
                                         ] as [string, string][]
                                     ).map(([label, value]) => (
                                         <div key={label} className="tw-bg-white tw-px-3 tw-py-2.5">

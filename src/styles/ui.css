@@ -88,6 +88,59 @@
     vertical-align: middle;
 }
 
+/*
+ * Rich text written in the editor (project summaries) shown inside `.ui`.
+ * The reset above strips list bullets and paragraph spacing; this puts them
+ * back for that content only.
+ */
+.ui .ui-prose {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: #334155;
+}
+.ui .ui-prose :is(p, ul, ol, table, blockquote) {
+    margin: 0 0 0.75rem;
+}
+.ui .ui-prose :is(ul, ol) {
+    padding-left: 1.25rem;
+}
+.ui .ui-prose ul {
+    list-style: disc;
+}
+.ui .ui-prose ol {
+    list-style: decimal;
+}
+.ui .ui-prose :is(h1, h2, h3, h4) {
+    margin: 1rem 0 0.5rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+.ui .ui-prose h1 {
+    font-size: 1.25rem;
+}
+.ui .ui-prose h2 {
+    font-size: 1.125rem;
+}
+.ui .ui-prose :is(h3, h4) {
+    font-size: 1rem;
+}
+.ui .ui-prose a {
+    color: #075635;
+    text-decoration: underline;
+}
+.ui .ui-prose img {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+}
+.ui .ui-prose :is(td, th) {
+    border: 1px solid #e2e8f0;
+    padding: 0.25rem 0.5rem;
+}
+.ui .ui-prose > :last-child {
+    margin-bottom: 0;
+}
+
 /* Printing a redesigned report prints the report on white. (The app shell's
  * sidebar, top bar and footer hide themselves in print.) */
 @media print {
