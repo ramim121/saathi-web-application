@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { User, File, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor, ProjectInvestmentBooking, PartnerAdditionalInfo } from '@/models/__associations';
 import sequelize from '@/config/db';
 import { withCors, readAuth } from '@/utils/auth';
+import { publicPartnerAttributes } from '@/utils/publicFields';
 
 /**
  * A partner's profile and the projects they still have room on.
@@ -17,11 +18,6 @@ import { withCors, readAuth } from '@/utils/auth';
  *     project — which is all the app reads (`data.Partnerships[].Project`).
  */
 
-/** The partner fields the public project route already shows. */
-const PUBLIC_PARTNER_FIELDS = [
-    'idUsers', 'fullName', 'role', 'location', 'interestedIn', 'disability', 'joiningDate', 'age', 'skills', 'bio',
-    'fullNameBn', 'roleBn', 'locationBn', 'interestedInBn', 'skillsBn', 'bioBn',
-];
 
 const roomLeft = sequelize.literal(`partner_unit_capacity > (
     SELECT IFNULL(SUM(invested_unit),0)
@@ -89,7 +85,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
                         idUsers: req.query.id,
                         userType: 'partner'
                     },
-                    attributes: PUBLIC_PARTNER_FIELDS,
+                    attributes: publicPartnerAttributes(),
                     include: [
                         { model: File, as: 'ProfilePicture' },
                         { model: File, as: 'FeaturedImages' },

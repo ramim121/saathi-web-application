@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { User, File, ProjectPartner, PartnerAdditionalInfo } from '@/models/__associations';
+import { User, File, ProjectPartner } from '@/models/__associations';
 import sequelize from 'sequelize';
+import { publicPartnerAttributes } from '@/utils/publicFields';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -16,9 +17,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 include: [
                     {
                         model: User,
+                        /*
+                         * SECURITY: public route. It returned every column of each
+                         * partner's user row (phone, email, date of birth, NID
+                         * fields) and their household/livelihood details. Public
+                         * profile fields only, as the other public partner routes.
+                         */
+                        attributes: publicPartnerAttributes(),
                         include: [
-                            { model: File, as: 'ProfilePicture' },
-                            { model: PartnerAdditionalInfo, as: 'PartnerAdditionalInfo' }
+                            { model: File, as: 'ProfilePicture' }
                         ]
                     }
                 ],
