@@ -8,10 +8,11 @@
  * would take longer, miss pages, and leave the ones it missed looking like the
  * old product.
  *
- * This is also why Tailwind was not added. Tailwind ships its own reset, which
- * fights Bootstrap's on every existing page; the gain would be new utility
- * classes on the handful of pages someone got round to rewriting, and the cost
- * would be a subtly broken layout on the rest.
+ * Tailwind was kept out at first because its global reset fights Bootstrap's on
+ * every existing page. Since 2026-11-17 it is in, for the redesign that replaces
+ * pages one at a time — without that cost: its utilities are prefixed `tw-`, its
+ * reset (preflight) is off, and redesigned screens get a reset scoped to `.ui`
+ * (see tailwind.config.js and ui.css). Bootstrap pages render exactly as before.
  *
  * PALETTE
  * Taken from the existing product rather than invented: #075635 is the Shathi

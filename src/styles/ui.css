@@ -1,0 +1,99 @@
+/*
+ * Redesigned admin screens.
+ *
+ * Tailwind's utilities (prefixed `tw-`) plus a reset that applies ONLY inside
+ * an element with the `ui` class. Bootstrap pages are untouched: no preflight,
+ * and nothing below matches outside `.ui`.
+ *
+ * The reset uses :where() so it has the specificity of a bare element selector.
+ * It wins over Bootstrap's reboot (same specificity, loaded later) and loses to
+ * any Tailwind utility (a class) — which is exactly the order we want.
+ */
+/*
+ * `base` is here only for the CSS variables that ring, shadow and transform
+ * utilities read (--tw-ring-shadow, --tw-translate-y, …). Preflight is off, so
+ * it contains no reset, and `optimizeUniversalDefaults` (tailwind.config.js)
+ * attaches those variables to the elements using the utilities instead of to
+ * every element on every page.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ui {
+    font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: #0f172a;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Inter's alternate 1 and straight-sided digits read better in tables. */
+    font-feature-settings: 'cv11', 'ss01';
+}
+
+:where(.ui) *,
+:where(.ui) ::before,
+:where(.ui) ::after {
+    border-width: 0;
+    border-style: solid;
+    border-color: #e2e8f0;
+}
+
+:where(.ui) :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
+:where(.ui) :is(p, dl, dd, figure, blockquote) {
+    margin: 0;
+}
+
+:where(.ui) :is(ul, ol) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+:where(.ui) a {
+    color: inherit;
+    text-decoration: inherit;
+}
+
+:where(.ui) :is(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    margin: 0;
+}
+
+:where(.ui) button {
+    background-color: transparent;
+    background-image: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+:where(.ui) table {
+    border-collapse: collapse;
+    text-indent: 0;
+}
+
+:where(.ui) :is(th, td) {
+    padding: 0;
+}
+
+:where(.ui) :is(img, svg) {
+    display: block;
+    vertical-align: middle;
+}
+
+/* Printing a redesigned report prints the report, not the site chrome. */
+@media print {
+    body:has(.ui-print-root) :is(.page-top, .footer-layout) {
+        display: none !important;
+    }
+    body:has(.ui-print-root) {
+        background: #fff !important;
+    }
+}

@@ -8,6 +8,11 @@ import '../styles/admin-theme.css';
 import '../styles/style.css';
 import '../styles/layout.css';
 import '../styles/timeline.css';
+/*
+ * Redesigned screens (Tailwind, prefixed `tw-`). Last, so its scoped reset wins
+ * over Bootstrap's reboot inside `.ui` — and it matches nothing outside `.ui`.
+ */
+import '../styles/ui.css';
 import { AppProps } from "next/app"
 
 export default function App({ Component, pageProps }: AppProps) {
