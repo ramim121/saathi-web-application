@@ -2,8 +2,18 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { User, ProjectPartner, Project, ProjectPartnerInvestor, ProjectInvestor, ProjectInvestmentBooking } from '@/models/__associations'
 import { Op } from 'sequelize'
 import sequelize from '@/config/db';
+import { withCors, requireAdmin } from '@/utils/auth';
 
-export default async function handler(
+/**
+ * Partners with their partnerships, for the admin's Assign partners page.
+ *
+ * SECURITY: this route had no sign-in check. Anyone could fetch every
+ * partner's phone number, and — through `ProjectInvestor → User` with no
+ * attribute list — the full user record of every investor allocated to them,
+ * plus their booking rows. It is admin-only now, and the nested investor and
+ * booking rows carry only what the page shows (booking number and link).
+ */
+async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ): Promise<void> {
@@ -47,15 +57,18 @@ export default async function handler(
                             {
                                 model: ProjectPartnerInvestor,
                                 as: 'ProjectPartnerInvestors',  // Ensure the alias matches the association
+                                attributes: ['idProjectPartnerInvestors', 'investedUnit'],
                                 include: [
                                     {
                                         model: ProjectInvestor,
+                                        attributes: ['idProjectInvestors', 'investmentStatus'],
                                         include: [
                                             {
                                                 model: ProjectInvestmentBooking,
+                                                attributes: ['idProjectInvestmentBookings', 'bookingId'],
                                                 where: { cancelled: 'no' }
                                             },
-                                            { model: User }
+                                            { model: User, attributes: ['idUsers', 'fullName'] }
                                         ]
                                     }
                                 ]
@@ -81,3 +94,5 @@ export default async function handler(
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
+export default withCors(requireAdmin(handler));
