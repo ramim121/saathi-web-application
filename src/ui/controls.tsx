@@ -1,4 +1,11 @@
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import {
+    forwardRef,
+    type ButtonHTMLAttributes,
+    type InputHTMLAttributes,
+    type ReactNode,
+    type SelectHTMLAttributes,
+    type TextareaHTMLAttributes,
+} from 'react';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { cx } from './primitives';
@@ -35,6 +42,36 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     );
 });
 
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, rows = 4, ...props }, ref) {
+    return <textarea ref={ref} rows={rows} className={cx(FIELD, 'tw-resize-y', className)} {...props} />;
+});
+
+/** A native file picker whose button matches the rest of the form. */
+export const FileInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function FileInput({ className, ...props }, ref) {
+    return (
+        <input
+            ref={ref}
+            type="file"
+            className={cx(
+                'tw-block tw-w-full tw-cursor-pointer tw-rounded-xl tw-border tw-border-dashed tw-border-slate-300 tw-bg-slate-50/60 tw-p-1.5 tw-text-sm tw-text-slate-600 tw-transition hover:tw-border-slate-400',
+                'file:tw-mr-3 file:tw-cursor-pointer file:tw-rounded-lg file:tw-border-0 file:tw-bg-white file:tw-px-3 file:tw-py-1.5 file:tw-text-sm file:tw-font-semibold file:tw-text-slate-700 file:tw-shadow-sm hover:file:tw-bg-slate-100',
+                'focus:tw-outline-none focus-visible:tw-ring-4 focus-visible:tw-ring-brand-500/10',
+                className,
+            )}
+            {...props}
+        />
+    );
+});
+
+/** The red asterisk after a required field's label. */
+export function Required() {
+    return (
+        <span className="tw-ml-0.5 tw-text-rose-500" aria-hidden>
+            *
+        </span>
+    );
+}
+
 /** Label above a control, with an optional hint underneath. */
 export function Field({ label, hint, children, className }: { label: ReactNode; hint?: ReactNode; children: ReactNode; className?: string }) {
     return (
@@ -46,7 +83,7 @@ export function Field({ label, hint, children, className }: { label: ReactNode; 
     );
 }
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-outline' | 'success';
 type Size = 'sm' | 'md';
 
 const VARIANT: Record<Variant, string> = {
@@ -54,6 +91,7 @@ const VARIANT: Record<Variant, string> = {
     secondary: 'tw-border tw-border-slate-200 tw-bg-white tw-text-slate-700 tw-shadow-sm hover:tw-bg-slate-50 hover:tw-text-slate-900 focus-visible:tw-ring-slate-400/30',
     ghost: 'tw-text-slate-600 hover:tw-bg-slate-100 hover:tw-text-slate-900 focus-visible:tw-ring-slate-400/30',
     danger: 'tw-bg-rose-600 tw-text-white tw-shadow-sm hover:tw-bg-rose-500 focus-visible:tw-ring-rose-500/30',
+    'danger-outline': 'tw-border tw-border-rose-200 tw-bg-white tw-text-rose-700 tw-shadow-sm hover:tw-bg-rose-50 focus-visible:tw-ring-rose-500/30',
     success: 'tw-bg-emerald-600 tw-text-white tw-shadow-sm hover:tw-bg-emerald-500 focus-visible:tw-ring-emerald-500/30',
 };
 

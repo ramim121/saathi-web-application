@@ -1,17 +1,43 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef, use } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/router";
+import Link from 'next/link';
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Row, Col, Table, Button, Modal, Form, DropdownButton, Dropdown, ButtonGroup, Tabs, Tab } from "react-bootstrap";
+import { Modal } from "react-bootstrap";
 import { getRequestOptions, putRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/public';
 import { API_URL } from '@/config/public';
-import Select, { components } from "react-select";
 import { getCookie } from '@/utils/GetCookie';
-import { ChatDots } from 'react-bootstrap-icons';
-import Link from 'next/link';
 import { isProofSubmitted } from '@/utils/bookingStatus';
+import {
+    ArrowLeft,
+    ArrowUpRight,
+    Ban,
+    BellRing,
+    CalendarClock,
+    Check,
+    CheckCircle2,
+    FileText,
+    History as HistoryIcon,
+    ImageOff,
+    Layers,
+    ListChecks,
+    PlayCircle,
+    Plus,
+    Repeat2,
+    ShieldAlert,
+    TrendingUp,
+    Upload,
+    UserRound,
+    Wallet,
+    XCircle,
+    type LucideIcon,
+} from 'lucide-react';
+import { Avatar, Card, Pill, Segmented, Skeleton, cx, type Tone } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Required, SearchInput, Select, Textarea } from '@/ui/controls';
+import { bdt, bdtExact, bdtRange, date, daysFromToday, plural, relativeDays } from '@/ui/format';
+import { capitalise, dhakaStamp, investmentStatus, paymentStatus, utcStamp } from '@/ui/status';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -20,6 +46,7 @@ interface DetailsProps {
     cancelled: string;
     /** `fresh` or `reinvestment`. A reinvestment carries no payment method. */
     bookingType?: string;
+    createdAt?: string;
     idUserBanks: number;
     User: {
         fullName: string;
@@ -45,45 +72,46 @@ interface DetailsProps {
     collectionDate: string;
     collectionLocation: string;
     collectionStatus: string;
-    ProjectInvestors: {
-        Project: {
-            idProjects: number;
-            projectName: string;
-            duration: number;
-            tenure: string;
-            returnRangeMin: number;
-            returnRangeMax: number;
-        };
-        unitPurchased: number;
-        investmentDate: string;
-        investmentStatus: string;
-        projectStartDate: string;
-        maturityDate: string;
-        actualProfitPercentage: number;
-        actualProfitAmount: number;
-        ProjectPartnerInvestors: {
-            ProjectPartner: {
-                User: {
-                    idUsers: number;
-                    fullName: string;
-                };
-                partnerUnitCapacity: number;
-                remainingCapacity: number;
+    ProjectInvestors: InvestmentLine[];
+}
+
+interface InvestmentLine {
+    Project: {
+        idProjects: number;
+        projectName: string;
+        duration: number;
+        tenure: string;
+        returnRangeMin: number;
+        returnRangeMax: number;
+    };
+    unitPurchased: number;
+    investmentDate: string;
+    investmentStatus: string;
+    projectStartDate: string;
+    maturityDate: string;
+    actualProfitPercentage: number;
+    actualProfitAmount: number;
+    ProjectPartnerInvestors: {
+        ProjectPartner: {
+            User: {
+                idUsers: number;
+                fullName: string;
             };
-            amountInvested: number;
-            idProjectPartnerInvestors: number;
-            investedUnit: number;
+            partnerUnitCapacity: number;
+            remainingCapacity: number;
+        };
+        amountInvested: number;
+        idProjectPartnerInvestors: number;
+        investedUnit: number;
 
-        }[];
-        idProjectInvestors: number;
-        ProjectSpecialBookingReq?: {
-            additionalRequest: string;
-            deliveryLocation: string;
-            preferredColor: string;
-            preferredProductPrice: number;
-        }
     }[];
-
+    idProjectInvestors: number;
+    ProjectSpecialBookingReq?: {
+        additionalRequest: string;
+        deliveryLocation: string;
+        preferredColor: string;
+        preferredProductPrice: number;
+    }
 }
 
 /**
@@ -101,32 +129,76 @@ interface DetailsProps {
  * and a row reading `approved` while `nidVerified` is still `no` has not been
  * approved.
  */
-function investorNidState(user?: { nidVerified?: string; nidVerificationStatus?: string }) {
+function investorNidState(user?: { nidVerified?: string; nidVerificationStatus?: string }): { approved: boolean; label: string; tone: Tone } {
     if (user?.nidVerified === 'yes') {
-        return { approved: true, label: 'Approved', badge: 'bg-success' };
+        return { approved: true, label: 'Approved', tone: 'green' };
     }
     if (user?.nidVerificationStatus === 'pending') {
-        return { approved: false, label: 'Pending review', badge: 'bg-warning text-dark' };
+        return { approved: false, label: 'Pending review', tone: 'amber' };
     }
     if (user?.nidVerificationStatus === 'rejected') {
-        return { approved: false, label: 'Rejected', badge: 'bg-danger' };
+        return { approved: false, label: 'Rejected', tone: 'rose' };
     }
-    return { approved: false, label: 'Not submitted', badge: 'bg-secondary' };
+    return { approved: false, label: 'Not submitted', tone: 'slate' };
 }
 
 /**
- * Price paid per unit on one investment line: recorded money / units.
+ * Money, units and price per unit on one investment line, from what was
+ * recorded: the partner rows.
  *
- * Units come from the partner rows, which is where the money is recorded too,
- * so the two always describe the same thing. Falls back to the line's own unit
- * count if a partner row carries no units.
+ * The price is recorded money / units. The old table printed the amount
+ * allocated to the FIRST partner as the unit price, which only equals the unit
+ * price when that partner holds exactly one unit — a 12-unit booking at 25,000
+ * split 4/4/4 showed 100,000. Taken from the booking's own figures rather than
+ * the project's current price, so it stays right if the project is repriced.
+ * Units come from the partner rows too, so the two always describe the same
+ * thing; the line's own unit count is the fallback.
  */
-function unitPricePaid(line: { unitPurchased: number; ProjectPartnerInvestors: { amountInvested: number; investedUnit: number }[] }) {
+function lineFigures(line: InvestmentLine) {
     const partners = line.ProjectPartnerInvestors ?? [];
     const amount = partners.reduce((sum, p) => sum + Number(p.amountInvested || 0), 0);
     const units = partners.reduce((sum, p) => sum + Number(p.investedUnit || 0), 0) || Number(line.unitPurchased || 0);
-    if (!units) return '—';
-    return (amount / units).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const min = Number(line.Project?.returnRangeMin || 0);
+    const max = Number(line.Project?.returnRangeMax || 0);
+    return {
+        amount,
+        // No partner rows means no money recorded: a price of ৳0 would be a guess.
+        unitPrice: partners.length && units ? amount / units : null,
+        backMin: amount + (amount * min) / 100,
+        backMax: amount + (amount * max) / 100,
+    };
+}
+
+/** A line that has finished one way or another: no more notices or payouts. */
+const CLOSED_LINE = ['cancelled', 'withdrawn', 'reinvested_full', 'reinvested_capital', 'reinvested_profit'];
+
+const METHOD_LABEL: Record<string, string> = { cheque: 'Cheque', beftn: 'BEFTN', rtgs: 'RTGS', npsb: 'NPSB', cash: 'Cash' };
+
+function historyTone(status: string | null | undefined): Tone {
+    const s = status ?? '';
+    if (/confirm|collected/.test(s)) return 'green';
+    if (/den|cancel|fail|reject/.test(s)) return 'rose';
+    if (/reinvest/.test(s)) return 'violet';
+    if (/withdraw|upload|proof/.test(s)) return 'sky';
+    if (/pending|book/.test(s)) return 'amber';
+    return 'slate';
+}
+
+const HISTORY_DOT: Record<Tone, string> = {
+    green: 'tw-bg-emerald-500',
+    amber: 'tw-bg-amber-500',
+    sky: 'tw-bg-sky-500',
+    slate: 'tw-bg-slate-400',
+    violet: 'tw-bg-violet-500',
+    rose: 'tw-bg-rose-500',
+};
+
+function remainingLabel(maturity: string | null | undefined): string {
+    if (!maturity) return '—';
+    const days = daysFromToday(maturity);
+    if (days > 0) return `${plural(days, 'day')} left`;
+    if (days === 0) return 'Matures today';
+    return 'Matured';
 }
 
 interface FormDataProps {
@@ -141,13 +213,6 @@ interface FormDataProps {
     collectionDate?: string;
     collectionLocation?: string;
     idUserBanks?: number;
-}
-
-interface TimelineItemProps {
-    icon: React.ReactNode;
-    color: string;
-    header: string;
-    description: string;
 }
 
 interface UserBanksProps {
@@ -176,6 +241,7 @@ interface HistoryProps {
     }
     status: string;
     remarks: string;
+    createdAt?: string;
     createdAtFormatted: string;
 }
 
@@ -225,36 +291,44 @@ interface ChangePartnerFormDataProps {
     idProjectPartners: number;
 }
 
-const CustomOptionPartner = ({ data, ...props }: { data: ProjectPartnersProps, [key: string]: any }) => (
-    // @ts-expect-error This error is expected because the props are spread into the component, and the type of props is not explicitly defined.
-    <components.Option {...props}>
-        Name: {data.label}
-        <br />
-        Mobile: {data.User.phoneNumber}
-        <br />
-        Unit Capacity: {data.partnerUnitCapacity}
-        <br />
-        Confirmed Booking: {data.investorConfirmedBookingCount}
-        <br />
-        Already Booked: {data.investorAlreadyBookedCount}
-        <br />
-        Remaining Capacity: {data.partnerUnitCapacity - data.investorConfirmedBookingCount}
-    </components.Option>
-);
+/* ---------------------------------------------------------------- layout */
 
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.toLocaleString("en-GB", { month: "short" });
-    const year = date.getFullYear();
-    const j = day % 10, k = day % 100;
-    let suffix = "th";
-    if (j === 1 && k !== 11) suffix = "st";
-    else if (j === 2 && k !== 12) suffix = "nd";
-    else if (j === 3 && k !== 13) suffix = "rd";
-    return `${day}${suffix} ${month} ${year}`;
+function Stat({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: React.ReactNode; hint?: React.ReactNode }) {
+    return (
+        <Card className="tw-p-4">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-medium tw-text-slate-500">
+                <Icon className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden />
+                {label}
+            </div>
+            <div className="tw-mt-2 tw-truncate tw-text-xl tw-font-semibold tw-tabular-nums tw-tracking-tight tw-text-slate-900">{value}</div>
+            {hint && <div className="tw-mt-0.5 tw-truncate tw-text-xs tw-text-slate-500">{hint}</div>}
+        </Card>
+    );
 }
+
+function Section({ title, icon: Icon, children, className }: { title: string; icon: LucideIcon; children: React.ReactNode; className?: string }) {
+    return (
+        <Card className={cx('tw-flex tw-flex-col', className)}>
+            <h2 className="tw-flex tw-items-center tw-gap-2 tw-border-b tw-border-slate-100 tw-px-5 tw-py-3 tw-text-sm tw-font-semibold tw-text-slate-900">
+                <Icon className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden />
+                {title}
+            </h2>
+            <div className="tw-flex-1 tw-px-5 tw-py-4">{children}</div>
+        </Card>
+    );
+}
+
+/** One label/value row in a section's description list. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="tw-flex tw-items-baseline tw-justify-between tw-gap-4 tw-py-1.5">
+            <dt className="tw-shrink-0 tw-text-sm tw-text-slate-500">{label}</dt>
+            <dd className="tw-min-w-0 tw-break-words tw-text-right tw-text-sm tw-font-medium tw-text-slate-900">{children}</dd>
+        </div>
+    );
+}
+
+const dash = <span className="tw-font-normal tw-text-slate-400">—</span>;
 
 function Details() {
     const router = useRouter();
@@ -262,10 +336,15 @@ function Details() {
     const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
     const [history, setHistory] = useState<HistoryProps[]>([]);
     const [reload, setReload] = useState<boolean>(false);
+    const [loadFailed, setLoadFailed] = useState<boolean>(false);
+    const [tab, setTab] = useState<'overview' | 'activity'>('overview');
     const [approverModalShow, setApproverModalShow] = useState<boolean>(false);
     const [liveUpdateModalShow, setLiveUpdateModalShow] = useState<boolean>(false);
     const [liveUpdateListModalShow, setLiveUpdateListModalShow] = useState<boolean>(false);
+    const [liveUpdateListLoading, setLiveUpdateListLoading] = useState<boolean>(false);
     const [partnerChangeModalShow, setPartnerChangeModalShow] = useState<boolean>(false);
+    const [partnerQuery, setPartnerQuery] = useState<string>('');
+    const [proofPreviewFailed, setProofPreviewFailed] = useState<boolean>(false);
     const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
     const [formData, setFormData] = useState<FormDataProps>({
         bookingId: '',
@@ -340,6 +419,7 @@ function Details() {
     }, [changePartnerFormData.idProjects])
 
     const fetchLiveUpdateList = async (idProjectPartnerInvestors: string) => {
+        setLiveUpdateListLoading(true);
         try {
             const res = await fetch('/api/live-update/list/' + idProjectPartnerInvestors, getRequestOptions());
             const data = await res.json();
@@ -358,6 +438,8 @@ function Details() {
                 title: 'Error',
                 text: err.message,
             });
+        } finally {
+            setLiveUpdateListLoading(false);
         }
     }
 
@@ -368,8 +450,11 @@ function Details() {
             if (res.status === 200) {
                 setDetails(data.data);
                 setHistory(data.history);
+                setLoadFailed(false);
+                setProofPreviewFailed(false);
                 setReload(false);
             } else {
+                setLoadFailed(true);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -377,6 +462,7 @@ function Details() {
                 });
             }
         } catch (err: any) {
+            setLoadFailed(true);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -836,23 +922,6 @@ function Details() {
         });
     };
 
-    const TimelineItem: React.FC<TimelineItemProps> = ({ icon, color, header, description }) => (
-        <div className="timeline-item">
-            <div style={{ color }} className="main-icon">
-                {icon}
-            </div>
-            <div className="timeline-card">
-                <div className="circle-custom">
-                    <i className="fa fas fa-circle"></i>
-                </div>
-                <div className="subcard">
-                    <h3>{header}</h3>
-                    <p>{description}</p>
-                </div>
-            </div>
-        </div>
-    );
-
     const handleLiveUpdateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         Swal.fire({
@@ -924,8 +993,71 @@ function Details() {
             idProjectPartnerInvestors,
             idProjectPartners: 0
         });
+        setPartnerQuery('');
         setPartnerChangeModalShow(true);
     }
+
+    const submitChangePartner = () => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to change the partner?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                try {
+                    const res = await fetch(API_URL + 'api/bookings/change-partner', putRequestOptions(changePartnerFormData));
+
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Partner changed successfully!',
+                        });
+                        setReload(true);
+                        setPartnerChangeModalShow(false);
+                        setChangePartnerFormData({
+                            idProjects: 0,
+                            idProjectPartnerInvestors: 0,
+                            idProjectPartners: 0
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (await res.json()).message,
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: (error as Error).message || 'Something went wrong!',
+                    });
+                }
+            },
+        });
+    };
+
+    /*
+     * Live updates for one partner allocation. These used to sit behind a
+     * "Live Updates" button that opened a dialog asking "Create or List?";
+     * the two buttons below go straight to each.
+     */
+    const openLiveUpdateCreate = (idProjectPartnerInvestors: number) => {
+        setLiveUpdateModalShow(true);
+        setLiveUpdateFormData({ ...liveUpdateFormData, idProjectPartnerInvestors: idProjectPartnerInvestors.toString() });
+    };
+
+    const openLiveUpdateList = (idProjectPartnerInvestors: number) => {
+        // Cleared first so one partner's updates never show under another's.
+        setLiveUpdateListData([]);
+        fetchLiveUpdateList(idProjectPartnerInvestors.toString());
+        setLiveUpdateListModalShow(true);
+    };
 
     const paymentMethods = [
         { value: 'cheque', label: 'Cheque' },
@@ -935,703 +1067,800 @@ function Details() {
         { value: 'cash', label: 'Cash' }
     ];
 
+    /* ------------------------------------------------------------ derived */
+
+    /* Keyed on the row id, not `bookingId`: reinvestment bookings can have no
+       booking number at all (the list shows them by internal id too). */
+    const loaded = Boolean(details.idProjectInvestmentBookings);
+    const reference = details.bookingId || details.idProjectInvestmentBookings;
+    const lines = details.ProjectInvestors ?? [];
+    const figures = lines.map(lineFigures);
+    const total = figures.reduce((sum, f) => sum + f.amount, 0);
+    const totalUnits = lines.reduce((sum, l) => sum + Number(l.unitPurchased || 0), 0);
+    const backMin = figures.reduce((sum, f) => sum + f.backMin, 0);
+    const backMax = figures.reduce((sum, f) => sum + f.backMax, 0);
+    const nextMaturity = lines
+        .filter((l) => l.maturityDate && !CLOSED_LINE.includes(l.investmentStatus) && daysFromToday(l.maturityDate) >= 0)
+        .map((l) => l.maturityDate)
+        .sort()[0];
+
+    const pay = paymentStatus(details.paymentConfirmationStatus);
+    const nid = investorNidState(details.User);
+    const open = details.cancelled === 'no';
+    const canCancel = open && details.paymentConfirmationStatus !== 'confirmed';
+    const canReview = open && isProofSubmitted(details.paymentConfirmationStatus);
+    const canUpload = open && details.paymentConfirmationStatus !== 'confirmed';
+    const collects = details.paymentMethod === 'cheque' || details.paymentMethod === 'cash';
+    const formCollects = formData.paymentMethod.value === 'cheque' || formData.paymentMethod.value === 'cash';
+
+    /* `!== null` let `undefined` through before the booking had loaded, and
+       the page requested /api/files/proof-of-payment/undefined (a 400). */
+    const hasProof = Boolean(details.proofOfPayment) && Boolean(details.idProjectInvestmentBookings);
+    const proofUrl = `/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`;
+    const proofIsPdf = /\.pdf$/i.test(details.proofOfPayment ?? '');
+
+    const partnerNeedle = partnerQuery.trim().toLowerCase();
+    const shownPartners = partnerNeedle ? projectPartners.filter((p) => p.label?.toLowerCase().includes(partnerNeedle)) : projectPartners;
+
+    if (loadFailed && !loaded) {
+        return (
+            <div className="ui">
+                <Card className="tw-mx-auto tw-mt-10 tw-max-w-md tw-p-8 tw-text-center">
+                    <ShieldAlert className="tw-mx-auto tw-h-8 tw-w-8 tw-text-amber-500" aria-hidden />
+                    <h1 className="tw-mt-3 tw-text-lg tw-font-semibold tw-text-slate-900">This booking could not be loaded</h1>
+                    <p className="tw-mt-1 tw-text-sm tw-text-slate-500">It may not exist, or the connection dropped. Try again from the bookings list.</p>
+                    <Link href="/bookings/list" className="tw-mt-5 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600">
+                        <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> All bookings
+                    </Link>
+                </Card>
+            </div>
+        );
+    }
+
     return (
-        <Container>
-            <h4 className="text-start"> Booking Details</h4>
-            <hr />
-            <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
-                <Tab eventKey="details" title="Details">
-                    <Row>
-                        <Col md={6}>
-                            <Table bordered size='sm'>
-                                <tbody>
-                                    <tr>
-                                        <td>Booking ID</td>
-                                        <td>{details.bookingId}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Investor </td>
-                                        <td>
-                                            {/* Opens everything else this investor holds. */}
-                                            <Link href={`/reports/investors?id=${details.idUsers}`}>{details.User?.fullName}</Link> ( {details.User?.phoneNumber} )
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Investor NID</td>
-                                        <td>
-                                            {/* Nothing until the booking has loaded: an empty
-                                                state would read as "Not submitted" for a moment. */}
-                                            {details.User &&
-                                                <>
-                                                    <span className={`badge ${investorNidState(details.User).badge}`}>
-                                                        {investorNidState(details.User).label}
-                                                    </span>
-                                                    {!investorNidState(details.User).approved &&
-                                                        <Link href='/users' className='ms-2 small'>Review on Investors page</Link>
-                                                    }
-                                                </>
-                                            }
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Payment Status</td>
-                                        <td>
-                                            <span className={`badge ${details.paymentConfirmationStatus === 'confirmed' ? 'bg-success' : details.paymentConfirmationStatus === 'denied' ? 'bg-danger' : 'bg-warning'}`}>
-                                                {details.paymentConfirmationStatus?.charAt(0).toUpperCase() + details.paymentConfirmationStatus?.slice(1)}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Cancelled</td>
-                                        <td>
-                                            <span className={`badge ${details.cancelled === 'yes' ? 'bg-danger' : 'bg-success'}`}>
-                                                {details.cancelled === 'yes' ? 'Yes' : 'No'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Investor Bank</td>
-                                        <td>
-                                            {details.UserBank?.Bank.bankNameFull}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Account Number</td>
-                                        <td>
-                                            {details.UserBank?.accountNumber}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Account Holder Name</td>
-                                        <td>
-                                            {details.UserBank?.accountHolderName}
-                                        </td>
-                                    </tr>
-                                    {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' &&
-                                        <tr>
-                                            <td>Upload Proof of Payment</td>
-                                            <td>
-                                                <Form.Group className="mb-3">
-                                                    <Form.Control type="file" onChange={handleFileChange} ref={proofOfPaymentRef} />
-                                                    <div className="d-flex justify-content-center">
-                                                        <Button className='btn btn-primary btn-sm text-light w-50 mt-2' onClick={handleFileUpload}>
-                                                            Upload
-                                                        </Button>
-                                                    </div>
-                                                </Form.Group>
-                                            </td>
-                                        </tr>
-                                    }
+        <div className="ui">
+            <Link href="/bookings/list" className="tw-mb-3 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-medium tw-text-slate-500 hover:tw-text-slate-900">
+                <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> All bookings
+            </Link>
 
-                                </tbody>
-                            </Table>
-                        </Col>
-                        <Col md={6}>
-                            <Table bordered size='sm'>
-                                <tbody>
-                                    <tr>
-                                        <td>Proof of Payment</td>
-                                        <td>
-                                            {/* Served through an authenticated route, not the public
-                                                bucket URL: these are bank receipts and cheque images, and
-                                                they used to be readable by anyone holding the link. The
-                                                route checks ownership and redirects to a five-minute
-                                                presigned URL. */}
-                                            {details.proofOfPayment !== null && (
-                                                <a href={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`} target="_blank" rel="noopener noreferrer">
-                                                    <img
-                                                        src={`/api/files/proof-of-payment/${details.idProjectInvestmentBookings}`}
-                                                        alt={details.proofOfPayment}
-                                                        width={100}
-                                                        height={100}
-                                                        style={{objectFit: "contain"}}
-                                                    />
-                                                </a>
-                                            )}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Payment Method</td>
-                                        <td>
-                                            {/* A reinvestment has no payment method — the money came
-                                                from a finished investment, not a transfer. The old
-                                                expression added two `undefined`s and printed "NaN". */}
-                                            {details.paymentMethod
-                                                ? details.paymentMethod.charAt(0).toUpperCase() + details.paymentMethod.slice(1)
-                                                : details.bookingType === 'reinvestment' ? 'Reinvestment' : '—'}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Payment Date</td>
-                                        <td>
-                                            {details.paymentDate}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Payment Amount</td>
-                                        <td>
-                                            {details.paymentAmount}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Transaction ID</td>
-                                        <td>
-                                            {details.transactionId}
-                                        </td>
-                                    </tr>
-                                    {(details.paymentMethod === 'cheque' || details.paymentMethod === 'cash') &&
-                                        <>
-                                            <tr>
-                                                <td>Collection Required</td>
-                                                <td>
-                                                    {details.collectionRequired?.charAt(0).toUpperCase() + details.collectionRequired?.slice(1)}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Collection Date</td>
-                                                <td>
-                                                    {new Date(details.collectionDate).toLocaleString('en-US', { timeZone: 'UTC' })}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Collection Location</td>
-                                                <td>
-                                                    {details.collectionLocation}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Collection Status</td>
-                                                <td>
-                                                    {details.collectionStatus === 'pending' ?
-                                                        <DropdownButton
-                                                            as={ButtonGroup}
-                                                            title="Status"
-                                                            id="bg-vertical-dropdown-3"
-                                                        >
-                                                            <Dropdown.Item eventKey="1" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>Collected</Dropdown.Item>
-                                                            <Dropdown.Item eventKey="2" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>Failed</Dropdown.Item>
-
-                                                        </DropdownButton>
-                                                        : details.collectionStatus?.charAt(0).toUpperCase() + details.collectionStatus?.slice(1)
-                                                    }
-                                                </td>
-                                            </tr>
-                                        </>
-                                    }
-                                </tbody>
-                            </Table>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col md={12}>
-                            <Table size='sm' bordered>
-                                <thead>
-                                    <tr>
-                                        <th>Sl</th>
-                                        <th>Investment Date</th>
-                                        <th>Projects</th>
-                                        <th>Unit Purchased</th>
-                                        <th>Project Partners / Updates</th>
-                                        <th>Range</th>
-                                        <th>Unit Price</th>
-                                        <th>Invested Amount</th>
-                                        <th>Return</th>
-                                        <th>Start Date</th>
-                                        <th>Maturity Date</th>
-                                        <th>Remaining</th>
-                                        <th>Investment Status</th>
-                                        <th>Actual Profit Amount</th>
-                                        <th>Actual Profit Percentage</th>
-                                        <th>Special Booking Req</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {details.ProjectInvestors && details.ProjectInvestors.map((project, index) => (
-                                        <tr key={index}>
-                                            <td>{index + 1}</td>
-                                            <td>{project.investmentDate}</td>
-
-                                            <td>
-                                                <Link href={`/projects/details/${project.Project.idProjects}`}>
-                                                    {project.Project.projectName}
-                                                </Link>
-                                            </td>
-
-                                            <td>{project.unitPurchased}</td>
-                                            <td className="p-0 m-0">
-                                                <Table className="m-0 table-borderless">
-                                                    <tbody>
-                                                        {
-                                                            project.ProjectPartnerInvestors.map((partner, index) => {
-                                                                return (
-                                                                    <tr key={index}>
-                                                                        <td className="text-start" style={{ whiteSpace: 'nowrap' }}>
-                                                                            <Link href={`/partners/details/${partner.ProjectPartner.User.idUsers}`}>
-                                                                                {partner.ProjectPartner.User.fullName}
-                                                                            </Link>
-                                                                        </td>
-                                                                        {details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed' && partner.investedUnit > partner.ProjectPartner.remainingCapacity &&
-                                                                            <td>
-                                                                                <Button className='btn btn-sm btn-warning' style={{ whiteSpace: 'nowrap' }} onClick={() => handleChangePartner(project.Project.idProjects, partner.idProjectPartnerInvestors)}>
-                                                                                    Change Partner
-                                                                                </Button>
-                                                                            </td>
-                                                                        }
-                                                                        {details.cancelled === 'no' &&
-                                                                            <td className="text-end">
-                                                                                <Button className='btn btn-sm btn-primary' onClick={() => {
-                                                                                    Swal.fire({
-                                                                                        title: 'Live Updates',
-                                                                                        showCancelButton: false,
-                                                                                        showDenyButton: true,
-                                                                                        confirmButtonText: 'Create',
-                                                                                        denyButtonText: 'List',
-                                                                                        denyButtonColor: '#0dcaf0',
-                                                                                        preConfirm: () => {
-                                                                                            setLiveUpdateModalShow(true);
-                                                                                            setLiveUpdateFormData({ ...liveUpdateFormData, idProjectPartnerInvestors: partner.idProjectPartnerInvestors.toString() });
-                                                                                        },
-                                                                                        preDeny: () => {
-                                                                                            fetchLiveUpdateList(partner.idProjectPartnerInvestors.toString());
-                                                                                            setLiveUpdateListModalShow(true);
-                                                                                        }
-                                                                                    });
-                                                                                }} style={{ whiteSpace: 'nowrap' }}>
-                                                                                    Live Updates
-                                                                                </Button>
-                                                                            </td>
-                                                                        }
-                                                                    </tr>
-                                                                )
-                                                            })
-                                                        }
-                                                    </tbody>
-                                                </Table>
-                                            </td>
-                                            <td>
-                                                {project.Project.duration} {project.Project.tenure?.charAt(0).toUpperCase() + project.Project.tenure?.slice(1) + '(' + project.Project.returnRangeMin + '% -' + project.Project.returnRangeMax + '%'}
-                                            </td>
-                                            <td>
-                                                {/* What the investor paid per unit: the money recorded
-                                                    on this line divided by its units.
-
-                                                    This cell used to print the amount allocated to the
-                                                    FIRST partner, which only equals the unit price when
-                                                    that partner holds exactly one unit. A 12-unit
-                                                    booking at 25,000 split 4/4/4 showed 100,000.
-
-                                                    Taken from the booking's own figures rather than the
-                                                    project's current price, so it stays right if the
-                                                    project is repriced later. */}
-                                                {unitPricePaid(project)}
-                                            </td>
-                                            <td>
-                                                {project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0)}
-                                            </td>
-                                            <td>
-                                                {(() => {
-                                                    const totalInvested = project.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0);
-                                                    const minReturn = totalInvested + (totalInvested * project.Project.returnRangeMin / 100);
-                                                    const maxReturn = totalInvested + (totalInvested * project.Project.returnRangeMax / 100);
-                                                    return `${minReturn.toLocaleString()} - ${maxReturn.toLocaleString()}`;
-                                                })()}
-                                            </td>
-                                            <td>
-                                                {formatDate(project.projectStartDate)}
-                                            </td>
-                                            <td>
-                                                {formatDate(project.maturityDate)}
-                                            </td>
-                                            <td>
-                                                {(() => {
-                                                    if (!project.maturityDate) return "-";
-                                                    const maturity = new Date(project.maturityDate);
-                                                    const now = new Date();
-                                                    const diff = maturity.getTime() - now.getTime();
-                                                    if (isNaN(diff)) return "-";
-                                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                                    return days > 0 ? `${days} days` : "Matured";
-                                                })()}
-                                            </td>
-                                            <td>{project.investmentStatus?.replace(/_/g, ' ').charAt(0).toUpperCase() + project.investmentStatus?.replace(/_/g, ' ').slice(1)}</td>
-                                            <td>{project.actualProfitPercentage !== null ? `${project.actualProfitPercentage} %` : null} </td>
-                                            <td>{project.actualProfitAmount}</td>
-                                            <td>
-                                                {project.ProjectSpecialBookingReq &&
-                                                    <>
-                                                        <strong>Additional Request:</strong> {project.ProjectSpecialBookingReq.additionalRequest}<br />
-                                                        <strong>Delivery Location:</strong> {project.ProjectSpecialBookingReq.deliveryLocation}<br />
-                                                        <strong>Preferred Color:</strong> {project.ProjectSpecialBookingReq.preferredColor}<br />
-                                                        <strong>Preferred Price:</strong> {project.ProjectSpecialBookingReq.preferredProductPrice}<br />
-                                                    </>
-                                                }
-                                            </td>
-                                            <td>
-                                                {details.cancelled === 'no' && details.paymentConfirmationStatus === 'confirmed' && project.investmentStatus !== 'ready_for_withdrawal' &&
-                                                    <Button className='btn btn-sm btn-primary m-2' onClick={() => handleInvestmentStatusChange(project.idProjectInvestors, 'ready_for_withdrawal')}>
-                                                        Ready For Withdrawal
-                                                    </Button>
-                                                }
-                                                {details.cancelled === 'no' &&
-                                                    project.investmentStatus !== 'cancelled' &&
-                                                    project.investmentStatus !== 'withdrawn' &&
-                                                    project.investmentStatus !== 'reinvested_full' &&
-                                                    project.investmentStatus !== 'reinvested_capital' &&
-                                                    project.investmentStatus !== 'reinvested_profit' &&
-
-                                                    <>
-                                                        <Button className='btn btn-sm btn-secondary m-2' onClick={() => handleManualNotification('2', project.idProjectInvestors)}>
-                                                            2 weeks maturity notification
-                                                        </Button>
-                                                        <Button className='btn btn-sm btn-secondary m-2' onClick={() => handleManualNotification('1', project.idProjectInvestors)}>
-                                                            1 weeks maturity notification
-                                                        </Button>
-                                                    </>
-                                                }
-                                            </td>
-                                        </tr>
-                                    ))}
-
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colSpan={7} style={{ textAlign: 'right' }}>
-                                            <strong> Total Payable Amount:</strong>
-                                        </td>
-                                        <td>
-                                            {details.ProjectInvestors && details.ProjectInvestors.reduce((acc, curr) => Number(acc) + curr.ProjectPartnerInvestors.reduce((acc, curr) => Number(acc) + Number(curr.amountInvested), 0), 0)}
-                                        </td>
-                                        <td colSpan={7}></td>
-                                    </tr>
-                                </tfoot>
-                            </Table>
-                        </Col>
-                    </Row>
-                    <Row className='justify-content-center'>
-                        <Col md={6} className="d-flex justify-content-between">
-                            {(details.cancelled === 'no' && details.paymentConfirmationStatus !== 'confirmed') &&
-                                <Button className='w-75 me-2' variant="danger" type="button" onClick={handleCancel}>
-                                    Cancel
+            {/* Header: who, what state, and the decisions waiting on the admin. */}
+            <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-4">
+                <div className="tw-min-w-0">
+                    <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.14em] tw-text-brand-700">Booking</p>
+                    {loaded ? (
+                        <h1 className="tw-mt-1 tw-text-[26px] tw-font-semibold tw-leading-8 tw-tracking-tight tw-text-slate-900">
+                            #{reference}
+                            {!details.bookingId && <span className="tw-ml-2 tw-align-middle tw-text-sm tw-font-normal tw-text-slate-400">internal id, no booking number</span>}
+                        </h1>
+                    ) : (
+                        <Skeleton className="tw-mt-2 tw-h-7 tw-w-40" />
+                    )}
+                    {loaded ? (
+                        <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                            <Pill tone={pay.tone}>{pay.label}</Pill>
+                            {details.cancelled === 'yes' && <Pill tone="rose">Cancelled</Pill>}
+                            {details.bookingType === 'reinvestment' && <Pill tone="violet">Reinvestment</Pill>}
+                            {details.createdAt && <span className="tw-text-xs tw-text-slate-500">Booked {dhakaStamp(details.createdAt)}</span>}
+                        </div>
+                    ) : (
+                        <Skeleton className="tw-mt-3 tw-h-5 tw-w-64" />
+                    )}
+                </div>
+                {loaded && (canCancel || canReview) && (
+                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                        {canCancel && (
+                            <Button variant="danger-outline" onClick={handleCancel}>
+                                <Ban className="tw-h-4 tw-w-4" aria-hidden /> Cancel booking
+                            </Button>
+                        )}
+                        {canReview && (
+                            <>
+                                <Button onClick={handleDeny}>
+                                    <XCircle className="tw-h-4 tw-w-4" aria-hidden /> Deny
                                 </Button>
-                            }
-                            {details.cancelled === 'no' && isProofSubmitted(details.paymentConfirmationStatus) &&
-                                <>
-                                    <Button className='w-75 me-2' variant="primary" type="button" onClick={() => setApproverModalShow(true)}>
-                                        Confirm
-                                    </Button>
-                                    <Button className='w-75' variant="warning" type="button" onClick={handleDeny}>
-                                        Deny
-                                    </Button>
-                                </>
-                            }
-                        </Col>
-                    </Row>
-                </Tab>
-                <Tab eventKey="timeline" title="Timeline">
-                    <div className="timeline">
-                        {history.map((item, index) => (
-                            <TimelineItem
-                                key={index}
-                                icon={<ChatDots size={32} />}
-                                color="#1395D3"
-                                header={item.status.charAt(0).toUpperCase() + item.status.slice(1).replace(/_/g, ' ')}
-                                description={item.User.fullName + ' - ' + item.remarks + ' - ' + item.createdAtFormatted}
-                            />
-                        ))}
+                                <Button variant="primary" onClick={() => setApproverModalShow(true)}>
+                                    <CheckCircle2 className="tw-h-4 tw-w-4" aria-hidden /> Confirm payment
+                                </Button>
+                            </>
+                        )}
                     </div>
-                </Tab>
-            </Tabs>
+                )}
+            </div>
+
+            <div className="tw-mb-5">
+                <Segmented
+                    label="Booking sections"
+                    value={tab}
+                    onChange={setTab}
+                    options={[
+                        { value: 'overview', label: 'Overview' },
+                        { value: 'activity', label: 'Activity', count: history.length },
+                    ]}
+                />
+            </div>
+
+            {tab === 'overview' && (
+                <div className="tw-space-y-6">
+                    <div className="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-4">
+                        {loaded ? (
+                            <>
+                                <Stat icon={Wallet} label="Booking total" value={bdt(total)} hint={plural(lines.length, 'project')} />
+                                <Stat icon={Layers} label="Units" value={totalUnits} hint={lines.length === 1 && figures[0]?.unitPrice ? `${bdtExact(figures[0].unitPrice)} each` : 'Across all projects'} />
+                                <Stat icon={TrendingUp} label="Expected back" value={total ? bdtRange(backMin, backMax) : '—'} hint="Capital + projected return" />
+                                <Stat
+                                    icon={CalendarClock}
+                                    label="Next maturity"
+                                    value={nextMaturity ? date(nextMaturity) : '—'}
+                                    hint={nextMaturity ? relativeDays(nextMaturity) : 'Nothing still running'}
+                                />
+                            </>
+                        ) : (
+                            [0, 1, 2, 3].map((i) => (
+                                <Card key={i} className="tw-p-4">
+                                    <Skeleton className="tw-h-3 tw-w-20" />
+                                    <Skeleton className="tw-mt-3 tw-h-6 tw-w-28" />
+                                </Card>
+                            ))
+                        )}
+                    </div>
+
+                    {loaded && (
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-4 lg:tw-grid-cols-3">
+                            <Section title="Investor" icon={UserRound}>
+                                <div className="tw-flex tw-items-center tw-gap-3">
+                                    <Avatar name={details.User?.fullName || '?'} seed={details.idUsers || 0} />
+                                    <div className="tw-min-w-0">
+                                        {/* Opens everything else this investor holds. */}
+                                        <Link
+                                            href={`/reports/investors?id=${details.idUsers}`}
+                                            className="tw-group tw-inline-flex tw-items-center tw-gap-1 tw-font-semibold tw-text-slate-900 hover:tw-text-brand-700"
+                                        >
+                                            <span className="tw-truncate">{details.User?.fullName || 'Unknown investor'}</span>
+                                            <ArrowUpRight className="tw-h-3.5 tw-w-3.5 tw-shrink-0 tw-text-slate-400 group-hover:tw-text-brand-700" aria-hidden />
+                                        </Link>
+                                        <div className="tw-text-sm tw-tabular-nums tw-text-slate-500">{details.User?.phoneNumber || '—'}</div>
+                                    </div>
+                                </div>
+                                <dl className="tw-mt-3 tw-divide-y tw-divide-slate-100">
+                                    <Fact label="NID">
+                                        <span className="tw-inline-flex tw-flex-wrap tw-items-center tw-justify-end tw-gap-2">
+                                            <Pill tone={nid.tone}>{nid.label}</Pill>
+                                            {!nid.approved && (
+                                                <Link href="/users" className="tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600">
+                                                    Review
+                                                </Link>
+                                            )}
+                                        </span>
+                                    </Fact>
+                                    <Fact label="Bank">{details.UserBank?.Bank?.bankNameFull || dash}</Fact>
+                                    <Fact label="Account">
+                                        <span className="tw-tabular-nums">{details.UserBank?.accountNumber || dash}</span>
+                                    </Fact>
+                                    <Fact label="Holder">{details.UserBank?.accountHolderName || dash}</Fact>
+                                </dl>
+                            </Section>
+
+                            <Section title="Payment" icon={Wallet}>
+                                <dl className="tw-divide-y tw-divide-slate-100">
+                                    <Fact label="Status">
+                                        <Pill tone={pay.tone}>{pay.label}</Pill>
+                                    </Fact>
+                                    <Fact label="Method">
+                                        {/* A reinvestment has no payment method — the money came
+                                            from a finished investment, not a transfer. */}
+                                        {details.paymentMethod
+                                            ? METHOD_LABEL[details.paymentMethod] ?? capitalise(details.paymentMethod)
+                                            : details.bookingType === 'reinvestment' ? 'Reinvestment' : dash}
+                                    </Fact>
+                                    <Fact label="Date">{details.paymentDate ? date(details.paymentDate) : dash}</Fact>
+                                    <Fact label="Amount">
+                                        <span className="tw-tabular-nums">{details.paymentAmount ? bdtExact(Number(details.paymentAmount)) : dash}</span>
+                                    </Fact>
+                                    <Fact label="Transaction ID">
+                                        {details.transactionId ? <span className="tw-break-all tw-font-mono tw-text-xs">{details.transactionId}</span> : dash}
+                                    </Fact>
+                                </dl>
+                                {collects && (
+                                    <div className="tw-mt-3 tw-rounded-xl tw-bg-slate-50 tw-px-3 tw-py-2">
+                                        <p className="tw-pt-1 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Collection</p>
+                                        <dl className="tw-divide-y tw-divide-slate-200/70">
+                                            <Fact label="Required">{capitalise(details.collectionRequired)}</Fact>
+                                            <Fact label="When">{details.collectionDate ? utcStamp(details.collectionDate) : dash}</Fact>
+                                            <Fact label="Where">{details.collectionLocation || dash}</Fact>
+                                            <Fact label="Status">
+                                                {details.collectionStatus === 'pending' ? (
+                                                    <span className="tw-inline-flex tw-gap-1.5">
+                                                        <Button size="sm" variant="success" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'collected')}>
+                                                            Collected
+                                                        </Button>
+                                                        <Button size="sm" variant="danger-outline" onClick={() => handleCollectionStatusChange(details.idProjectInvestmentBookings, 'failed')}>
+                                                            Failed
+                                                        </Button>
+                                                    </span>
+                                                ) : details.collectionStatus ? (
+                                                    <Pill tone={details.collectionStatus === 'collected' ? 'green' : details.collectionStatus === 'failed' ? 'rose' : 'slate'}>
+                                                        {capitalise(details.collectionStatus)}
+                                                    </Pill>
+                                                ) : (
+                                                    dash
+                                                )}
+                                            </Fact>
+                                        </dl>
+                                    </div>
+                                )}
+                            </Section>
+
+                            <Section title="Proof of payment" icon={FileText}>
+                                {/* Served through an authenticated route, not the public
+                                    bucket URL: these are bank receipts and cheque images, and
+                                    they used to be readable by anyone holding the link. The
+                                    route checks ownership and redirects to a five-minute
+                                    presigned URL. */}
+                                {hasProof ? (
+                                    <a
+                                        href={proofUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="tw-group tw-block tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50 hover:tw-border-slate-300"
+                                    >
+                                        {proofIsPdf || proofPreviewFailed ? (
+                                            <span className="tw-flex tw-h-40 tw-flex-col tw-items-center tw-justify-center tw-gap-2 tw-text-sm tw-text-slate-500">
+                                                <FileText className="tw-h-8 tw-w-8 tw-text-slate-400" aria-hidden />
+                                                {proofIsPdf ? 'PDF receipt' : 'No preview — open the file'}
+                                            </span>
+                                        ) : (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={proofUrl} alt="Proof of payment" className="tw-h-40 tw-w-full tw-object-contain" onError={() => setProofPreviewFailed(true)} />
+                                        )}
+                                        <span className="tw-flex tw-items-center tw-justify-between tw-border-t tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-slate-600 group-hover:tw-text-brand-700">
+                                            Open full size <ArrowUpRight className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                        </span>
+                                    </a>
+                                ) : (
+                                    <div className="tw-flex tw-h-28 tw-flex-col tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-dashed tw-border-slate-200 tw-text-sm tw-text-slate-500">
+                                        <ImageOff className="tw-h-5 tw-w-5 tw-text-slate-400" aria-hidden />
+                                        No proof submitted yet
+                                    </div>
+                                )}
+                                {canUpload && (
+                                    <div className="tw-mt-4">
+                                        <label htmlFor="proof-of-payment" className="tw-mb-1.5 tw-block tw-text-xs tw-font-medium tw-text-slate-600">
+                                            {hasProof ? 'Replace it with another file' : 'Upload it on the investor’s behalf'}
+                                        </label>
+                                        <FileInput id="proof-of-payment" onChange={handleFileChange} ref={proofOfPaymentRef} />
+                                        <Button size="sm" variant="primary" className="tw-mt-2" onClick={handleFileUpload}>
+                                            <Upload className="tw-h-3.5 tw-w-3.5" aria-hidden /> Upload
+                                        </Button>
+                                    </div>
+                                )}
+                            </Section>
+                        </div>
+                    )}
+
+                    {loaded && (
+                        <section>
+                            <div className="tw-mb-3 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-2">
+                                <div>
+                                    <h2 className="tw-text-lg tw-font-semibold tw-tracking-tight tw-text-slate-900">Investments</h2>
+                                    <p className="tw-text-sm tw-text-slate-500">
+                                        {plural(lines.length, 'project')} · {plural(totalUnits, 'unit')} · total payable {bdt(total)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="tw-space-y-4">
+                                {lines.map((line, index) => {
+                                    const f = figures[index];
+                                    const st = investmentStatus(line.investmentStatus);
+                                    const closed = CLOSED_LINE.includes(line.investmentStatus);
+                                    const canNotify = open && !closed;
+                                    /* Not offered on a line that is already paid out, rolled over
+                                       or cancelled: the API does not check, and pressing it there
+                                       would put a finished line back to "payout due" and overwrite
+                                       its recorded profit. */
+                                    const canWithdraw =
+                                        open && details.paymentConfirmationStatus === 'confirmed' && line.investmentStatus !== 'ready_for_withdrawal' && !closed;
+                                    const request = line.ProjectSpecialBookingReq;
+                                    return (
+                                        <Card key={line.idProjectInvestors ?? index} className="tw-overflow-hidden">
+                                            <div className="tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3 tw-px-5 tw-py-4">
+                                                <div className="tw-min-w-0">
+                                                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                                        <span className="tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-lg tw-bg-slate-100 tw-text-xs tw-font-semibold tw-tabular-nums tw-text-slate-500">
+                                                            {index + 1}
+                                                        </span>
+                                                        <Link
+                                                            href={`/projects/details/${line.Project?.idProjects}`}
+                                                            className="tw-group tw-inline-flex tw-items-center tw-gap-1 tw-text-base tw-font-semibold tw-text-slate-900 hover:tw-text-brand-700"
+                                                        >
+                                                            {line.Project?.projectName}
+                                                            <ArrowUpRight className="tw-h-3.5 tw-w-3.5 tw-text-slate-400 group-hover:tw-text-brand-700" aria-hidden />
+                                                        </Link>
+                                                        <Pill tone={st.tone}>{st.label}</Pill>
+                                                    </div>
+                                                    <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
+                                                        Invested {date(line.investmentDate)} · {line.Project?.duration} {line.Project?.tenure} ·{' '}
+                                                        {line.Project?.returnRangeMin}–{line.Project?.returnRangeMax}% return
+                                                    </p>
+                                                </div>
+                                                <div className="sm:tw-text-right">
+                                                    <div className="tw-text-lg tw-font-semibold tw-tabular-nums tw-text-slate-900">{bdt(f.amount)}</div>
+                                                    <div className="tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                                        {plural(Number(line.unitPurchased || 0), 'unit')} × {f.unitPrice !== null ? bdtExact(f.unitPrice) : '—'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <dl className="tw-grid tw-grid-cols-2 tw-border-y tw-border-slate-100 tw-bg-slate-50/60 sm:tw-grid-cols-4">
+                                                {(
+                                                    [
+                                                        ['Expected back', `${bdt(f.backMin)} – ${bdt(f.backMax)}`],
+                                                        ['Starts', date(line.projectStartDate)],
+                                                        ['Matures', date(line.maturityDate)],
+                                                        ['Remaining', closed ? '—' : remainingLabel(line.maturityDate)],
+                                                    ] as [string, string][]
+                                                ).map(([label, value]) => (
+                                                    <div key={label} className="tw-px-5 tw-py-3">
+                                                        <dt className="tw-text-xs tw-text-slate-500">{label}</dt>
+                                                        <dd className="tw-mt-0.5 tw-text-sm tw-font-medium tw-tabular-nums tw-text-slate-900">{value}</dd>
+                                                    </div>
+                                                ))}
+                                            </dl>
+
+                                            {(line.actualProfitAmount !== null && line.actualProfitAmount !== undefined) ||
+                                            (line.actualProfitPercentage !== null && line.actualProfitPercentage !== undefined) ? (
+                                                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-x-6 tw-gap-y-1 tw-border-b tw-border-slate-100 tw-bg-emerald-50/50 tw-px-5 tw-py-2.5 tw-text-sm">
+                                                    <span className="tw-font-medium tw-text-emerald-800">Actual profit</span>
+                                                    <span className="tw-tabular-nums tw-text-slate-800">
+                                                        {line.actualProfitAmount !== null && line.actualProfitAmount !== undefined ? bdtExact(Number(line.actualProfitAmount)) : '—'}
+                                                    </span>
+                                                    <span className="tw-tabular-nums tw-text-slate-600">
+                                                        {line.actualProfitPercentage !== null && line.actualProfitPercentage !== undefined ? `${line.actualProfitPercentage}%` : ''}
+                                                    </span>
+                                                </div>
+                                            ) : null}
+
+                                            {request && (
+                                                <div className="tw-border-b tw-border-slate-100 tw-px-5 tw-py-3">
+                                                    <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Special request</p>
+                                                    <dl className="tw-mt-1.5 tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-1 tw-text-sm sm:tw-grid-cols-2">
+                                                        {(
+                                                            [
+                                                                ['Request', request.additionalRequest],
+                                                                ['Delivery', request.deliveryLocation],
+                                                                ['Colour', request.preferredColor],
+                                                                ['Preferred price', request.preferredProductPrice ? bdtExact(Number(request.preferredProductPrice)) : ''],
+                                                            ] as [string, React.ReactNode][]
+                                                        ).map(([label, value]) => (
+                                                            <div key={label} className="tw-flex tw-gap-2">
+                                                                <dt className="tw-w-28 tw-shrink-0 tw-text-slate-500">{label}</dt>
+                                                                <dd className="tw-min-w-0 tw-text-slate-800">{value || '—'}</dd>
+                                                            </div>
+                                                        ))}
+                                                    </dl>
+                                                </div>
+                                            )}
+
+                                            <div className="tw-px-5 tw-py-3">
+                                                <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Partners</p>
+                                                {line.ProjectPartnerInvestors.length === 0 && (
+                                                    <p className="tw-py-2 tw-text-sm tw-text-slate-500">No partner allocation is recorded on this line.</p>
+                                                )}
+                                                <ul className="tw-mt-1 tw-divide-y tw-divide-slate-100">
+                                                    {line.ProjectPartnerInvestors.map((partner) => {
+                                                        const capacity = Number(partner.ProjectPartner?.partnerUnitCapacity || 0);
+                                                        const room = Number(partner.ProjectPartner?.remainingCapacity ?? 0);
+                                                        /* A capacity of 0 means "no limit" (as the confirm API
+                                                           reads it); such a partner is never over capacity. */
+                                                        const overCapacity =
+                                                            open && details.paymentConfirmationStatus !== 'confirmed' && capacity > 0 && partner.investedUnit > room;
+                                                        const partnerUser = partner.ProjectPartner?.User;
+                                                        return (
+                                                            <li key={partner.idProjectPartnerInvestors} className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-py-2.5">
+                                                                <Avatar name={partnerUser?.fullName || '?'} seed={partnerUser?.idUsers || 0} size="sm" />
+                                                                {/* min width: on a phone the buttons drop under the name
+                                                                    rather than squeezing it onto two lines. */}
+                                                                <div className="tw-min-w-[11rem] tw-flex-1">
+                                                                    <Link
+                                                                        href={`/partners/details/${partnerUser?.idUsers}`}
+                                                                        className="tw-text-sm tw-font-medium tw-text-slate-900 hover:tw-text-brand-700"
+                                                                    >
+                                                                        {partnerUser?.fullName || 'Unknown partner'}
+                                                                    </Link>
+                                                                    <div className="tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                                                        {plural(Number(partner.investedUnit || 0), 'unit')} · {bdt(Number(partner.amountInvested || 0))}
+                                                                    </div>
+                                                                    {overCapacity && (
+                                                                        <div className="tw-mt-1 tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-amber-700">
+                                                                            <ShieldAlert className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                                                            More units than this partner has room for ({Math.max(room, 0)} left of {capacity})
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="tw-ml-11 tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 sm:tw-ml-0">
+                                                                    {overCapacity && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="secondary"
+                                                                            className="tw-border-amber-300 tw-text-amber-800 hover:tw-bg-amber-50"
+                                                                            onClick={() => handleChangePartner(line.Project.idProjects, partner.idProjectPartnerInvestors)}
+                                                                        >
+                                                                            <Repeat2 className="tw-h-3.5 tw-w-3.5" aria-hidden /> Change partner
+                                                                        </Button>
+                                                                    )}
+                                                                    {open && (
+                                                                        <>
+                                                                            <Button size="sm" variant="ghost" onClick={() => openLiveUpdateList(partner.idProjectPartnerInvestors)}>
+                                                                                <ListChecks className="tw-h-3.5 tw-w-3.5" aria-hidden /> Updates
+                                                                            </Button>
+                                                                            <Button size="sm" variant="secondary" onClick={() => openLiveUpdateCreate(partner.idProjectPartnerInvestors)}>
+                                                                                <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add update
+                                                                            </Button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
+
+                                            {(canWithdraw || canNotify) && (
+                                                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-t tw-border-slate-100 tw-bg-slate-50/60 tw-px-5 tw-py-3">
+                                                    {canWithdraw && (
+                                                        <Button size="sm" variant="primary" onClick={() => handleInvestmentStatusChange(line.idProjectInvestors, 'ready_for_withdrawal')}>
+                                                            <Wallet className="tw-h-3.5 tw-w-3.5" aria-hidden /> Mark ready for withdrawal
+                                                        </Button>
+                                                    )}
+                                                    {canNotify && (
+                                                        <span className="tw-ml-auto tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+                                                            <span className="tw-text-xs tw-text-slate-500">Send maturity notice:</span>
+                                                            <Button size="sm" onClick={() => handleManualNotification('2', line.idProjectInvestors)}>
+                                                                <BellRing className="tw-h-3.5 tw-w-3.5" aria-hidden /> 2 weeks
+                                                            </Button>
+                                                            <Button size="sm" onClick={() => handleManualNotification('1', line.idProjectInvestors)}>
+                                                                <BellRing className="tw-h-3.5 tw-w-3.5" aria-hidden /> 1 week
+                                                            </Button>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
+                </div>
+            )}
+
+            {tab === 'activity' && (
+                <Card className="tw-p-5">
+                    {history.length === 0 ? (
+                        <div className="tw-flex tw-flex-col tw-items-center tw-gap-2 tw-py-10 tw-text-sm tw-text-slate-500">
+                            <HistoryIcon className="tw-h-6 tw-w-6 tw-text-slate-400" aria-hidden />
+                            {loaded ? 'Nothing has happened on this booking yet.' : 'Loading…'}
+                        </div>
+                    ) : (
+                        <div className="tw-relative">
+                        <span className="tw-absolute tw-bottom-3 tw-left-[11px] tw-top-3 tw-w-px tw-bg-slate-200" aria-hidden />
+                        <ol>
+                            {history.map((item, index) => (
+                                <li key={index} className="tw-relative tw-flex tw-gap-4 tw-pb-5 last:tw-pb-0">
+                                    <span className="tw-relative tw-mt-0.5 tw-flex tw-h-6 tw-w-6 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-white">
+                                        <span className={cx('tw-h-2.5 tw-w-2.5 tw-rounded-full tw-ring-4 tw-ring-white', HISTORY_DOT[historyTone(item.status)])} />
+                                    </span>
+                                    <div className="tw-min-w-0 tw-flex-1">
+                                        <div className="tw-flex tw-flex-wrap tw-items-baseline tw-justify-between tw-gap-x-3">
+                                            <p className="tw-text-sm tw-font-semibold tw-text-slate-900">{capitalise(item.status)}</p>
+                                            <time className="tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                                {item.createdAt ? dhakaStamp(item.createdAt) : item.createdAtFormatted}
+                                            </time>
+                                        </div>
+                                        <p className="tw-text-xs tw-text-slate-500">by {item.User?.fullName || 'system'}</p>
+                                        {item.remarks && (
+                                            <p className="tw-mt-1.5 tw-whitespace-pre-line tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700">{item.remarks}</p>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                        </div>
+                    )}
+                </Card>
+            )}
 
             <Modal show={approverModalShow} onHide={() => setApproverModalShow(false)} size='lg'>
                 <Modal.Header closeButton>
-                    <Modal.Title>Confirm Booking</Modal.Title>
+                    <Modal.Title>Confirm payment · #{reference}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {/* Shown, never enforced: confirming still works. An
-                        approved NID is no longer required to book, so this is
-                        the one moment the admin is told before money is
-                        recorded against the investor. */}
-                    {details.User && !investorNidState(details.User).approved &&
-                        <div className='alert alert-warning py-2' role='alert'>
-                            This investor&apos;s NID is not approved ({investorNidState(details.User).label.toLowerCase()}).
-                            You can still confirm the booking.
+                    <form onSubmit={handleSubmit} className="ui tw-space-y-4">
+                        {/* Shown, never enforced: confirming still works. An
+                            approved NID is no longer required to book, so this is
+                            the one moment the admin is told before money is
+                            recorded against the investor. */}
+                        {details.User && !nid.approved && (
+                            <div className="tw-flex tw-gap-2 tw-rounded-xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-px-3 tw-py-2.5 tw-text-sm tw-text-amber-900" role="alert">
+                                <ShieldAlert className="tw-mt-0.5 tw-h-4 tw-w-4 tw-shrink-0" aria-hidden />
+                                <span>
+                                    This investor&apos;s NID is not approved ({nid.label.toLowerCase()}). You can still confirm the booking.
+                                </span>
+                            </div>
+                        )}
+                        <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2 tw-rounded-xl tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-sm">
+                            <span className="tw-text-slate-600">
+                                {details.User?.fullName} · {plural(totalUnits, 'unit')}
+                            </span>
+                            <span className="tw-font-semibold tw-tabular-nums tw-text-slate-900">Booking total {bdt(total)}</span>
                         </div>
-                    }
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Payment Method <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+                            <Field label={<>Payment method<Required /></>}>
                                 <Select
                                     id="paymentMethod"
-                                    instanceId="paymentMethod"
-                                    options={paymentMethods.map(method => ({
-                                        value: method.value,
-                                        label: method.label
-                                    }))}
-                                    value={paymentMethods.find(method => method.value === formData.paymentMethod.value) ? {
-                                        value: formData.paymentMethod.value,
-                                        label: formData.paymentMethod.label
-                                    } : null}
-                                    onChange={(selectedOption: any) => setFormData({ ...formData, paymentMethod: selectedOption })}
-                                />
-                            </Col>
-                        </Form.Group>
-                        {(formData.paymentMethod.value === 'cheque' || formData.paymentMethod.value === 'cash') &&
-                            <>
-                                <Form.Group as={Row} className='mb-3'>
-                                    <Form.Label column sm='4'>Collection Date <span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type='datetime-local' name='collectionDate' value={formData.collectionDate} onChange={handleOnChange} />
-                                    </Col>
-                                </Form.Group>
-
-                                <Form.Group as={Row} className='mb-3'>
-                                    <Form.Label column sm='4'>Collection Location <span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type='text' name='collectionLocation' value={formData.collectionLocation} onChange={handleOnChange} />
-                                    </Col>
-                                </Form.Group>
-                            </>
-                        }
-                        {formData.paymentMethod.value !== 'cash' && formData.paymentMethod.value !== 'cheque' &&
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>User Bank <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
+                                    value={formData.paymentMethod.value || ''}
+                                    onChange={(e) => {
+                                        const method = paymentMethods.find((m) => m.value === e.target.value);
+                                        if (method) setFormData({ ...formData, paymentMethod: method });
+                                    }}
+                                >
+                                    <option value="" disabled>
+                                        Choose a method
+                                    </option>
+                                    {paymentMethods.map((method) => (
+                                        <option key={method.value} value={method.value}>
+                                            {method.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </Field>
+                            {formCollects ? (
+                                <>
+                                    <Field label={<>Collection date<Required /></>}>
+                                        <Input type='datetime-local' name='collectionDate' value={formData.collectionDate ?? ''} onChange={handleOnChange} />
+                                    </Field>
+                                    <Field label={<>Collection location<Required /></>} className="sm:tw-col-span-2">
+                                        <Input type='text' name='collectionLocation' value={formData.collectionLocation ?? ''} onChange={handleOnChange} />
+                                    </Field>
+                                </>
+                            ) : (
+                                <Field label={<>Investor bank<Required /></>}>
                                     <Select
                                         id="idUserBanks"
-                                        instanceId="idUserBanks"
-                                        options={userBanks.map(bank => ({
-                                            value: bank.idUserBanks,
-                                            label: `${bank.Bank.bankNameFull} - ${bank.BankBranch.branchName} - ${bank.accountNumber}`
-                                        }))}
-                                        value={userBanks.find(bank => bank.idUserBanks === formData.idUserBanks) ? {
-                                            value: formData.idUserBanks,
-                                            label: userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.Bank.bankNameFull + ' - ' + userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.BankBranch.branchName + ' - ' + userBanks.find(bank => bank.idUserBanks === formData.idUserBanks)?.accountNumber
-                                        } : null}
-                                        onChange={(selectedOption: any) => setFormData({ ...formData, idUserBanks: selectedOption.value })}
-                                    />
-                                </Col>
-                            </Form.Group>
-                        }
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Payment Date <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='date' name='paymentDate' value={formData.paymentDate} onChange={handleOnChange} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Payment Amount <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='number' name='paymentAmount' value={formData.paymentAmount} onChange={handleOnChange} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Transaction ID <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='text' name='transactionId' value={formData.transactionId} onChange={handleOnChange} />
-                            </Col>
-                        </Form.Group>
-                        <Row className='justify-content-center'>
-                            <Button className='w-50 mt-2' variant="primary" type="submit">
-                                Submit
+                                        value={formData.idUserBanks ?? ''}
+                                        onChange={(e) => setFormData({ ...formData, idUserBanks: Number(e.target.value) })}
+                                    >
+                                        <option value="" disabled>
+                                            {userBanks.length ? 'Choose an account' : 'No bank accounts on file'}
+                                        </option>
+                                        {userBanks.map((bank) => (
+                                            <option key={bank.idUserBanks} value={bank.idUserBanks}>
+                                                {`${bank.Bank.bankNameFull} - ${bank.BankBranch.branchName} - ${bank.accountNumber}`}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Field>
+                            )}
+                            <Field label={<>Payment date<Required /></>}>
+                                <Input type='date' name='paymentDate' value={formData.paymentDate ?? ''} onChange={handleOnChange} />
+                            </Field>
+                            <Field label={<>Amount received (৳)<Required /></>}>
+                                <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
+                            </Field>
+                            <Field label={<>Transaction ID<Required /></>} className="sm:tw-col-span-2">
+                                <Input type='text' name='transactionId' value={formData.transactionId ?? ''} onChange={handleOnChange} />
+                            </Field>
+                        </div>
+                        <div className="tw-flex tw-justify-end tw-gap-2 tw-border-t tw-border-slate-100 tw-pt-4">
+                            <Button onClick={() => setApproverModalShow(false)}>Cancel</Button>
+                            <Button variant="primary" type="submit">
+                                <Check className="tw-h-4 tw-w-4" aria-hidden /> Confirm payment
                             </Button>
-                        </Row>
-                    </Form>
-                    {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
+                        </div>
+                    </form>
                 </Modal.Body>
             </Modal>
 
             <Modal show={liveUpdateModalShow} onHide={() => setLiveUpdateModalShow(false)} size='lg'>
                 <Modal.Header closeButton>
-                    <Modal.Title>Live Update</Modal.Title>
+                    <Modal.Title>New live update</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form onSubmit={handleLiveUpdateSubmit}>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Live Weight</Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='number' name='liveWeight' value={liveUpdateFormData.liveWeight ?? ''} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, liveWeight: Number(e.target.value) })} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Update Date <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='date' name='updateDate' value={liveUpdateFormData.updateDate} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateDate: e.target.value })} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Update Title <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='text' name='updateTitle' value={liveUpdateFormData.updateTitle} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateTitle: e.target.value })} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Update Body <span className='text-danger'>*</span></Form.Label>
-                            <Col sm='8'>
-                                <Form.Control as='textarea' name='updateBody' value={liveUpdateFormData.updateBody} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateBody: e.target.value })} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Video URL</Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='text' name='videoUrl' value={liveUpdateFormData.videoUrl} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, videoUrl: e.target.value })} />
-                            </Col>
-                        </Form.Group>
-                        <Form.Group as={Row} className='mb-3'>
-                            <Form.Label column sm='4'>Update Image</Form.Label>
-                            <Col sm='8'>
-                                <Form.Control type='file' name='updateImage' onChange={
-                                    (e: React.ChangeEvent<HTMLInputElement>) => {
+                    <form onSubmit={handleLiveUpdateSubmit} className="ui tw-space-y-4">
+                        <p className="tw-text-sm tw-text-slate-500">Shown to the investor in the app, under this partner&apos;s share of the project.</p>
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+                            <Field label={<>Update date<Required /></>}>
+                                <Input type='date' name='updateDate' value={liveUpdateFormData.updateDate} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateDate: e.target.value })} />
+                            </Field>
+                            <Field label="Live weight">
+                                <Input
+                                    type='number'
+                                    step='any'
+                                    name='liveWeight'
+                                    value={liveUpdateFormData.liveWeight ?? ''}
+                                    onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, liveWeight: e.target.value === '' ? null : Number(e.target.value) })}
+                                />
+                            </Field>
+                            <Field label={<>Title<Required /></>} className="sm:tw-col-span-2">
+                                <Input type='text' name='updateTitle' value={liveUpdateFormData.updateTitle} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateTitle: e.target.value })} />
+                            </Field>
+                            <Field label={<>Details<Required /></>} className="sm:tw-col-span-2">
+                                <Textarea name='updateBody' value={liveUpdateFormData.updateBody} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, updateBody: e.target.value })} />
+                            </Field>
+                            <Field label="Video link">
+                                <Input type='text' name='videoUrl' placeholder="https://" value={liveUpdateFormData.videoUrl} onChange={(e) => setLiveUpdateFormData({ ...liveUpdateFormData, videoUrl: e.target.value })} />
+                            </Field>
+                            <Field label="Photo">
+                                <FileInput
+                                    name='updateImage'
+                                    accept="image/*"
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                         const file = e.target.files?.[0] || null;
                                         setLiveUpdateFormData({
                                             ...liveUpdateFormData,
                                             updateImage: file
                                         });
-                                    }
-                                } />
-                            </Col>
-                        </Form.Group>
-                        <Row className='justify-content-center'>
-                            <Button className='w-50 mt-2' variant="primary" type="submit" >
-                                Submit
+                                    }}
+                                />
+                            </Field>
+                        </div>
+                        <div className="tw-flex tw-justify-end tw-gap-2 tw-border-t tw-border-slate-100 tw-pt-4">
+                            <Button onClick={() => setLiveUpdateModalShow(false)}>Cancel</Button>
+                            <Button variant="primary" type="submit">
+                                Post update
                             </Button>
-                        </Row>
-                    </Form>
-                    {/* <pre>{JSON.stringify(liveUpdateFormData, null, 2)}</pre> */}
+                        </div>
+                    </form>
                 </Modal.Body>
             </Modal>
+
             <Modal show={liveUpdateListModalShow} onHide={() => setLiveUpdateListModalShow(false)} size='lg'>
                 <Modal.Header closeButton>
-                    <Modal.Title>Live Update List</Modal.Title>
+                    <Modal.Title>Live updates</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Table bordered size='sm'>
-                        <thead>
-                            <tr>
-                                <th>Sl</th>
-                                <th>Live Weight</th>
-                                <th>Update Date</th>
-                                <th>Update Title</th>
-                                <th>Update Body</th>
-                                <th>Video URL</th>
-                                <th>Update Image</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {liveUpdateListData.length > 0 ? (
-                                liveUpdateListData.map((liveUpdate, index) => (
-                                    <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{liveUpdate.liveWeight}</td>
-                                        <td>{liveUpdate.updateDate}</td>
-                                        <td>{liveUpdate.updateTitle}</td>
-                                        <td>{liveUpdate.updateBody}</td>
-                                        <td>
-                                            {liveUpdate.videoUrl !== null && (
-                                                <a href={liveUpdate.videoUrl.startsWith('http') ? liveUpdate.videoUrl : `http://${liveUpdate.videoUrl}`} target="_blank" rel="noopener noreferrer">
-                                                    {liveUpdate.videoUrl}
-                                                </a>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {liveUpdate.updateImage !== null &&
-                                                <a href={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.updateImage}`} target="_blank" rel="noopener noreferrer">
-                                                    <img
-                                                        src={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.imageThumbnail}`}
-                                                        alt={liveUpdate.updateImage}
-                                                        width={100}
-                                                        height={100}
-                                                        style={{objectFit: "contain"}}
-                                                    />
-                                                </a>
-                                            }
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="text-center">No live updates found</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </Table>
+                    <div className="ui">
+                        {liveUpdateListLoading ? (
+                            <div className="tw-space-y-3">
+                                {[0, 1].map((i) => (
+                                    <div key={i} className="tw-flex tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
+                                        <Skeleton className="tw-h-20 tw-w-20 tw-rounded-lg" />
+                                        <div className="tw-flex-1 tw-space-y-2">
+                                            <Skeleton className="tw-h-4 tw-w-40" />
+                                            <Skeleton className="tw-h-3 tw-w-full" />
+                                            <Skeleton className="tw-h-3 tw-w-2/3" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : liveUpdateListData.length === 0 ? (
+                            <div className="tw-flex tw-flex-col tw-items-center tw-gap-2 tw-py-10 tw-text-sm tw-text-slate-500">
+                                <ListChecks className="tw-h-6 tw-w-6 tw-text-slate-400" aria-hidden />
+                                No live updates posted yet.
+                            </div>
+                        ) : (
+                            <ul className="tw-space-y-3">
+                                {liveUpdateListData.map((liveUpdate, index) => (
+                                    <li key={liveUpdate.idProjectPartnerInvestorUpdates ?? index} className="tw-flex tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
+                                        {liveUpdate.updateImage ? (
+                                            <a
+                                                href={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.updateImage}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="tw-shrink-0"
+                                            >
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={`${S3_URL}live-update/${liveUpdate.idProjectPartnerInvestorUpdates}/${liveUpdate.imageThumbnail}`}
+                                                    alt={liveUpdate.updateTitle || 'Live update photo'}
+                                                    className="tw-h-20 tw-w-20 tw-rounded-lg tw-bg-slate-100 tw-object-cover"
+                                                />
+                                            </a>
+                                        ) : (
+                                            <span className="tw-flex tw-h-20 tw-w-20 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-slate-50">
+                                                <ImageOff className="tw-h-5 tw-w-5 tw-text-slate-300" aria-hidden />
+                                            </span>
+                                        )}
+                                        <div className="tw-min-w-0 tw-flex-1">
+                                            <div className="tw-flex tw-flex-wrap tw-items-baseline tw-justify-between tw-gap-2">
+                                                <p className="tw-font-semibold tw-text-slate-900">{liveUpdate.updateTitle}</p>
+                                                <span className="tw-text-xs tw-tabular-nums tw-text-slate-500">{date(liveUpdate.updateDate)}</span>
+                                            </div>
+                                            <p className="tw-mt-1 tw-whitespace-pre-line tw-text-sm tw-text-slate-600">{liveUpdate.updateBody}</p>
+                                            <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-text-xs">
+                                                {liveUpdate.liveWeight !== null && liveUpdate.liveWeight !== undefined && (
+                                                    <span className="tw-rounded-md tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-font-medium tw-tabular-nums tw-text-slate-700">
+                                                        Live weight {liveUpdate.liveWeight}
+                                                    </span>
+                                                )}
+                                                {liveUpdate.videoUrl && (
+                                                    <a
+                                                        href={liveUpdate.videoUrl.startsWith('http') ? liveUpdate.videoUrl : `http://${liveUpdate.videoUrl}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="tw-inline-flex tw-items-center tw-gap-1 tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600"
+                                                    >
+                                                        <PlayCircle className="tw-h-3.5 tw-w-3.5" aria-hidden /> Watch video
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                 </Modal.Body>
             </Modal>
 
             <Modal show={partnerChangeModalShow} onHide={() => setPartnerChangeModalShow(false)} size='lg'>
                 <Modal.Header closeButton>
-                    <Modal.Title>Change Partner</Modal.Title>
+                    <Modal.Title>Change partner</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form.Group as={Row} className='mb-3'>
-                        <Form.Label column sm='4'>Select Partner <span className='text-danger'>*</span></Form.Label>
-                        <Col sm='8'>
-                            <Select
-                                options={projectPartners}
-                                isSearchable
-                                isClearable
-                                placeholder='Select Partner'
-                                onChange={(selectedOption: any) => setChangePartnerFormData({ ...changePartnerFormData, idProjectPartners: selectedOption.value })}
-                                value={projectPartners.find(partner => partner.value === changePartnerFormData.idProjectPartners) || null}
-                                components={{ Option: CustomOptionPartner }}
-                            />
-                        </Col>
-                    </Form.Group>
-                    <Row className='justify-content-center'>
-                        <Button className='w-50 mt-2' variant="primary" type="button" onClick={() => {
-                            Swal.fire({
-                                title: 'Are you sure?',
-                                text: 'Do you want to change the partner?',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonText: 'Yes',
-                                cancelButtonText: 'No',
-                                showLoaderOnConfirm: true,
-                                allowOutsideClick: false,
-                                preConfirm: async () => {
-                                    try {
-                                        const res = await fetch(API_URL + 'api/bookings/change-partner', putRequestOptions(changePartnerFormData));
-
-                                        if (res.ok) {
-                                            Swal.fire({
-                                                icon: 'success',
-                                                title: 'Success',
-                                                text: 'Partner changed successfully!',
-                                            });
-                                            setReload(true);
-                                            setPartnerChangeModalShow(false);
-                                            setChangePartnerFormData({
-                                                idProjects: 0,
-                                                idProjectPartnerInvestors: 0,
-                                                idProjectPartners: 0
-                                            });
-                                        } else {
-                                            Swal.fire({
-                                                icon: 'error',
-                                                title: 'Error',
-                                                html: (await res.json()).message,
-                                            });
-                                        }
-                                    } catch (error) {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Error',
-                                            text: (error as Error).message || 'Something went wrong!',
-                                        });
-                                    }
-                                },
-                            });
-                        }}>
-                            Change Partner
-                        </Button>
-                    </Row>
-                    {/* <pre>{JSON.stringify(projectPartners, null, 2)}</pre>
-                    <pre>{JSON.stringify(changePartnerFormData, null, 2)}</pre> */}
+                    <div className="ui tw-space-y-3">
+                        <p className="tw-text-sm tw-text-slate-500">
+                            Move this allocation to another partner on the project. Only partners below their capacity are listed.
+                        </p>
+                        <SearchInput placeholder="Search partners" value={partnerQuery} onChange={(e) => setPartnerQuery(e.target.value)} aria-label="Search partners" />
+                        <div role="radiogroup" aria-label="Partners" className="tw-max-h-80 tw-space-y-2 tw-overflow-y-auto tw-pr-1">
+                            {shownPartners.length === 0 ? (
+                                <p className="tw-py-8 tw-text-center tw-text-sm tw-text-slate-500">
+                                    {projectPartners.length ? 'No partner matches that search.' : 'No partner on this project has room.'}
+                                </p>
+                            ) : (
+                                shownPartners.map((partner) => {
+                                    const selected = changePartnerFormData.idProjectPartners === partner.value;
+                                    const capacity = Number(partner.partnerUnitCapacity || 0);
+                                    const confirmedCount = Number(partner.investorConfirmedBookingCount || 0);
+                                    return (
+                                        <label
+                                            key={partner.value}
+                                            className={cx(
+                                                'tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-rounded-xl tw-border tw-px-3 tw-py-2.5 tw-transition',
+                                                selected ? 'tw-border-brand-500 tw-bg-brand-50/60 tw-ring-2 tw-ring-brand-500/15' : 'tw-border-slate-200 hover:tw-border-slate-300 hover:tw-bg-slate-50',
+                                            )}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="partner"
+                                                className="tw-sr-only"
+                                                checked={selected}
+                                                onChange={() => setChangePartnerFormData({ ...changePartnerFormData, idProjectPartners: partner.value })}
+                                            />
+                                            <Avatar name={partner.label || '?'} seed={partner.value} size="sm" />
+                                            <span className="tw-min-w-0 tw-flex-1">
+                                                <span className="tw-block tw-truncate tw-text-sm tw-font-medium tw-text-slate-900">{partner.label}</span>
+                                                <span className="tw-block tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                                    {capacity > 0 ? `Capacity ${capacity}` : 'No capacity limit'} · {confirmedCount} confirmed ·{' '}
+                                                    {Number(partner.investorAlreadyBookedCount || 0)} awaiting payment
+                                                    {capacity > 0 ? ` · ${capacity - confirmedCount} remaining` : ''}
+                                                </span>
+                                            </span>
+                                            <span
+                                                className={cx(
+                                                    'tw-flex tw-h-5 tw-w-5 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border',
+                                                    selected ? 'tw-border-brand-600 tw-bg-brand-600 tw-text-white' : 'tw-border-slate-300 tw-bg-white',
+                                                )}
+                                                aria-hidden
+                                            >
+                                                {selected && <Check className="tw-h-3 tw-w-3" />}
+                                            </span>
+                                        </label>
+                                    );
+                                })
+                            )}
+                        </div>
+                        <div className="tw-flex tw-justify-end tw-gap-2 tw-border-t tw-border-slate-100 tw-pt-4">
+                            <Button onClick={() => setPartnerChangeModalShow(false)}>Cancel</Button>
+                            <Button variant="primary" onClick={submitChangePartner} disabled={!changePartnerFormData.idProjectPartners}>
+                                <Repeat2 className="tw-h-4 tw-w-4" aria-hidden /> Change partner
+                            </Button>
+                        </div>
+                    </div>
                 </Modal.Body>
             </Modal>
-        </Container>
-
+        </div>
     );
 }
 

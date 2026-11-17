@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import MainLayout from "@/layouts/MainLayout";
-import {
-    Button,
-    Col,
-    Container,
-    Form,
-    Modal,
-    Row,
-    Spinner,
-    Table,
-} from "react-bootstrap";
+import { Modal } from "react-bootstrap";
 import { API_URL } from '@/config/public';
-import Select, { SingleValue } from "react-select";
+import ReactSelect, { SingleValue } from "react-select";
 import Swal from "sweetalert2";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
+import { CalendarDays, FolderPlus, Layers, Loader2, MapPin, Plus, ShieldAlert, Trash2, UserRound, Wallet, X } from "lucide-react";
+import { Avatar, Card } from "@/ui/primitives";
+import { Button, Field, Input, Required, Select } from "@/ui/controls";
+import { PageHeader } from "@/ui/layout";
+import { selectStyles } from "@/ui/select";
+import { bdt, bdtExact, date, plural } from "@/ui/format";
 
 
 interface InvestorType {
@@ -35,6 +33,9 @@ interface ProjectPartnerType {
     };
     investedUnit: number;
     amountInvested: number;
+    /** Shown in the partner picker only; never sent. */
+    investorConfirmedBookingCount?: number;
+    investorAlreadyBookedCount?: number;
 }
 
 interface ProjectCategoryType {
@@ -84,7 +85,16 @@ interface FormDataType {
     projects: FormProjectType[];
 }
 
+/** Capital plus the project's projected return, low and high. */
+function expectedBack(amount: number, project: ProjectDataType | null) {
+    return {
+        min: amount + (amount * Number(project?.returnRangeMin || 0)) / 100,
+        max: amount + (amount * Number(project?.returnRangeMax || 0)) / 100,
+    };
+}
+
 function Create() {
+    const router = useRouter();
     const [formData, setFormData] = useState<FormDataType>({
         investmentDate: "",
         investor: {
@@ -170,7 +180,10 @@ function Create() {
 
     const fetchProjectPartners = async (projectId: number) => {
         try {
-            const res = await fetch(`${API_URL}api/projects/project-partners/${projectId}`);
+            // Now sends the admin token. The route is still open, but
+            // SECURITY-REMEDIATION.md names this call (it sent none) as the one
+            // thing stopping it from being locked to admins.
+            const res = await fetch(`${API_URL}api/projects/project-partners/${projectId}`, getRequestOptions());
             const data = await res.json();
             if (res.status === 200) {
                 setProjectPartners(
@@ -182,6 +195,8 @@ function Create() {
                             fullName: partner.User.fullName,
                             phoneNumber: partner.User.phoneNumber,
                         },
+                        investorConfirmedBookingCount: partner.investorConfirmedBookingCount,
+                        investorAlreadyBookedCount: partner.investorAlreadyBookedCount,
                         label: `${partner.User.fullName} (${partner.partnerUnitCapacity})`,
                         value: partner.idProjectPartners
                     }))
@@ -272,10 +287,18 @@ function Create() {
             const res = await fetch(API_URL + "api/bookings/manual_booking", postRequestOptions(formData));
             const data = await res.json();
             if (res.status === 200) {
+                const created = data.data ?? {};
                 Swal.fire({
                     icon: "success",
                     title: "Booking created successfully!",
-                    text: `Booking ID: ${data.data.bookingId}`,
+                    text: `Booking ID: ${created.bookingId}`,
+                    showCancelButton: Boolean(created.idProjectInvestmentBookings),
+                    confirmButtonText: created.idProjectInvestmentBookings ? "Open booking" : "OK",
+                    cancelButtonText: "Create another",
+                }).then((result) => {
+                    if (result.isConfirmed && created.idProjectInvestmentBookings) {
+                        router.push(`/bookings/details/${created.idProjectInvestmentBookings}`);
+                    }
                 });
                 setFormData({
                     investmentDate: "",
@@ -298,422 +321,432 @@ function Create() {
         }
     };
 
-    return (
-        <Container>
-            <Row>
-                <Col md={2} />
-                <Col md={8}>
-                    <h4 className="text-start">Manual Booking Create</h4>
-                    <hr />
-                    <Form onSubmit={handleSubmit}>
-                        <Row>
-                            <Col md={12}>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm="4" className="mb-3">
-                                        Investment Date<span className="text-danger">*</span>
-                                    </Form.Label>
-                                    <Col sm="8">
-                                        <Form.Control
-                                            type="date"
-                                            name="investmentDate"
-                                            onChange={handleOnChange}
-                                            value={formData.investmentDate}
-                                        />
-                                    </Col>
-                                </Form.Group>
-                            </Col>
-                            <Col md={12}>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm="4" className="mb-3">
-                                        Investor<span className="text-danger">*</span>
-                                    </Form.Label>
-                                    <Col sm="8">
-                                        <Select
-                                            options={investors.map((inv) => ({
-                                                idUsers: inv.idUsers,
-                                                fullName: inv.fullName,
-                                                label: `${inv.fullName} (${inv.phoneNumber})`,
-                                                value: inv.idUsers,
-                                                phoneNumber: inv.phoneNumber,
-                                            }))}
-                                            name="investor"
-                                            isSearchable
-                                            isClearable
-                                            placeholder="Select investor"
-                                            onChange={(e: SingleValue<InvestorType>) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    investor: e
-                                                        ? {
-                                                            idUsers: e.idUsers,
-                                                            fullName: e.fullName,
-                                                            label: e.label,
-                                                            value: e.value,
-                                                            phoneNumber: e.phoneNumber,
-                                                        }
-                                                        : {
-                                                            idUsers: 0,
-                                                            fullName: "",
-                                                            label: "",
-                                                            value: 0,
-                                                            phoneNumber: "",
-                                                        },
-                                                })
-                                            }
-                                            value={formData.investor.idUsers ? formData.investor : null}
-                                        />
-                                    </Col>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Table striped bordered hover className="mt-3">
-                                <thead>
-                                    <tr>
-                                        <th>Sl</th>
-                                        <th>Project</th>
-                                        <th>Unit Purchased</th>
-                                        <th>Project Partners</th>
-                                        <th>Amount Invested</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {formData.projects.length > 0 ? formData.projects.map((project, index) => {
-                                        const totalInvested = project.projectPartners.reduce(
-                                            (sum, pp) => sum + (pp.amountInvested || 0),
-                                            0
-                                        );
-                                        return (
-                                            <tr key={index}>
-                                                <td>{index + 1}</td>
-                                                <td>{project.project?.projectName}</td>
-                                                <td>{project.unitPurchased}</td>
-                                                <td>
-                                                    {project.projectPartners.map((pp, idx) => (
-                                                        <div key={idx}>
-                                                            {pp.User.fullName} ({pp.investedUnit} units)
-                                                        </div>
-                                                    ))}
-                                                </td>
-                                                <td>{totalInvested.toLocaleString()}</td>
-                                                <td>
-                                                    <Button
-                                                        variant="outline-danger"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveProject(index)}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    }
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="text-center text-muted">
-                                                No projects added.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th colSpan={2} className="text-end">Total</th>
-                                        <th>
-                                            {formData.projects.reduce(
-                                                (sum, project) => sum + (Number(project.unitPurchased) || 0),
-                                                0
-                                            )}
-                                        </th>
-                                        <th></th>
-                                        <th>
-                                            {formData.projects.reduce(
-                                                (sum, project) =>
-                                                    sum +
-                                                    project.projectPartners.reduce(
-                                                        (ppSum, pp) => ppSum + (pp.amountInvested || 0),
-                                                        0
-                                                    ),
-                                                0
-                                            ).toLocaleString()}
-                                        </th>
-                                        <th></th>
-                                    </tr>
-                                </tfoot>
-                            </Table>
-                        </Row>
-                        <Row>
-                            <Col md={12} className="text-end">
-                                <Button variant="success" onClick={handleOpenModal}>
-                                    Add Project
-                                </Button>
-                            </Col>
-                        </Row>
-                        {formData.projects.length > 0 &&
-                            <Row className="justify-content-center">
-                                <Button className="w-25" variant="primary" type="submit" disabled={loading}>
-                                    {loading && (
-                                        <Spinner
-                                            as="span"
-                                            animation="grow"
-                                            size="sm"
-                                            role="status"
-                                            aria-hidden="true"
-                                        />
-                                    )}
-                                    {loading ? "Submitting..." : "Submit"}
-                                </Button>
-                            </Row>
-                        }
-                        {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
-                    </Form>
-                </Col>
-                <Col md={2} />
-            </Row>
-            {/* Modal for Add Project */}
-            <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
-                <Modal.Header closeButton>
-                    <Modal.Title>Invest in Project</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        <Form.Group>
-                            <Form.Label>
-                                Select Project<span className="text-danger">*</span>
-                            </Form.Label>
-                            <Select
-                                options={projects}
-                                isSearchable
-                                isClearable
-                                value={modalProject.project}
-                                onChange={(e: SingleValue<ProjectDataType>) =>
-                                    setModalProject({ project: e || null, projectPartners: [] })
-                                }
-                                placeholder="Select Project"
-                            />
-                        </Form.Group>
-                        <Form.Group className="mt-2">
-                            <Form.Label>
-                                Select Partners & Units
-                            </Form.Label>
-                            <div>
-                                <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    className="mb-2"
-                                    onClick={() => {
-                                        // Add a new empty partner row
-                                        setModalProject((prev) => ({
-                                            ...prev,
-                                            projectPartners: [
-                                                ...prev.projectPartners,
-                                                {
-                                                    idProjectPartners: 0,
-                                                    partnerUnitCapacity: 0,
-                                                    User: { idUsers: 0, fullName: "", phoneNumber: "" },
-                                                    investedUnit: 0,
-                                                    amountInvested: 0
+    const addPartnerRow = () => {
+        // Add a new empty partner row
+        setModalProject((prev) => ({
+            ...prev,
+            projectPartners: [
+                ...prev.projectPartners,
+                {
+                    idProjectPartners: 0,
+                    partnerUnitCapacity: 0,
+                    User: { idUsers: 0, fullName: "", phoneNumber: "" },
+                    investedUnit: 0,
+                    amountInvested: 0
 
-                                                } as any,
-                                            ],
-                                        }));
-                                    }}
-                                    disabled={!projectPartners.length}
-                                >
-                                    Add Partner
+                } as any,
+            ],
+        }));
+    };
+
+    const selectPartner = (idx: number, idProjectPartners: number) => {
+        const selected = projectPartners.find((p) => p.idProjectPartners === idProjectPartners) || null;
+        setModalProject((prev) => {
+            const updated = [...prev.projectPartners];
+            updated[idx] = {
+                ...updated[idx],
+                ...(selected || {
+                    idProjectPartners: 0,
+                    partnerUnitCapacity: 0,
+                    User: { idUsers: 0, fullName: "", phoneNumber: "" },
+                }),
+            };
+            return { ...prev, projectPartners: updated };
+        });
+    };
+
+    const setPartnerUnits = (idx: number, value: string) => {
+        let units = Number(value);
+        setModalProject((prev) => {
+            const updated = [...prev.projectPartners];
+            updated[idx] = { ...updated[idx], investedUnit: units, amountInvested: units * (modalProject.project?.unitInvestmentValue || 0) };
+            return { ...prev, projectPartners: updated };
+        });
+    };
+
+    const removePartnerRow = (idx: number) => {
+        setModalProject((prev) => ({
+            ...prev,
+            projectPartners: prev.projectPartners.filter((_, i) => i !== idx),
+        }));
+    };
+
+    /* ------------------------------------------------------------ derived */
+
+    const bookingUnits = formData.projects.reduce((sum, project) => sum + (Number(project.unitPurchased) || 0), 0);
+    const projectAmount = (project: FormProjectType) => project.projectPartners.reduce((sum, pp) => sum + (pp.amountInvested || 0), 0);
+    const bookingTotal = formData.projects.reduce((sum, project) => sum + projectAmount(project), 0);
+    const bookingBack = formData.projects.reduce(
+        (acc, project) => {
+            const back = expectedBack(projectAmount(project), project.project);
+            return { min: acc.min + back.min, max: acc.max + back.max };
+        },
+        { min: 0, max: 0 }
+    );
+
+    const unitValue = modalProject.project?.unitInvestmentValue || 0;
+    const modalUnits = modalProject.projectPartners.reduce((sum, pp) => sum + (Number(pp.investedUnit) || 0), 0);
+    const modalAmount = modalProject.projectPartners.reduce((sum, pp) => sum + unitValue * (Number(pp.investedUnit) || 0), 0);
+    const modalBack = expectedBack(modalAmount, modalProject.project);
+    const remainingUnits = modalProject.project ? Number(modalProject.project.totalRemainingUnits) : null;
+
+    const investorOptions: InvestorType[] = investors.map((inv) => ({
+        idUsers: inv.idUsers,
+        fullName: inv.fullName,
+        // Investors who signed up by email have no phone; they read "Name (null)".
+        label: inv.phoneNumber ? `${inv.fullName} (${inv.phoneNumber})` : inv.fullName,
+        value: inv.idUsers,
+        phoneNumber: inv.phoneNumber,
+    }));
+
+    return (
+        <div className="ui">
+            <PageHeader
+                eyebrow="Bookings"
+                title="New booking"
+                description="Record a booking on an investor's behalf, for money taken outside the app. It starts as awaiting payment, like any other booking."
+            />
+
+            <form onSubmit={handleSubmit} className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-3">
+                <div className="tw-space-y-6 lg:tw-col-span-2">
+                    <Card className="tw-p-5">
+                        <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                            <UserRound className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Investor and date
+                        </h2>
+                        <div className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-3">
+                            <Field label={<>Investor<Required /></>} hint="Search by name or phone number." className="sm:tw-col-span-2">
+                                <ReactSelect<InvestorType>
+                                    instanceId="investor"
+                                    inputId="investor"
+                                    options={investorOptions}
+                                    name="investor"
+                                    isSearchable
+                                    isClearable
+                                    placeholder="Select investor"
+                                    styles={selectStyles<InvestorType>()}
+                                    noOptionsMessage={() => (investors.length ? "No investor matches" : "Loading investors…")}
+                                    onChange={(e: SingleValue<InvestorType>) =>
+                                        setFormData({
+                                            ...formData,
+                                            investor: e
+                                                ? {
+                                                    idUsers: e.idUsers,
+                                                    fullName: e.fullName,
+                                                    label: e.label,
+                                                    value: e.value,
+                                                    phoneNumber: e.phoneNumber,
+                                                }
+                                                : {
+                                                    idUsers: 0,
+                                                    fullName: "",
+                                                    label: "",
+                                                    value: 0,
+                                                    phoneNumber: "",
+                                                },
+                                        })
+                                    }
+                                    value={formData.investor.idUsers ? formData.investor : null}
+                                />
+                            </Field>
+                            <Field label={<>Investment date<Required /></>} hint="Units start earning from this date.">
+                                <Input type="date" name="investmentDate" onChange={handleOnChange} value={formData.investmentDate} />
+                            </Field>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-b tw-border-slate-100 tw-px-5 tw-py-3">
+                            <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                                <Layers className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Projects
+                                {formData.projects.length > 0 && (
+                                    <span className="tw-rounded-full tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-600">{formData.projects.length}</span>
+                                )}
+                            </h2>
+                            {formData.projects.length > 0 && (
+                                <Button size="sm" onClick={handleOpenModal}>
+                                    <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add project
                                 </Button>
-                                <Table bordered size="sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Partner</th>
-                                            <th>Unit Purchased</th>
-                                            <th>Amount Invested</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {modalProject.projectPartners && modalProject.projectPartners.length > 0 ? (
-                                            modalProject.projectPartners.map((pp, idx) => (
-                                                <tr key={idx}>
-                                                    <td style={{ minWidth: 220 }}>
-                                                        <Select
-                                                            options={projectPartners}
-                                                            value={
-                                                                pp.idProjectPartners
-                                                                    ? projectPartners.find(
-                                                                        (p) => p.idProjectPartners === pp.idProjectPartners
-                                                                    ) || null
-                                                                    : null
-                                                            }
-                                                            onChange={(selected: SingleValue<ProjectPartnerType>) => {
-                                                                setModalProject((prev) => {
-                                                                    const updated = [...prev.projectPartners];
-                                                                    updated[idx] = {
-                                                                        ...updated[idx],
-                                                                        ...(selected || {
-                                                                            idProjectPartners: 0,
-                                                                            partnerUnitCapacity: 0,
-                                                                            User: { idUsers: 0, fullName: "", phoneNumber: "" },
-                                                                        }),
-                                                                    };
-                                                                    return { ...prev, projectPartners: updated };
-                                                                });
-                                                            }}
-                                                            placeholder="Select Partner"
-                                                        />
-                                                    </td>
-                                                    <td style={{ minWidth: 120 }}>
-                                                        <Form.Control
-                                                            type="number"
-                                                            max={pp.partnerUnitCapacity}
-                                                            value={pp.investedUnit}
-                                                            onChange={(e) => {
-                                                                let units = Number(e.target.value);
-                                                                setModalProject((prev) => {
-                                                                    const updated = [...prev.projectPartners];
-                                                                    updated[idx] = { ...updated[idx], investedUnit: units, amountInvested: units * (modalProject.project?.unitInvestmentValue || 0) };
-                                                                    return { ...prev, projectPartners: updated };
-                                                                });
-                                                            }}
-                                                        />
-                                                        <small className="text-muted">
-                                                            Max: {pp.partnerUnitCapacity ?? 1}
-                                                        </small>
-                                                    </td>
-                                                    <td style={{ minWidth: 120 }}>
-                                                        <Form.Control
-                                                            type="number"
-                                                            value={pp.amountInvested}
-                                                            disabled
-                                                        />
-                                                        <small className="text-muted">
-                                                            Unit Value: {modalProject.project?.unitInvestmentValue || 0}
-                                                        </small>
-                                                    </td>
-                                                    <td>
-                                                        <Button
-                                                            variant="outline-danger"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setModalProject((prev) => ({
-                                                                    ...prev,
-                                                                    projectPartners: prev.projectPartners.filter((_, i) => i !== idx),
-                                                                }));
-                                                            }}
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={4} className="text-center text-muted">
-                                                    No partners added.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th>Total</th>
-                                            <th>
-                                                {modalProject.projectPartners.reduce(
-                                                    (sum, pp) => sum + (Number(pp.investedUnit) || 0),
-                                                    0
-                                                )}
-                                            </th>
-                                            <th>
-                                                {modalProject.projectPartners.reduce(
-                                                    (sum, pp) =>
-                                                        sum +
-                                                        ((modalProject.project?.unitInvestmentValue || 0) *
-                                                            (Number(pp.investedUnit) || 0)),
-                                                    0
-                                                )}
-                                            </th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </Table>
+                            )}
+                        </div>
+                        {formData.projects.length > 0 ? (
+                            <ul className="tw-divide-y tw-divide-slate-100">
+                                {formData.projects.map((project, index) => {
+                                    const amount = projectAmount(project);
+                                    return (
+                                        <li key={project.idProjects ?? index} className="tw-flex tw-flex-wrap tw-items-start tw-gap-4 tw-px-5 tw-py-4">
+                                            <span className="tw-inline-flex tw-h-6 tw-w-6 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-slate-100 tw-text-xs tw-font-semibold tw-tabular-nums tw-text-slate-500">
+                                                {index + 1}
+                                            </span>
+                                            <div className="tw-min-w-0 tw-flex-1">
+                                                <p className="tw-font-semibold tw-text-slate-900">{project.project?.projectName}</p>
+                                                <p className="tw-text-xs tw-text-slate-500">
+                                                    {project.project?.duration} {project.project?.tenure} · {project.project?.returnRangeMin}–{project.project?.returnRangeMax}% return
+                                                </p>
+                                                <div className="tw-mt-2 tw-flex tw-flex-wrap tw-gap-1.5">
+                                                    {project.projectPartners.map((pp, idx) => (
+                                                        <span key={idx} className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-slate-100 tw-px-2.5 tw-py-0.5 tw-text-xs tw-text-slate-700">
+                                                            {pp.User.fullName}
+                                                            <span className="tw-tabular-nums tw-text-slate-500">× {pp.investedUnit}</span>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="tw-text-right">
+                                                <p className="tw-font-semibold tw-tabular-nums tw-text-slate-900">{bdt(amount)}</p>
+                                                <p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{plural(Number(project.unitPurchased) || 0, "unit")}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveProject(index)}
+                                                className="tw-rounded-lg tw-p-1.5 tw-text-slate-400 tw-transition hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                                aria-label={`Remove ${project.project?.projectName ?? "project"}`}
+                                            >
+                                                <Trash2 className="tw-h-4 tw-w-4" aria-hidden />
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        ) : (
+                            <div className="tw-flex tw-flex-col tw-items-center tw-px-5 tw-py-12 tw-text-center">
+                                <span className="tw-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-brand-50 tw-text-brand-700">
+                                    <FolderPlus className="tw-h-5 tw-w-5" aria-hidden />
+                                </span>
+                                <p className="tw-mt-3 tw-text-sm tw-font-medium tw-text-slate-800">No projects added yet</p>
+                                <p className="tw-mt-1 tw-max-w-sm tw-text-xs tw-text-slate-500">Add each project the investor is buying into, and which partners hold the units.</p>
+                                <Button variant="primary" className="tw-mt-4" onClick={handleOpenModal}>
+                                    <Plus className="tw-h-4 tw-w-4" aria-hidden /> Add project
+                                </Button>
                             </div>
-                        </Form.Group>
-                        <Form.Group className="mt-2">
-                            <Form.Label>
-                                Return range
-                            </Form.Label>
-                            <Form.Control
-                                name="return"
-                                type="text"
-                                value={modalProject.project ? `${modalProject.project.returnRangeMin}% - ${modalProject.project.returnRangeMax}%` : ''}
-                                disabled
-                            />
-                        </Form.Group>
-                        <Form.Group className="mt-2">
-                            <Form.Label>Total Return</Form.Label>
-                            <Form.Control
-                                name="totalReturn"
-                                type="text"
-                                value={
-                                    modalProject.project
-                                        ? (() => {
-                                            const totalInvested = modalProject.projectPartners.reduce(
-                                                (sum, pp) =>
-                                                    sum +
-                                                    ((modalProject.project?.unitInvestmentValue || 0) *
-                                                        (Number(pp.investedUnit) || 0)),
-                                                0
+                        )}
+                    </Card>
+                </div>
+
+                <aside className="lg:tw-sticky lg:tw-top-24">
+                    <Card className="tw-p-5">
+                        <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                            <Wallet className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Summary
+                        </h2>
+                        <div className="tw-mt-4 tw-flex tw-items-center tw-gap-3">
+                            {formData.investor.idUsers ? (
+                                <>
+                                    <Avatar name={formData.investor.fullName || "?"} seed={formData.investor.idUsers} size="sm" />
+                                    <div className="tw-min-w-0">
+                                        <p className="tw-truncate tw-text-sm tw-font-semibold tw-text-slate-900">{formData.investor.fullName}</p>
+                                        <p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{formData.investor.phoneNumber}</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="tw-text-sm tw-text-slate-400">No investor chosen</p>
+                            )}
+                        </div>
+                        <dl className="tw-mt-4 tw-space-y-2 tw-border-t tw-border-slate-100 tw-pt-4 tw-text-sm">
+                            <div className="tw-flex tw-justify-between tw-gap-3">
+                                <dt className="tw-flex tw-items-center tw-gap-1.5 tw-text-slate-500">
+                                    <CalendarDays className="tw-h-3.5 tw-w-3.5" aria-hidden /> Investment date
+                                </dt>
+                                <dd className="tw-font-medium tw-text-slate-900">{formData.investmentDate ? date(formData.investmentDate) : <span className="tw-text-slate-400">Not set</span>}</dd>
+                            </div>
+                            <div className="tw-flex tw-justify-between tw-gap-3">
+                                <dt className="tw-text-slate-500">Projects</dt>
+                                <dd className="tw-font-medium tw-tabular-nums tw-text-slate-900">{formData.projects.length}</dd>
+                            </div>
+                            <div className="tw-flex tw-justify-between tw-gap-3">
+                                <dt className="tw-text-slate-500">Units</dt>
+                                <dd className="tw-font-medium tw-tabular-nums tw-text-slate-900">{bookingUnits}</dd>
+                            </div>
+                            {bookingTotal > 0 && (
+                                <div className="tw-flex tw-justify-between tw-gap-3">
+                                    <dt className="tw-text-slate-500">Expected back</dt>
+                                    <dd className="tw-text-right tw-font-medium tw-tabular-nums tw-text-slate-900">
+                                        {bdt(bookingBack.min)} – {bdt(bookingBack.max)}
+                                    </dd>
+                                </div>
+                            )}
+                        </dl>
+                        <div className="tw-mt-4 tw-flex tw-items-baseline tw-justify-between tw-gap-3 tw-rounded-xl tw-bg-slate-50 tw-px-4 tw-py-3">
+                            <span className="tw-text-sm tw-text-slate-600">Total payable</span>
+                            <span className="tw-text-xl tw-font-semibold tw-tabular-nums tw-tracking-tight tw-text-slate-900">{bdt(bookingTotal)}</span>
+                        </div>
+                        <Button variant="primary" type="submit" className="tw-mt-4 tw-w-full" disabled={loading || formData.projects.length === 0}>
+                            {loading && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden />}
+                            {loading ? "Creating…" : "Create booking"}
+                        </Button>
+                        {formData.projects.length === 0 && <p className="tw-mt-2 tw-text-center tw-text-xs tw-text-slate-500">Add at least one project to continue.</p>}
+                    </Card>
+                </aside>
+            </form>
+
+            <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
+                <Modal.Body className="tw-p-0">
+                    <div className="ui">
+                        <div className="tw-flex tw-items-start tw-justify-between tw-gap-3 tw-border-b tw-border-slate-100 tw-px-6 tw-py-4">
+                            <div>
+                                <h2 className="tw-text-lg tw-font-semibold tw-text-slate-900">Add a project</h2>
+                                <p className="tw-text-sm tw-text-slate-500">Choose the project, then split its units between partners.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowModal(false)}
+                                className="tw-rounded-lg tw-p-1.5 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-600"
+                                aria-label="Close"
+                            >
+                                <X className="tw-h-5 tw-w-5" aria-hidden />
+                            </button>
+                        </div>
+
+                        <div className="tw-space-y-5 tw-px-6 tw-py-5">
+                            <Field label={<>Project<Required /></>}>
+                                <ReactSelect<ProjectDataType>
+                                    instanceId="project"
+                                    inputId="project"
+                                    options={projects}
+                                    isSearchable
+                                    isClearable
+                                    value={modalProject.project}
+                                    onChange={(e: SingleValue<ProjectDataType>) =>
+                                        setModalProject({ project: e || null, projectPartners: [] })
+                                    }
+                                    placeholder="Select project"
+                                    styles={selectStyles<ProjectDataType>()}
+                                    menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+                                    formatOptionLabel={(option, { context }) =>
+                                        context === "menu" ? (
+                                            <div>
+                                                <div className="tw-font-medium">{option.projectName}</div>
+                                                <div className="tw-text-xs tw-text-slate-500">
+                                                    {bdtExact(Number(option.unitInvestmentValue))} a unit · {option.returnRangeMin}–{option.returnRangeMax}% ·{" "}
+                                                    {plural(Number(option.totalRemainingUnits) || 0, "unit")} left
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            option.projectName
+                                        )
+                                    }
+                                />
+                            </Field>
+
+                            {modalProject.project && (
+                                <dl className="tw-grid tw-grid-cols-2 tw-gap-px tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-200 sm:tw-grid-cols-4">
+                                    {(
+                                        [
+                                            ["Unit price", bdtExact(Number(unitValue))],
+                                            ["Return", `${modalProject.project.returnRangeMin}–${modalProject.project.returnRangeMax}%`],
+                                            ["Duration", `${modalProject.project.duration} ${modalProject.project.tenure}`],
+                                            ["Units left", remainingUnits !== null && Number.isFinite(remainingUnits) ? String(remainingUnits) : "—"],
+                                        ] as [string, string][]
+                                    ).map(([label, value]) => (
+                                        <div key={label} className="tw-bg-white tw-px-3 tw-py-2.5">
+                                            <dt className="tw-text-xs tw-text-slate-500">{label}</dt>
+                                            <dd className="tw-mt-0.5 tw-text-sm tw-font-semibold tw-tabular-nums tw-text-slate-900">{value}</dd>
+                                        </div>
+                                    ))}
+                                    {modalProject.project.location && (
+                                        <div className="tw-col-span-2 tw-flex tw-items-center tw-gap-1.5 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-text-slate-600 sm:tw-col-span-4">
+                                            <MapPin className="tw-h-3.5 tw-w-3.5 tw-text-slate-400" aria-hidden /> {modalProject.project.location}
+                                        </div>
+                                    )}
+                                </dl>
+                            )}
+
+                            <div>
+                                <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                                    <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Partners and units</p>
+                                    <Button size="sm" onClick={addPartnerRow} disabled={!modalProject.project || !projectPartners.length}>
+                                        <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add partner
+                                    </Button>
+                                </div>
+
+                                {modalProject.projectPartners && modalProject.projectPartners.length > 0 ? (
+                                    <ul className="tw-mt-3 tw-space-y-2">
+                                        {modalProject.projectPartners.map((pp, idx) => {
+                                            const capacity = Number(pp.partnerUnitCapacity || 0);
+                                            const over = capacity > 0 && Number(pp.investedUnit) > capacity;
+                                            return (
+                                                <li key={idx} className="tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
+                                                    <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-3 sm:tw-flex-nowrap">
+                                                        <Field label="Partner" className="tw-min-w-0 tw-flex-1 tw-basis-full sm:tw-basis-auto">
+                                                            <Select value={pp.idProjectPartners || ""} onChange={(e) => selectPartner(idx, Number(e.target.value))}>
+                                                                <option value="" disabled>
+                                                                    Select partner
+                                                                </option>
+                                                                {projectPartners.map((partner) => (
+                                                                    <option key={partner.idProjectPartners} value={partner.idProjectPartners}>
+                                                                        {partner.User.fullName}
+                                                                        {Number(partner.partnerUnitCapacity) > 0
+                                                                            ? ` — capacity ${partner.partnerUnitCapacity}, ${Number(partner.investorConfirmedBookingCount || 0)} confirmed`
+                                                                            : " — no capacity limit"}
+                                                                    </option>
+                                                                ))}
+                                                            </Select>
+                                                        </Field>
+                                                        <Field label={capacity > 0 ? `Units (max ${capacity})` : "Units"} className="tw-w-32 tw-shrink-0">
+                                                            <Input
+                                                                type="number"
+                                                                min={0}
+                                                                max={capacity > 0 ? capacity : undefined}
+                                                                value={pp.investedUnit}
+                                                                onChange={(e) => setPartnerUnits(idx, e.target.value)}
+                                                                className={over ? "tw-border-amber-400" : undefined}
+                                                            />
+                                                        </Field>
+                                                        <div className="tw-min-w-[7rem] tw-flex-1 sm:tw-flex-none">
+                                                            <span className="tw-mb-1.5 tw-block tw-text-xs tw-font-medium tw-text-slate-600">Amount</span>
+                                                            <p className="tw-rounded-xl tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-sm tw-font-medium tw-tabular-nums tw-text-slate-900">
+                                                                {bdt(Number(pp.amountInvested) || 0)}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removePartnerRow(idx)}
+                                                            className="tw-shrink-0 tw-rounded-lg tw-p-2 tw-text-slate-400 tw-transition hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                                            aria-label="Remove partner"
+                                                        >
+                                                            <Trash2 className="tw-h-4 tw-w-4" aria-hidden />
+                                                        </button>
+                                                    </div>
+                                                    {over && (
+                                                        <p className="tw-mt-2 tw-flex tw-items-center tw-gap-1.5 tw-text-xs tw-font-medium tw-text-amber-700">
+                                                            <ShieldAlert className="tw-h-3.5 tw-w-3.5" aria-hidden /> More units than this partner&apos;s capacity of {capacity}.
+                                                        </p>
+                                                    )}
+                                                </li>
                                             );
-                                            const minReturn =
-                                                totalInvested +
-                                                (totalInvested * (modalProject.project.returnRangeMin || 0)) / 100;
-                                            const maxReturn =
-                                                totalInvested +
-                                                (totalInvested * (modalProject.project.returnRangeMax || 0)) / 100;
-                                            if (!totalInvested) return "";
-                                            return `${minReturn.toLocaleString()} - ${maxReturn.toLocaleString()}`;
-                                        })()
-                                        : ""
-                                }
-                                disabled
-                            />
-                        </Form.Group>
-                        <Form.Group className="mt-2">
-                            <Form.Label>
-                                Duration
-                            </Form.Label>
-                            <Form.Control
-                                name="duration"
-                                type="text"
-                                value={modalProject.project ? `${modalProject.project.duration} ${modalProject.project.tenure}` : ''}
-                                disabled
-                            />
-                        </Form.Group>
-                        <Form.Group className="mt-2">
-                            <Form.Label>
-                                Location
-                            </Form.Label>
-                            <Form.Control
-                                name="location"
-                                type="text"
-                                value={modalProject.project ? modalProject.project.location : ''}
-                                disabled
-                            />
-                        </Form.Group>
-                        {/* <pre>{JSON.stringify(modalProject, null, 2)}</pre> */}
-                    </Form>
+                                        })}
+                                    </ul>
+                                ) : (
+                                    <p className="tw-mt-3 tw-rounded-xl tw-border tw-border-dashed tw-border-slate-200 tw-px-4 tw-py-6 tw-text-center tw-text-sm tw-text-slate-500">
+                                        {modalProject.project
+                                            ? projectPartners.length
+                                                ? "Add the partners who will hold this project's units."
+                                                : "This project has no partner with room."
+                                            : "Choose a project first."}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-100 tw-bg-slate-50/70 tw-px-6 tw-py-4">
+                            <div className="tw-text-sm">
+                                <span className="tw-font-semibold tw-tabular-nums tw-text-slate-900">{bdt(modalAmount)}</span>
+                                <span className="tw-text-slate-500"> · {plural(modalUnits, "unit")}</span>
+                                {modalAmount > 0 && (
+                                    <span className="tw-block tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                        Expected back {bdt(modalBack.min)} – {bdt(modalBack.max)}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="tw-flex tw-gap-2">
+                                <Button onClick={() => setShowModal(false)}>Cancel</Button>
+                                <Button variant="primary" onClick={handleAddProject}>
+                                    Add to booking
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowModal(false)}>
-                        Cancel
-                    </Button>
-                    <Button variant="primary" onClick={handleAddProject}>
-                        Add
-                    </Button>
-                </Modal.Footer>
             </Modal>
-        </Container>
+        </div>
     );
 }
 
