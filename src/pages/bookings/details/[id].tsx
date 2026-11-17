@@ -951,7 +951,10 @@ function Details() {
                                     </tr>
                                     <tr>
                                         <td>Investor </td>
-                                        <td>{details.User?.fullName} ( {details.User?.phoneNumber} )</td>
+                                        <td>
+                                            {/* Opens everything else this investor holds. */}
+                                            <Link href={`/reports/investors?id=${details.idUsers}`}>{details.User?.fullName}</Link> ( {details.User?.phoneNumber} )
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td>Investor NID</td>

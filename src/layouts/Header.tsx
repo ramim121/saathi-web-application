@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 
 import Head from "next/head"
 import { Container, Nav, Image, Navbar, NavDropdown } from "react-bootstrap"
-import { Montserrat } from "next/font/google"
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 
-const montserrat = Montserrat({ subsets: ['cyrillic-ext'] })
+/*
+ * A `Montserrat()` from next/font/google used to be declared here and never
+ * applied: its class was not used, and style.css's `font-family: montserrat`
+ * cannot reach it (next/font hashes the family name). It still downloaded from
+ * Google on every build — a build-time network dependency that failed on
+ * 2026-11-17 and, in the deploy workflow (no rollback), could take the API
+ * down — and preloaded font files on every admin page. Removed; nothing
+ * rendered with it.
+ */
 
 type userProfile = {
     idUsers: number,
@@ -64,7 +71,10 @@ function Header() {
                         <Navbar.Collapse id="basic-navbar-nav">
 
                             <Nav className="ms-auto">
-                                <Nav.Link href="/reports">Reports</Nav.Link>
+                                <NavDropdown title="Reports" id="reports-nav-dropdown">
+                                    <NavDropdown.Item href="/reports/investors">Investors</NavDropdown.Item>
+                                    <NavDropdown.Item href="/reports">Operations</NavDropdown.Item>
+                                </NavDropdown>
                                 <Nav.Link href="/users">Users</Nav.Link>
                                 <NavDropdown title="Setups" id="basic-nav-dropdown">
                                     <NavDropdown.Item href="/setup/investment">Investment</NavDropdown.Item>
