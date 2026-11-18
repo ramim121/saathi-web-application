@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL, S3_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
-import { Editor } from '@tinymce/tinymce-react';
+import { Pencil, Star, Trash2, User } from 'lucide-react';
+import { Avatar, SafeImg, cx } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Required, SearchInput, Select, Textarea } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
+import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
     idInvestorTestimonials?: number;
@@ -30,17 +34,65 @@ interface FilterProps {
     pageSize: number;
 }
 
+const EMPTY_FORM: FormDataType = {
+    idInvestorTestimonials: undefined,
+    name: '',
+    nameBn: '',
+    image: '',
+    rating: null,
+    testimonial: '',
+    testimonialBn: '',
+    priority: null
+};
+
+const PHOTO = 'tw-h-12 tw-w-12 tw-shrink-0 tw-rounded-full tw-object-cover tw-ring-1 tw-ring-slate-200';
+
+/** Label suffix for a field that may be left blank (the form is too tall for hint lines). */
+const Optional = () => <span className="tw-ml-1 tw-font-normal tw-text-slate-400">· optional</span>;
+
+// The column is DECIMAL, so a loaded row's rating arrives as "4.00".
+const starsOf = (value: unknown) => Math.round(Number(value) || 0);
+
+function Stars({ value }: { value: unknown }) {
+    const rating = starsOf(value);
+    return (
+        <span className="tw-inline-flex tw-items-center tw-gap-0.5" title={`${rating} of 5`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                    key={star}
+                    className={cx('tw-h-3.5 tw-w-3.5', star <= rating ? 'tw-fill-amber-400 tw-text-amber-400' : 'tw-fill-slate-100 tw-text-slate-200')}
+                    aria-hidden
+                />
+            ))}
+            <span className="tw-sr-only">{rating} of 5</span>
+        </span>
+    );
+}
+
+function StarInput({ value, onChange }: { value: unknown; onChange: (rating: number) => void }) {
+    const current = starsOf(value);
+    return (
+        <div role="radiogroup" aria-label="Rating" className="tw-flex tw-items-center tw-gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                    key={star}
+                    type="button"
+                    role="radio"
+                    aria-checked={star === current}
+                    aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                    onClick={() => onChange(star)}
+                    className="tw-rounded-md tw-p-0.5 tw-transition hover:tw-scale-110 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500"
+                >
+                    <Star className={cx('tw-h-5 tw-w-5', star <= current ? 'tw-fill-amber-400 tw-text-amber-400' : 'tw-fill-slate-100 tw-text-slate-300')} aria-hidden />
+                </button>
+            ))}
+            <span className="tw-ml-1 tw-text-xs tw-tabular-nums tw-text-slate-500">{current ? `${current} of 5` : 'Not rated'}</span>
+        </div>
+    );
+}
+
 function InvestorTestimonialSetup() {
-    const [formData, setFormData] = useState<FormDataType>({
-        idInvestorTestimonials: undefined,
-        name: '',
-        nameBn: '',
-        image: '',
-        rating: null,
-        testimonial: '',
-        testimonialBn: '',
-        priority: null
-    });
+    const [formData, setFormData] = useState<FormDataType>(EMPTY_FORM);
 
     const [filter, setFilter] = useState<FilterProps>({
         idInvestorTestimonials: '',
@@ -61,14 +113,16 @@ function InvestorTestimonialSetup() {
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const testimonialRef = useRef<any>(null);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchInvestorTestimonials = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/investor-testimonials/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setTestimonialList(data.data);
                     setTotal(data.total);
@@ -82,6 +136,7 @@ function InvestorTestimonialSetup() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -90,50 +145,26 @@ function InvestorTestimonialSetup() {
             }
         };
         fetchInvestorTestimonials();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // A changed filter starts again from page 1.
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     };
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2;
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10);
-        }
-        const pagesArray = [];
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page);
-        }
-        return pagesArray;
-    };
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            );
-        });
-    };
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         });
     };
 
@@ -152,39 +183,6 @@ function InvestorTestimonialSetup() {
                 });
             }
         }
-    };
-
-    const renderStarRatingInput = () => {
-        const current = formData.rating || 0;
-        return (
-            <div>
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                        key={star}
-                        style={{ cursor: 'pointer', color: star <= current ? '#ffc107' : '#e4e5e9', fontSize: '1.4rem', marginRight: 4 }}
-                        onClick={() => setFormData({ ...formData, rating: star })}
-                    >
-                        ★
-                    </span>
-                ))}
-            </div>
-        );
-    };
-
-    const renderStars = (value: number | null | undefined) => {
-        const rating = value || 0;
-        return (
-            <>
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                        key={star}
-                        style={{ color: star <= rating ? '#ffc107' : '#e4e5e9', fontSize: '1.2rem', marginRight: 2 }}
-                    >
-                        ★
-                    </span>
-                ))}
-            </>
-        );
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -206,7 +204,7 @@ function InvestorTestimonialSetup() {
                 }
                 newFormData.append('name', formData.name);
                 newFormData.append('rating', formData.rating?.toString() || '');
-                newFormData.append('testimonial', testimonialRef.current ? testimonialRef.current.getContent() : formData.testimonial);
+                newFormData.append('testimonial', formData.testimonial);
                 newFormData.append('priority', formData.priority?.toString() || '');
                 newFormData.append('nameBn', formData.nameBn || '');
                 newFormData.append('testimonialBn', formData.testimonialBn || '');
@@ -232,22 +230,10 @@ function InvestorTestimonialSetup() {
                             text: data.message,
                         });
                         setReload(true);
-                        setFormData({
-                            idInvestorTestimonials: undefined,
-                            name: '',
-                            nameBn: '',
-                            image: '',
-                            rating: null,
-                            testimonial: '',
-                            testimonialBn: '',
-                            priority: null
-                        });
+                        setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
                             fileInputRef.current.value = '';
-                        }
-                        if (testimonialRef.current) {
-                            testimonialRef.current.setContent('');
                         }
                     } else {
                         Swal.fire({
@@ -285,10 +271,13 @@ function InvestorTestimonialSetup() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-        if (testimonialRef.current) {
-            testimonialRef.current.setContent(item.testimonial || '');
-        }
         setIsEditing(true);
+    };
+
+    const cancelEdit = () => {
+        setFormData(EMPTY_FORM);
+        setIsEditing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleDelete = async (id?: number) => {
@@ -334,231 +323,158 @@ function InvestorTestimonialSetup() {
         });
     };
 
+    const anyFilter = Boolean(filter.idInvestorTestimonials || filter.name || filter.rating || filter.testimonial || filter.priority);
+
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={8}>
-                        <h4 className="text-start">Investor Testimonial</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='3' className='mb-3'>Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter name"
-                                        name="name"
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        value={formData.name}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                {/* Bangla counterpart — optional; blank falls back to English. */}
-                                <Form.Label column sm='3' className='mb-3'>Name (বাংলা)</Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="নাম লিখুন"
-                                        name="nameBn"
-                                        lang="bn"
-                                        onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
-                                        value={formData.nameBn}
-                                    />
-                                    <Form.Text muted>Optional. Falls back to the English name if left blank.</Form.Text>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='3' className='mb-3'>Image<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control type="file" name="image" onChange={handleFileUpload} ref={fileInputRef} />
-                                    {typeof formData.image === 'string' && formData.image && (
-                                        <div className="mt-2">
-                                            <img
-                                                src={`${S3_URL}investor-testimonials/${formData.image}`}
-                                                alt={formData.image}
-                                                width={100}
-                                                height={100}
-                                            />
-                                        </div>
-                                    )}
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='3' className='mb-3'>Rating<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='9'>
-                                    {renderStarRatingInput()}
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='3' className='mb-3'>Testimonial<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control
-                                        as="textarea"
-                                        rows={5}
-                                        placeholder="Enter testimonial"
-                                        name="testimonial"
-                                        value={formData.testimonial}
-                                        onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                {/* Bangla counterpart — optional; blank falls back to English. */}
-                                <Form.Label column sm='3' className='mb-3'>Testimonial (বাংলা)</Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control
-                                        as="textarea"
-                                        rows={5}
-                                        placeholder="বাংলায় প্রশংসাপত্র লিখুন"
-                                        name="testimonialBn"
-                                        lang="bn"
-                                        value={formData.testimonialBn}
-                                        onChange={(e) => setFormData({ ...formData, testimonialBn: e.target.value })}
-                                    />
-                                    <Form.Text muted>Optional. Falls back to the English testimonial if left blank.</Form.Text>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className="mt-3">
-                                <Form.Label column sm='3' className='mb-3'>Priority<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='9'>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter priority"
-                                        name="priority"
-                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })}
-                                        value={formData.priority || ''}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='3'></Col>
-                                <Col sm='9'>
-                                    <Row className='justify-content-start'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : (isEditing ? 'Update' : 'Submit')}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-            <Container className='mt-5'>
-                <h4 className="text-start">Investor Testimonial List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Investor testimonials"
+            description="Quotes from investors shown in the app, in priority order."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-3 tw-gap-3 md:tw-grid-cols-[1.1fr_1.3fr_0.8fr_0.7fr_0.6fr]">
+                            <Field label="Name" className="tw-col-span-3 md:tw-col-span-1">
+                                <SearchInput placeholder="Search names" name="name" onChange={handleInputOnChange} value={filter.name} />
+                            </Field>
+                            <Field label="Testimonial" className="tw-col-span-3 md:tw-col-span-1">
+                                <SearchInput placeholder="Search the quote" name="testimonial" onChange={handleInputOnChange} value={filter.testimonial} />
+                            </Field>
+                            <Field label="Rating">
+                                <Select name="rating" onChange={handleInputOnChange} value={filter.rating}>
+                                    <option value="">All</option>
+                                    {[5, 4, 3, 2, 1].map((n) => (
+                                        <option key={n} value={n}>{n} star{n > 1 ? 's' : ''}</option>
+                                    ))}
+                                </Select>
+                            </Field>
+                            <Field label="Priority">
+                                <Input type="number" placeholder="Any" name="priority" onChange={handleInputOnChange} value={filter.priority} />
+                            </Field>
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idInvestorTestimonials" onChange={handleInputOnChange} value={filter.idInvestorTestimonials} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} testimonials · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Image</th>
-                            <th>Rating</th>
-                            <th>Testimonial</th>
-                            <th>Priority</th>
-                            <th>Actions</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <input
-                                    type="number"
-                                    className="form-control form-control-sm"
-                                    placeholder="Search"
-                                    name="idInvestorTestimonials"
-                                    onChange={handleInputOnChange}
-                                    value={filter.idInvestorTestimonials}
-                                />
-                            </td>
-                            <td>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Search"
-                                    name="name"
-                                    onChange={handleInputOnChange}
-                                    value={filter.name}
-                                />
-                            </td>
-                            <td></td>
-                            <td>
-                                <input
-                                    type="number"
-                                    className="form-control form-control-sm"
-                                    placeholder="Search"
-                                    name="rating"
-                                    onChange={handleInputOnChange}
-                                    value={filter.rating}
-                                />
-                            </td>
-                            <td>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Search"
-                                    name="testimonial"
-                                    onChange={handleInputOnChange}
-                                    value={filter.testimonial}
-                                />
-                            </td>
-                            <td>
-                                <input
-                                    type="number"
-                                    className="form-control form-control-sm"
-                                    placeholder="Search"
-                                    name="priority"
-                                    onChange={handleInputOnChange}
-                                    value={filter.priority}
-                                />
-                            </td>
-                            <td></td>
+                            <th className={TH}>Investor</th>
+                            <th className={TH}>Testimonial</th>
+                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <th className={cx(TH, 'tw-text-right')}>
+                                <span className="tw-sr-only">Actions</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {testimonialList.length > 0 ? testimonialList.map((item, index) => (
-                            <tr key={index}>
-                                <td>{item.idInvestorTestimonials}</td>
-                                <td>{item.name}</td>
-                                <td>
-                                    {typeof item.image === 'string' && item.image && (
-                                        <img
-                                            src={`${S3_URL}investor-testimonials/${item.image}`}
-                                            alt={item.image}
-                                            width={80}
-                                            height={80}
+                            <tr key={item.idInvestorTestimonials ?? index} className={cx(TR, isEditing && formData.idInvestorTestimonials === item.idInvestorTestimonials && 'tw-bg-brand-50/50')}>
+                                <td className={TD}>
+                                    <div className="tw-flex tw-items-center tw-gap-3">
+                                        <SafeImg
+                                            src={typeof item.image === 'string' && item.image ? `${S3_URL}investor-testimonials/${item.image}` : null}
+                                            alt=""
+                                            className="tw-h-10 tw-w-10 tw-shrink-0 tw-rounded-full tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                            fallback={<Avatar name={item.name || '?'} seed={item.idInvestorTestimonials ?? index} />}
                                         />
-                                    )}
+                                        <div className="tw-min-w-[8rem]">
+                                            <div className="tw-font-medium tw-text-slate-900">{item.name}</div>
+                                            {item.nameBn && (
+                                                <div lang="bn" className="tw-text-xs tw-text-slate-500">
+                                                    {item.nameBn}
+                                                </div>
+                                            )}
+                                            <div className="tw-mt-0.5 tw-flex tw-items-center tw-gap-2 tw-text-xs">
+                                                <Stars value={item.rating} />
+                                                <span className="tw-tabular-nums tw-text-slate-400">#{item.idInvestorTestimonials}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>{renderStars(item.rating)}</td>
-                                <td>{item.testimonial}</td>
-                                <td>{item.priority}</td>
-                                <td>
-                                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(item)}>
-                                        Edit
-                                    </Button>
-                                    <Button variant="danger" size="sm" onClick={() => handleDelete(item.idInvestorTestimonials)}>
-                                        Delete
-                                    </Button>
+                                <td className={TD}>
+                                    <p className="tw-line-clamp-2 tw-min-w-[12rem] tw-max-w-md tw-text-slate-600" title={item.testimonial}>
+                                        {item.testimonial}
+                                    </p>
+                                    {item.testimonialBn && <span className="tw-mt-1 tw-inline-block tw-text-[11px] tw-font-medium tw-text-slate-400">+ বাংলা</span>}
+                                </td>
+                                <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{item.priority}</td>
+                                <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right')}>
+                                    <div className="tw-inline-flex tw-gap-1">
+                                        <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}>
+                                            <Pencil className="tw-h-3.5 tw-w-3.5" aria-hidden /> Edit
+                                        </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(item.idInvestorTestimonials)}
+                                            className="tw-rounded-lg tw-p-2 tw-text-slate-400 hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                            aria-label={`Delete the testimonial from ${item.name}`}
+                                        >
+                                            <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={7} className="text-center">No Investor Testimonial found</td>
-                            </tr>
+                            <EmptyRow colSpan={4} title="No testimonials match" hint={anyFilter ? 'Try fewer filters.' : undefined} />
                         )}
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="testimonial" editingId={isEditing ? formData.idInvestorTestimonials : null} onCancelEdit={cancelEdit} onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Name<Required /></>}>
+                        <Input type="text" placeholder="Investor's name" name="name" onChange={(e) => setFormData({ ...formData, name: e.target.value })} value={formData.name} />
+                    </Field>
+                    {/* Bangla counterparts are optional; blank falls back to English. */}
+                    <Field label={<>Name (বাংলা)<Optional /></>}>
+                        <Input type="text" placeholder="নাম লিখুন" name="nameBn" lang="bn" onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })} value={formData.nameBn} />
+                    </Field>
+                    <div>
+                        <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">
+                            Photo<Required />
+                        </p>
+                        <div className="tw-flex tw-items-center tw-gap-3">
+                            {formData.image instanceof File ? (
+                                <LocalPreview file={formData.image} className={PHOTO} />
+                            ) : (
+                                <SafeImg
+                                    src={formData.image ? `${S3_URL}investor-testimonials/${formData.image}` : null}
+                                    alt={formData.name}
+                                    className={PHOTO}
+                                    fallback={
+                                        <span className="tw-flex tw-h-12 tw-w-12 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-dashed tw-border-slate-300 tw-text-slate-400">
+                                            <User className="tw-h-5 tw-w-5" aria-hidden />
+                                        </span>
+                                    }
+                                />
+                            )}
+                            <div className="tw-min-w-0 tw-flex-1">
+                                <FileInput accept="image/jpeg,image/png" name="image" aria-label="Photo" onChange={handleFileUpload} ref={fileInputRef} />
+                            </div>
+                        </div>
+                        <p className="tw-mt-1 tw-text-xs tw-text-slate-500">{isEditing ? 'Leave empty to keep the current photo.' : 'JPEG or PNG.'}</p>
+                    </div>
+                    <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_5.5rem] tw-items-start tw-gap-3">
+                        <div>
+                            <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">
+                                Rating<Required />
+                            </p>
+                            <StarInput value={formData.rating} onChange={(rating) => setFormData({ ...formData, rating })} />
+                        </div>
+                        <Field label={<>Priority<Required /></>} hint="Lower first">
+                            <Input type="number" placeholder="1" name="priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })} value={formData.priority || ''} />
+                        </Field>
+                    </div>
+                    <Field label={<>Testimonial<Required /></>}>
+                        <Textarea rows={4} placeholder="What the investor said" name="testimonial" value={formData.testimonial} onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })} />
+                    </Field>
+                    <Field label={<>Testimonial (বাংলা)<Optional /></>}>
+                        <Textarea rows={3} placeholder="বাংলায় প্রশংসাপত্র লিখুন" name="testimonialBn" lang="bn" value={formData.testimonialBn} onChange={(e) => setFormData({ ...formData, testimonialBn: e.target.value })} />
+                    </Field>
+                </SetupFormCard>
+            }
+        />
     );
 }
 
@@ -571,4 +487,3 @@ InvestorTestimonialSetup.getLayout = function PageLayout(page: any) {
         </MainLayout>
     );
 };
-

@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 import { S3_URL } from '@/config/public';
+import { ImageOff, Pencil, Trash2 } from 'lucide-react';
+import { Pill, SafeImg, Segmented, cx } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Required, SearchInput, Select } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
+import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
     idAppStatPanel?: number
@@ -30,20 +35,19 @@ interface FilterProps {
     pageSize: number
 }
 
+const EMPTY_FORM: FormDataType = {
+    idAppStatPanel: undefined,
+    statType: 'text',
+    statLabel: '',
+    statValue: '',
+    priority: null,
+    statLabelBn: '',
+    statValueBn: ''
+};
+
 function StatPanel() {
-
-    const [formData, setFormData] = useState<FormDataType>({
-        idAppStatPanel: undefined,
-        statType: 'text',
-        statLabel: '',
-        statValue: '',
-        priority: null,
-        statLabelBn: '',
-        statValueBn: ''
-    });
-
+    const [formData, setFormData] = useState<FormDataType>(EMPTY_FORM);
     const [filter, setFilter] = useState<FilterProps>({
-
         idAppStatPanel: '',
         statLabel: '',
         statValue: '',
@@ -54,7 +58,6 @@ function StatPanel() {
         page: 1,
         pageSize: 10
     });
-
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [statPanelList, setStatPanelList] = useState<FormDataType[]>([]);
@@ -64,11 +67,14 @@ function StatPanel() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchAppStatPanelList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/stat-panels/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setStatPanelList(data.data);
                     setTotal(data.total);
@@ -82,6 +88,7 @@ function StatPanel() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -90,55 +97,31 @@ function StatPanel() {
             }
         }
         fetchAppStatPanelList();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // A changed filter starts again from page 1.
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
-    const handleStatTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFormData({ ...formData, statType: e.target.value, statValue: '' });
+    const handleStatTypeChange = (statType: string) => {
+        setFormData({ ...formData, statType, statValue: '' });
     }
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,7 +177,9 @@ function StatPanel() {
                 } else {
                     newFormData.append('statValue', formData.statValue as string);
                 }
+
                 newFormData.append('priority', formData.priority?.toString() || '');
+
                 try {
                     const url = isEditing ? API_URL + 'api/stat-panels/update' : API_URL + 'api/stat-panels/create';
                     const res = await fetch(url, {
@@ -210,15 +195,7 @@ function StatPanel() {
                             text: (await res.json()).message,
                         });
                         setReload(true);
-                        setFormData({
-                            idAppStatPanel: undefined,
-                            statType: 'text',
-                            statLabel: '',
-                            statValue: '',
-                            priority: null,
-                            statLabelBn: '',
-                            statValueBn: ''
-                        });
+                        setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
                             fileInputRef.current.value = '';  // Clear file input
@@ -262,9 +239,14 @@ function StatPanel() {
         setIsEditing(true);
     };
 
+    const cancelEdit = () => {
+        setFormData(EMPTY_FORM);
+        setIsEditing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleDelete = async (id?: number) => {
         if (!id) return;
-
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to delete this stat!",
@@ -305,179 +287,163 @@ function StatPanel() {
         });
     };
 
+    const anyFilter = Boolean(filter.idAppStatPanel || filter.statLabel || filter.statValue || filter.statType);
 
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Stat Panel</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Type<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='investmentType' onChange={handleStatTypeChange} value={formData.statType}>
-                                        <option>Select stat type</option>
-                                        <option value="text">Text</option>
-                                        <option value="number">Number</option>
-                                        <option value="image">Image</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Label<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter stat label" name="statLabel" onChange={(e) => setFormData({ ...formData, statLabel: e.target.value })} value={formData.statLabel} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                {/* Bangla counterpart — optional; blank falls back to English. */}
-                                <Form.Label column sm='4' className='mb-3'>Label (বাংলা)</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" placeholder="বাংলায় লেবেল লিখুন" name="statLabelBn" lang="bn" onChange={(e) => setFormData({ ...formData, statLabelBn: e.target.value })} value={formData.statLabelBn} />
-                                    <Form.Text muted>Optional. Falls back to the English label if left blank.</Form.Text>
-                                </Col>
-                            </Form.Group>
-                            {formData.statType !== 'image' && (
-                                <Form.Group as={Row}>
-                                    {/* Bangla value applies to text/number rows only —
-                                        an image row's value is a filename, not copy. */}
-                                    <Form.Label column sm='4' className='mb-3'>Value (বাংলা)</Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="বাংলায় মান লিখুন" name="statValueBn" lang="bn" onChange={(e) => setFormData({ ...formData, statValueBn: e.target.value })} value={formData.statValueBn} />
-                                        <Form.Text muted>Optional. Falls back to the English value if left blank.</Form.Text>
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            {formData.statType === 'number' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="number" placeholder="Enter stat value" name="statValue" onChange={(e) => setFormData({ ...formData, statValue: e.target.value })} value={formData.statValue as string} />
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            {formData.statType === 'image' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="file" name="statValue" onChange={handleFileUpload} ref={fileInputRef} />
-                                        {typeof formData.statValue === 'string' && formData.statValue && (
-                                            <div className="mt-2">
-                                                <img
-                                                    src={`${S3_URL}stat-panel/${formData.statValue}`}
-                                                    alt={formData.statValue}
-                                                    width={100}
-                                                    height={100}
-                                                />
-                                            </div>
-                                        )}
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            {formData.statType === 'text' && (
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Value<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="Enter stat value" name="statValue" onChange={(e) => setFormData({ ...formData, statValue: e.target.value })} value={formData.statValue as string} />
-                                    </Col>
-                                </Form.Group>
-                            )}
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Priority<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="number" placeholder="Enter priority" name="priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })} value={formData.priority || ''} />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : (isEditing ? 'Update' : 'Submit')}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                        {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
-                    </Col>
-                </Row>
-            </Container>
-            <Container className='mt-5'>
-                <h4 className="text-start">Stat Panel List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Stat panel"
+            description="The figures shown on the app's home screen, in priority order: text, a number, or an image."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-3 tw-gap-3 md:tw-grid-cols-[1.4fr_1.2fr_1fr_0.7fr]">
+                            <Field label="Label" className="tw-col-span-3 md:tw-col-span-1">
+                                <SearchInput placeholder="Search labels" name="statLabel" onChange={handleInputOnChange} value={filter.statLabel} />
+                            </Field>
+                            <Field label="Value">
+                                <Input placeholder="Any" name="statValue" onChange={handleInputOnChange} value={filter.statValue} />
+                            </Field>
+                            <Field label="Type">
+                                <Select name="statType" onChange={handleInputOnChange} value={filter.statType}>
+                                    <option value="">All</option>
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="image">Image</option>
+                                </Select>
+                            </Field>
+                            {/* No priority filter: /api/stat-panels/list ignores that parameter. */}
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idAppStatPanel" onChange={handleInputOnChange} value={filter.idAppStatPanel} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} stats · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Stat Label</th>
-                            <th>Stat Value</th>
-                            <th>Stat Type</th>
-                            <th>Priority</th>
-                            <th>Actions</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idAppStatPanel" onChange={handleInputOnChange} value={filter.idAppStatPanel} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statLabel" onChange={handleInputOnChange} value={filter.statLabel} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statValue" onChange={handleInputOnChange} value={filter.statValue} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="statType" onChange={handleInputOnChange} value={filter.statType} />
-                            </td>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="priority" onChange={handleInputOnChange} value={filter.priority || ''} />
-                            </td>
-                            <td></td>
+                            <th className={TH}>Label</th>
+                            <th className={TH}>Value</th>
+                            <th className={TH}>Type</th>
+                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <th className={cx(TH, 'tw-text-right')}>
+                                <span className="tw-sr-only">Actions</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {statPanelList.length > 0 ? statPanelList.map((panel, index) => (
-                            <tr key={index}>
-                                <td>{panel.idAppStatPanel}</td>
-                                <td>{panel.statLabel}</td>
-                                <td>
+                            <tr key={panel.idAppStatPanel ?? index} className={cx(TR, isEditing && formData.idAppStatPanel === panel.idAppStatPanel && 'tw-bg-brand-50/50')}>
+                                <td className={TD}>
+                                    <div className="tw-font-medium tw-text-slate-900">{panel.statLabel}</div>
+                                    <div className="tw-text-xs tw-tabular-nums tw-text-slate-400">#{panel.idAppStatPanel}</div>
+                                </td>
+                                <td className={TD}>
                                     {(panel.statType === 'image' && typeof panel.statValue === 'string') ? (
-                                        <img src={`${S3_URL}stat-panel/${panel.statValue}`} alt={panel.statValue} width={100} height={100} />
+                                        <SafeImg
+                                            src={`${S3_URL}stat-panel/${panel.statValue}`}
+                                            alt={panel.statLabel}
+                                            className="tw-h-12 tw-w-12 tw-rounded-lg tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                            fallback={
+                                                <span className="tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-lg tw-bg-slate-50 tw-text-slate-300">
+                                                    <ImageOff className="tw-h-4 tw-w-4" aria-hidden />
+                                                </span>
+                                            }
+                                        />
                                     ) : (
-                                        typeof panel.statValue === 'string' || typeof panel.statValue === 'number' ? panel.statValue : null
+                                        <span className="tw-tabular-nums tw-text-slate-800">{typeof panel.statValue === 'string' || typeof panel.statValue === 'number' ? panel.statValue : null}</span>
                                     )}
                                 </td>
-                                <td>{panel.statType.charAt(0).toUpperCase() + panel.statType.slice(1)}</td>
-                                <td>{panel.priority}</td>
-                                <td>
-                                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(panel)}>
-                                        Edit
-                                    </Button>
-                                    <Button variant="danger" size="sm" onClick={() => handleDelete(panel.idAppStatPanel)}>
-                                        Delete
-                                    </Button>
+                                <td className={TD}>
+                                    <Pill tone={panel.statType === 'image' ? 'violet' : panel.statType === 'number' ? 'sky' : 'slate'} dot={false}>
+                                        {panel.statType.charAt(0).toUpperCase() + panel.statType.slice(1)}
+                                    </Pill>
+                                </td>
+                                <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{panel.priority}</td>
+                                <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right')}>
+                                    <div className="tw-inline-flex tw-gap-1">
+                                        <Button size="sm" variant="ghost" onClick={() => handleEdit(panel)}>
+                                            <Pencil className="tw-h-3.5 tw-w-3.5" aria-hidden /> Edit
+                                        </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(panel.idAppStatPanel)}
+                                            className="tw-rounded-lg tw-p-2 tw-text-slate-400 hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                            aria-label={`Delete ${panel.statLabel}`}
+                                        >
+                                            <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={6} className="text-center">No Stat Panel found</td>
-                            </tr>
+                            <EmptyRow colSpan={5} title="No stats match" hint={anyFilter ? 'Try fewer filters.' : undefined} />
                         )}
-
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="stat" editingId={isEditing ? formData.idAppStatPanel : null} onCancelEdit={cancelEdit} onSubmit={handleSubmit} loading={loading}>
+                    <div>
+                        <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">
+                            Type<Required />
+                        </p>
+                        <Segmented
+                            label="Stat type"
+                            value={formData.statType}
+                            onChange={handleStatTypeChange}
+                            options={[
+                                { value: 'text', label: 'Text' },
+                                { value: 'number', label: 'Number' },
+                                { value: 'image', label: 'Image' },
+                            ]}
+                        />
+                    </div>
+                    <Field label={<>Label<Required /></>}>
+                        <Input type="text" placeholder="e.g. Partners supported" name="statLabel" onChange={(e) => setFormData({ ...formData, statLabel: e.target.value })} value={formData.statLabel} />
+                    </Field>
+                    {/* Bangla counterpart — optional; blank falls back to English. */}
+                    <Field label="Label (বাংলা)" hint="Optional; falls back to the English label.">
+                        <Input type="text" placeholder="বাংলায় লেবেল লিখুন" name="statLabelBn" lang="bn" onChange={(e) => setFormData({ ...formData, statLabelBn: e.target.value })} value={formData.statLabelBn} />
+                    </Field>
+                    {formData.statType === 'image' ? (
+                        <div>
+                            <Field label={<>Image<Required /></>}>
+                                <FileInput accept="image/jpeg,image/png" name="statValue" onChange={handleFileUpload} ref={fileInputRef} />
+                            </Field>
+                            {formData.statValue instanceof File ? (
+                                <LocalPreview file={formData.statValue} className="tw-mt-2 tw-h-24 tw-w-24 tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-slate-200" />
+                            ) : typeof formData.statValue === 'string' && formData.statValue ? (
+                                <SafeImg
+                                    src={`${S3_URL}stat-panel/${formData.statValue}`}
+                                    alt={formData.statLabel}
+                                    className="tw-mt-2 tw-h-24 tw-w-24 tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                    fallback={null}
+                                />
+                            ) : null}
+                        </div>
+                    ) : (
+                        <>
+                            <Field label={<>Value<Required /></>}>
+                                <Input
+                                    type={formData.statType === 'number' ? 'number' : 'text'}
+                                    placeholder={formData.statType === 'number' ? 'e.g. 250' : 'e.g. 12 districts'}
+                                    name="statValue"
+                                    onChange={(e) => setFormData({ ...formData, statValue: e.target.value })}
+                                    value={formData.statValue as string}
+                                />
+                            </Field>
+                            {/* Bangla value applies to text/number rows only — an image row's value is a filename, not copy. */}
+                            <Field label="Value (বাংলা)" hint="Optional; falls back to the English value.">
+                                <Input type="text" placeholder="বাংলায় মান লিখুন" name="statValueBn" lang="bn" onChange={(e) => setFormData({ ...formData, statValueBn: e.target.value })} value={formData.statValueBn} />
+                            </Field>
+                        </>
+                    )}
+                    <Field label={<>Priority<Required /></>} hint="Lower numbers show first.">
+                        <Input type="number" placeholder="e.g. 1" name="priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })} value={formData.priority || ''} />
+                    </Field>
+                </SetupFormCard>
+            }
+        />
     )
 }
 

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
+import { Pencil } from 'lucide-react';
+import { cx } from '@/ui/primitives';
+import { Button, Field, Input, Required, SearchInput } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
 interface FormDataType {
     idUnit?: number
@@ -22,13 +26,11 @@ interface FilterProps {
 }
 
 function Unit() {
-
     const [idUnit, setIdUnit] = useState<number>(0);
     const [formData, setFormData] = useState<FormDataType>({
         unitName: '',
         unitCode: ''
     });
-
     const [filter, setFilter] = useState<FilterProps>({
         idUnit: '',
         unitName: '',
@@ -38,8 +40,6 @@ function Unit() {
         page: 1,
         pageSize: 10
     });
-
-
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [unitList, setUnitList] = useState<FormDataType[]>([]);
@@ -47,11 +47,14 @@ function Unit() {
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchUnitList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/unit/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setUnitList(data.data);
                     setTotal(data.total);
@@ -65,6 +68,7 @@ function Unit() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -73,50 +77,26 @@ function Unit() {
             }
         }
         fetchUnitList();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
+    // A changed filter starts again from page 1.
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
@@ -127,6 +107,11 @@ function Unit() {
             unitCode: unit.unitCode
         });
     }
+
+    const cancelEdit = () => {
+        setIdUnit(0);
+        setFormData({ unitName: '', unitCode: '' });
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -155,7 +140,6 @@ function Unit() {
                             unitName: '',
                             unitCode: ''
                         });
-
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -179,94 +163,65 @@ function Unit() {
     };
 
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Units</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" name="unitName" value={formData.unitName} onChange={(e) => setFormData({ ...formData, unitName: e.target.value })} required />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Code<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" name="unitCode" value={formData.unitCode} onChange={(e) => setFormData({ ...formData, unitCode: e.target.value })} required />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : 'Submit'}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-
-
-            <Container className='mt-5'>
-                <h4 className="text-start">Unit List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Units"
+            description="Units the Mart sells products in: kilograms, litres, pieces."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-[1fr_8rem_6rem] tw-gap-3">
+                            <Field label="Unit">
+                                <SearchInput placeholder="Search units" name="unitName" onChange={handleInputOnChange} value={filter.unitName} />
+                            </Field>
+                            <Field label="Code">
+                                <Input placeholder="e.g. kg" name="unitCode" onChange={handleInputOnChange} value={filter.unitCode} />
+                            </Field>
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idUnit" onChange={handleInputOnChange} value={filter.idUnit} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} units · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th>Actions</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idUnit" onChange={handleInputOnChange} value={filter.idUnit} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="unitName" onChange={handleInputOnChange} value={filter.unitName} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="unitCode" onChange={handleInputOnChange} value={filter.unitCode} />
-                            </td>
-                            <td></td>
-
+                            <th className={cx(TH, 'tw-w-20')}>#</th>
+                            <th className={TH}>Unit</th>
+                            <th className={TH}>Code</th>
+                            <th className={cx(TH, 'tw-text-right')}>
+                                <span className="tw-sr-only">Edit</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {unitList.length > 0 ? unitList.map((unit, index) => (
-                            <tr key={index}>
-                                <td>{unit.idUnit}</td>
-                                <td>{unit.unitName}</td>
-                                <td>{unit.unitCode}</td>
-                                <td>
-                                    <Button variant="primary" size="sm" onClick={handleEditChange(unit)}>Edit</Button>
+                            <tr key={unit.idUnit ?? index} className={cx(TR, idUnit !== 0 && idUnit === unit.idUnit && 'tw-bg-brand-50/50')}>
+                                <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{unit.idUnit}</td>
+                                <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{unit.unitName}</td>
+                                <td className={cx(TD, 'tw-font-mono tw-text-xs tw-text-slate-600')}>{unit.unitCode}</td>
+                                <td className={cx(TD, 'tw-text-right')}>
+                                    <Button size="sm" variant="ghost" onClick={handleEditChange(unit)}>
+                                        <Pencil className="tw-h-3.5 tw-w-3.5" aria-hidden /> Edit
+                                    </Button>
                                 </td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={4} className="text-center">No Unit found</td>
-                            </tr>
+                            <EmptyRow colSpan={4} title="No units match" />
                         )}
-
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="unit" editingId={idUnit} onCancelEdit={cancelEdit} onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Unit name<Required /></>}>
+                        <Input type="text" name="unitName" placeholder="e.g. Kilogram" value={formData.unitName} onChange={(e) => setFormData({ ...formData, unitName: e.target.value })} required />
+                    </Field>
+                    <Field label={<>Code<Required /></>}>
+                        <Input type="text" name="unitCode" placeholder="e.g. kg" value={formData.unitCode} onChange={(e) => setFormData({ ...formData, unitCode: e.target.value })} required />
+                    </Field>
+                </SetupFormCard>
+            }
+        />
     )
 }
 
