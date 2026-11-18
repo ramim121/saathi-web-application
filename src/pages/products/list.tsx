@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import MainLayout from "@/layouts/MainLayout";
-import { Container, Table, Button, Pagination } from "react-bootstrap";
-import { getRequestOptions } from "@/utils/Fetch";
 import Link from "next/link";
+import MainLayout from "@/layouts/MainLayout";
+import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
+import { ChevronRight, Package, Plus, Tags, X } from "lucide-react";
+import { cx } from "@/ui/primitives";
+import { Button, Field, Input, LinkButton, SearchInput } from "@/ui/controls";
+import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
 
 interface ListProps {
     idProducts: number,
@@ -33,26 +36,29 @@ interface FilterProps {
     pageSize: number
 }
 
+const INITIAL_FILTER: FilterProps = {
+    idProducts: '',
+    productName: '',
+    productCategory: '',
+    unit: '',
+    productDescription: '',
+    orderBy: 'idProducts',
+    orderType: 'DESC',
+    page: 1,
+    pageSize: 10
+};
+
 function List() {
     const [productList, setProductList] = useState<ListProps[]>([]);
-    const [filter, setFilter] = useState<FilterProps>({
-        idProducts: '',
-        productName: '',
-        productCategory: '',
-        unit: '',
-        productDescription: '',
-        orderBy: 'idProducts',
-        orderType: 'DESC',
-        page: 1,
-        pageSize: 10
-
-    });
+    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchProductList = async () => {
             const query = new URLSearchParams(filter as any).toString();
+            setLoading(true);
             try {
                 const res = await fetch(`/api/products/list?${query}`, getRequestOptions());
                 const data = await res.json();
@@ -68,136 +74,134 @@ function List() {
                     });
                 }
             } catch (err: any) {
-
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: err.message,
                 });
+            } finally {
+                setLoading(false);
             }
         }
         fetchProductList();
     }, [filter]);
 
+    // A changed filter starts again from page 1.
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
+    const anyFilter = Boolean(filter.idProducts || filter.productName || filter.productCategory || filter.unit || filter.productDescription);
 
     return (
-        <Container>
-            <h4 className="text-start">Products List</h4>
-            <hr />
-            <Table responsive striped bordered hover size="sm">
+        <div className="ui">
+            <PageHeader
+                eyebrow="Shathi Mart"
+                title="Products"
+                description="What the Mart sells. Open a product to add photos, packings and the partners who supply it."
+                actions={
+                    <>
+                        <LinkButton href="/products/category">
+                            <Tags className="tw-h-4 tw-w-4" aria-hidden /> Categories
+                        </LinkButton>
+                        <LinkButton href="/products/create" variant="primary">
+                            <Plus className="tw-h-4 tw-w-4" aria-hidden /> New product
+                        </LinkButton>
+                    </>
+                }
+            />
+
+            <TableCard
+                toolbar={
+                    <div className="tw-flex tw-flex-col tw-gap-3">
+                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-[2fr_1.2fr_1fr_1.4fr_0.7fr_auto]">
+                            <Field label="Product" className="tw-col-span-2 lg:tw-col-span-1">
+                                <SearchInput placeholder="Search by name" name="productName" value={filter.productName} onChange={handleInputOnChange} />
+                            </Field>
+                            <Field label="Category">
+                                <Input placeholder="Any" name="productCategory" value={filter.productCategory} onChange={handleInputOnChange} />
+                            </Field>
+                            <Field label="Unit">
+                                <Input placeholder="Any" name="unit" value={filter.unit} onChange={handleInputOnChange} />
+                            </Field>
+                            <Field label="Description">
+                                <Input placeholder="Any words" name="productDescription" value={filter.productDescription} onChange={handleInputOnChange} />
+                            </Field>
+                            <Field label="#">
+                                <Input placeholder="ID" name="idProducts" value={filter.idProducts} onChange={handleInputOnChange} />
+                            </Field>
+                            <div className="tw-flex tw-items-end">
+                                {anyFilter && (
+                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
+                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                        <p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? 'Loading…' : `${Number(total || 0).toLocaleString('en-IN')} products`}</p>
+                    </div>
+                }
+                footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${pages}` : undefined} />}
+            >
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Product Name</th>
-                        <th>Category</th>
-                        <th>Unit</th>
-                        <th>Description</th>
-                        <th>Actions</th>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="text" name="idProducts" value={filter.idProducts} onChange={handleInputOnChange} className="form-control form-control-sm" />
-                        </td>
-                        <td>
-                            <input type="text" name="productName" value={filter.productName} onChange={handleInputOnChange} className="form-control form-control-sm" />
-                        </td>
-                        <td>
-                            <input type="text" name="productCategory" value={filter.productCategory} onChange={handleInputOnChange} className="form-control form-control-sm" />
-                        </td>
-                        <td>
-                            <input type="text" name="unit" value={filter.unit} onChange={handleInputOnChange} className="form-control form-control-sm" />
-                        </td>
-                        <td>
-                            <input type="text" name="productDescription" value={filter.productDescription} onChange={handleInputOnChange} className="form-control form-control-sm" />
-                        </td>
-                        <td></td>
+                        <th className={cx(TH, 'tw-min-w-[16rem]')}>Product</th>
+                        <th className={TH}>Category</th>
+                        <th className={TH}>Unit</th>
+                        <th className={cx(TH, 'tw-text-right')}>
+                            <span className="tw-sr-only">Open</span>
+                        </th>
                     </tr>
                 </thead>
-                <tbody>
-                    {productList.length > 0 ? productList.map((product, index) => (
-                        <tr key={index}>
-                            <td>{product.idProducts}</td>
-                            <td>{product.productName}</td>
-                            <td>{product.ProductCategory?.productCategoryName}</td>
-                            <td>{product.Unit?.unitName}</td>
-                            <td>{product.productDescription}</td>
-                            <td style={{ whiteSpace: 'nowrap' }}>
-                                <Link href={`/products/details/${product.idProducts}`}>
-                                    <Button size="sm" variant="primary" className="me-2">Details</Button>
+                <tbody className={cx(loading && 'tw-opacity-60 tw-transition-opacity')}>
+                    {productList.length > 0 ? productList.map((product) => (
+                        <tr key={product.idProducts} className={TR}>
+                            <td className={TD}>
+                                <div className="tw-flex tw-items-start tw-gap-3">
+                                    <span className="tw-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl tw-bg-brand-50 tw-text-brand-700">
+                                        <Package className="tw-h-4 tw-w-4" aria-hidden />
+                                    </span>
+                                    <div className="tw-min-w-0">
+                                        <Link href={`/products/details/${product.idProducts}`} className="tw-font-medium tw-text-slate-900 hover:tw-text-brand-700">
+                                            {product.productName}
+                                        </Link>
+                                        <div className="tw-text-xs tw-text-slate-400">#{product.idProducts}</div>
+                                        {product.productDescription && <p className="tw-mt-0.5 tw-line-clamp-2 tw-max-w-xl tw-text-xs tw-text-slate-500">{product.productDescription}</p>}
+                                    </div>
+                                </div>
+                            </td>
+                            <td className={cx(TD, 'tw-whitespace-nowrap tw-text-slate-700')}>{product.ProductCategory?.productCategoryName || '—'}</td>
+                            <td className={cx(TD, 'tw-whitespace-nowrap tw-text-slate-600')}>{product.Unit?.unitName || '—'}</td>
+                            <td className={cx(TD, 'tw-text-right')}>
+                                <Link
+                                    href={`/products/details/${product.idProducts}`}
+                                    className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700"
+                                    aria-label={`Open ${product.productName}`}
+                                >
+                                    <ChevronRight className="tw-h-4 tw-w-4" aria-hidden />
                                 </Link>
                             </td>
                         </tr>
                     )) : (
-                        <tr>
-                            <td colSpan={6} className="text-center">No product found</td>
-                        </tr>
+                        <EmptyRow colSpan={4} title={loading ? 'Loading products…' : 'No products match'} hint={!loading && anyFilter ? 'Try fewer filters.' : undefined} />
                     )}
-
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td className="pt-2 border-0" colSpan={15}>
-                            <div className="d-flex w-100 justify-content-center">
-                                <Pagination>
-                                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                                    {pageList()}
-                                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                                </Pagination>
-                            </div>
-                        </td>
-                    </tr>
-                </tfoot>
-            </Table>
-        </Container>
+            </TableCard>
+        </div>
     )
-
 }
 
 export default List;
