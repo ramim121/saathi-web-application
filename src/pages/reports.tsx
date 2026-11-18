@@ -1,7 +1,9 @@
-import React from 'react';
-import Link from 'next/link';
+import React, { type ReactNode } from 'react';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import type { GetServerSidePropsContext } from 'next';
+import { AlertTriangle, Download, Layers3, Users, Wallet, type LucideIcon } from 'lucide-react';
+import MainLayout from '@/layouts/MainLayout';
 import { requireAdminPage, redirectToLogin } from '@/utils/pageAuth';
 import {
     loadReports,
@@ -10,6 +12,10 @@ import {
     type Reports,
     type ReportRange,
 } from '@/utils/reports';
+import { bdt, date, monthYear, plural } from '@/ui/format';
+import { Card, Pill, cx } from '@/ui/primitives';
+import { Button, Field, Input, buttonClass } from '@/ui/controls';
+import { PageHeader, TD, TH, TR } from '@/ui/layout';
 
 /**
  * Operational reports over a date range.
@@ -22,8 +28,6 @@ import {
 
 type Props = { reports: Reports | null; error: string | null };
 
-const money = (v: number) => `BDT ${v.toLocaleString('en-IN')}`;
-
 function prettyType(value: string): string {
     if (!value) return '—';
     return value
@@ -32,37 +36,90 @@ function prettyType(value: string): string {
         .join(' ');
 }
 
+/** Same card as the investor report's figures, so the two reports read alike. */
+function Stat({
+    icon: IconCmp,
+    label,
+    value,
+    hint,
+    emphasis,
+    accent,
+}: {
+    icon: LucideIcon;
+    label: string;
+    value: string;
+    hint?: ReactNode;
+    emphasis?: boolean;
+    accent?: 'sky' | 'amber';
+}) {
+    return (
+        <div
+            className={cx(
+                'tw-rounded-2xl tw-border tw-p-4 tw-shadow-card',
+                emphasis ? 'tw-border-brand-700 tw-bg-gradient-to-br tw-from-brand-700 tw-to-brand-800 tw-text-white' : 'tw-border-slate-200 tw-bg-white',
+            )}
+        >
+            <div className={cx('tw-flex tw-items-center tw-gap-2 tw-text-[13px] tw-font-medium', emphasis ? 'tw-text-brand-100' : 'tw-text-slate-500')}>
+                <span
+                    className={cx(
+                        'tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-lg',
+                        emphasis
+                            ? 'tw-bg-white/15'
+                            : accent === 'sky'
+                              ? 'tw-bg-sky-50 tw-text-sky-600'
+                              : accent === 'amber'
+                                ? 'tw-bg-amber-50 tw-text-amber-600'
+                                : 'tw-bg-slate-100 tw-text-slate-500',
+                    )}
+                >
+                    <IconCmp className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                </span>
+                {label}
+            </div>
+            <div className={cx('tw-mt-2.5 tw-truncate tw-text-[22px] tw-font-semibold tw-leading-7 tw-tracking-tight tw-tabular-nums', emphasis ? 'tw-text-white' : 'tw-text-slate-900')}>
+                {value}
+            </div>
+            {hint && <div className={cx('tw-mt-1 tw-text-xs', emphasis ? 'tw-text-brand-100' : 'tw-text-slate-500')}>{hint}</div>}
+        </div>
+    );
+}
+
 function Panel({
     title,
     subtitle,
     csv,
+    footer,
     children,
 }: {
     title: string;
     subtitle?: string;
     csv?: string;
-    children: React.ReactNode;
+    footer?: ReactNode;
+    children: ReactNode;
 }) {
     return (
-        <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-start gap-2">
-                <div>
-                    <h2 className="h6 fw-bold mb-0">{title}</h2>
-                    {subtitle && <div className="text-muted small">{subtitle}</div>}
+        <Card className="tw-overflow-hidden">
+            <div className="tw-flex tw-items-start tw-justify-between tw-gap-3 tw-border-b tw-border-slate-100 tw-px-5 tw-py-4">
+                <div className="tw-min-w-0">
+                    <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">{title}</h2>
+                    {subtitle && <p className="tw-mt-0.5 tw-text-xs tw-text-slate-500">{subtitle}</p>}
                 </div>
                 {csv && (
-                    <a className="btn btn-sm btn-outline-secondary flex-shrink-0" href={csv}>
+                    // A plain link: the export is a file download, not a page.
+                    <a className={buttonClass('secondary', 'sm', 'tw-shrink-0')} href={csv}>
+                        <Download className="tw-h-3.5 tw-w-3.5" aria-hidden />
                         Export CSV
                     </a>
                 )}
             </div>
-            <div className="card-body p-0">{children}</div>
-        </div>
+            {children}
+            {footer && <div className="tw-border-t tw-border-slate-100 tw-px-5 tw-py-3 tw-text-xs tw-text-slate-500">{footer}</div>}
+        </Card>
     );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-    return <p className="text-muted small mb-0 p-3">{children}</p>;
+function Empty({ children }: { children: ReactNode }) {
+    return <p className="tw-px-5 tw-py-10 tw-text-center tw-text-sm tw-text-slate-500">{children}</p>;
 }
 
 /** Quick ranges, because typing two dates to answer "this month" is friction. */
@@ -87,59 +144,52 @@ function RangeBar({ range }: { range: ReportRange }) {
     };
 
     return (
-        <form className="card mb-3" method="get" action="/reports">
-            <div className="card-body d-flex flex-wrap align-items-end gap-3 py-3">
-                <div>
-                    <label className="form-label" htmlFor="from">
-                        From
-                    </label>
-                    <input
-                        type="date"
-                        id="from"
-                        name="from"
-                        className="form-control"
-                        defaultValue={range.from}
-                    />
-                </div>
-                <div>
-                    <label className="form-label" htmlFor="to">
-                        To
-                    </label>
-                    <input
-                        type="date"
-                        id="to"
-                        name="to"
-                        className="form-control"
-                        defaultValue={range.to}
-                    />
-                </div>
-                <button type="submit" className="btn btn-primary">
+        <Card className="tw-mb-6 tw-p-4">
+            <form className="tw-flex tw-flex-wrap tw-items-end tw-gap-3" method="get" action="/reports">
+                <Field label="From" className="tw-w-44">
+                    <Input type="date" id="from" name="from" defaultValue={range.from} />
+                </Field>
+                <Field label="To" className="tw-w-44">
+                    <Input type="date" id="to" name="to" defaultValue={range.to} />
+                </Field>
+                <Button variant="primary" type="submit">
                     Apply
-                </button>
-                <div className="ms-auto d-flex align-items-center gap-1">
-                    <span className="text-muted small me-1">Quick:</span>
-                    {PRESETS.map((p) => (
-                        <button
-                            key={p.label}
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => applyPreset(p.months)}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
+                </Button>
+                <div className="tw-flex tw-items-center tw-gap-2 sm:tw-ml-auto">
+                    <span className="tw-text-xs tw-font-medium tw-text-slate-500">Last</span>
+                    <div className="tw-flex tw-gap-1 tw-rounded-xl tw-bg-slate-100 tw-p-1">
+                        {PRESETS.map((p) => (
+                            <button
+                                key={p.label}
+                                type="button"
+                                onClick={() => applyPreset(p.months)}
+                                className="tw-rounded-lg tw-px-2.5 tw-py-1 tw-text-xs tw-font-medium tw-text-slate-600 tw-transition hover:tw-bg-white hover:tw-text-slate-900 hover:tw-shadow-sm focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500"
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </Card>
     );
 }
+
+const TITLE = 'Operations report';
 
 export default function ReportsPage({ reports, error }: Props) {
     if (error || !reports) {
         return (
-            <div className="container-fluid py-4">
-                <div className="alert alert-warning">
-                    <strong>The reports could not be loaded.</strong> {error}
+            <div className="ui">
+                <Head>
+                    <title>{`${TITLE} · Shathi admin`}</title>
+                </Head>
+                <PageHeader eyebrow="Reports" title={TITLE} />
+                <div className="tw-flex tw-items-start tw-gap-3 tw-rounded-2xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-4 tw-text-sm tw-text-amber-900">
+                    <AlertTriangle className="tw-mt-0.5 tw-h-4 tw-w-4 tw-shrink-0" aria-hidden />
+                    <p>
+                        <strong className="tw-font-semibold">The reports could not be loaded.</strong> {error}
+                    </p>
                 </div>
             </div>
         );
@@ -150,148 +200,110 @@ export default function ReportsPage({ reports, error }: Props) {
     const maxCollection = Math.max(0, ...collections.map((c) => c.amount));
 
     return (
-        <div className="container-fluid py-4">
-            <div className="page-head">
-                <div>
-                    <h1 className="page-title">Reports</h1>
-                    <p className="page-subtitle">
-                        {range.from} to {range.to}. Amounts are units × unit value; cancelled
-                        positions are excluded.
-                    </p>
-                </div>
-                <Link href="/" className="btn btn-sm btn-outline-secondary">
-                    Back to dashboard
-                </Link>
+        <div className="ui">
+            <Head>
+                <title>{`${TITLE} · Shathi admin`}</title>
+            </Head>
+            <PageHeader
+                eyebrow="Reports"
+                title={TITLE}
+                description={
+                    <>
+                        {date(range.from)} to {date(range.to)}. Amounts are units × unit value; cancelled positions are excluded.
+                    </>
+                }
+            />
+
+            {/* Keyed by the range so the date fields show a quick range after it is applied. */}
+            <RangeBar key={`${range.from}:${range.to}`} range={range} />
+
+            <div className="tw-mb-6 tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-3">
+                <Stat emphasis icon={Wallet} label="Capital placed" value={bdt(totals.capital)} hint="in the selected range" />
+                <Stat icon={Layers3} accent="sky" label="Positions" value={totals.positions.toLocaleString('en-IN')} hint="confirmed and booked" />
+                <Stat icon={Users} accent="amber" label="Distinct investors" value={totals.investors.toLocaleString('en-IN')} hint="placed at least once" />
             </div>
 
-            <RangeBar range={range} />
-
-            <div className="row g-0 gx-3">
-                <div className="col-12 col-sm-4 mb-3">
-                    <div className="card stat-card h-100 tone-brand">
-                        <div className="card-body py-3">
-                            <div className="stat-label">Capital placed</div>
-                            <div className="stat-value tone-brand">{money(totals.capital)}</div>
-                            <div className="stat-note">in the selected range</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-12 col-sm-4 mb-3">
-                    <div className="card stat-card h-100 tone-info">
-                        <div className="card-body py-3">
-                            <div className="stat-label">Positions</div>
-                            <div className="stat-value tone-info">
-                                {totals.positions.toLocaleString('en-IN')}
-                            </div>
-                            <div className="stat-note">confirmed and booked</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-12 col-sm-4 mb-3">
-                    <div className="card stat-card h-100 tone-good">
-                        <div className="card-body py-3">
-                            <div className="stat-label">Distinct investors</div>
-                            <div className="stat-value tone-good">
-                                {totals.investors.toLocaleString('en-IN')}
-                            </div>
-                            <div className="stat-note">placed at least once</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="row g-3 align-items-start">
-                <div className="col-12 col-xl-7 d-flex flex-column gap-3">
-                    <Panel
-                        title="Investment register"
-                        subtitle={`${register.length} position${register.length === 1 ? '' : 's'} placed in range`}
-                        csv={`/api/reports/export?report=register&${qs}`}
-                    >
-                        {register.length === 0 ? (
-                            <Empty>Nothing was placed between these dates.</Empty>
-                        ) : (
-                            <div
-                                className="table-responsive drill-table"
-                                style={{ maxHeight: '28rem' }}
-                            >
-                                <table className="table table-sm table-hover align-middle">
-                                    <thead className="position-sticky top-0">
-                                        <tr>
-                                            <th>Reference</th>
-                                            <th>Investor</th>
-                                            <th>Project</th>
-                                            <th className="text-end">Units</th>
-                                            <th className="text-end">Capital</th>
-                                            <th>Source</th>
-                                            <th>Placed</th>
-                                            <th>Matures</th>
+            {/* The register is the widest table, so it gets the full width; the two
+                summaries sit side by side under it. grid-cols-1 (minmax(0,1fr)) lets a
+                wide table scroll inside its card on a phone. */}
+            <div className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6">
+                <Panel title="Investment register" subtitle={`${plural(register.length, 'position')} placed in range`} csv={`/api/reports/export?report=register&${qs}`}>
+                    {register.length === 0 ? (
+                        <Empty>Nothing was placed between these dates.</Empty>
+                    ) : (
+                        <div className="tw-max-h-[28rem] tw-overflow-auto">
+                            <table className="tw-w-full tw-text-sm">
+                                <thead className="tw-sticky tw-top-0 tw-z-10 tw-bg-white">
+                                    <tr>
+                                        <th className={TH}>Reference</th>
+                                        <th className={TH}>Investor</th>
+                                        <th className={TH}>Project</th>
+                                        <th className={cx(TH, 'tw-text-right')}>Units</th>
+                                        <th className={cx(TH, 'tw-text-right')}>Capital</th>
+                                        <th className={TH}>Source</th>
+                                        <th className={TH}>Placed</th>
+                                        <th className={TH}>Matures</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {register.map((r, i) => (
+                                        <tr key={`${r.reference}-${i}`} className={TR}>
+                                            <td className={cx(TD, 'tw-whitespace-nowrap tw-font-mono tw-text-xs tw-text-slate-600')}>{r.reference}</td>
+                                            <td className={cx(TD, 'tw-min-w-[9rem] tw-font-medium tw-text-slate-900')}>{r.investor}</td>
+                                            <td className={cx(TD, 'tw-min-w-[10rem]')}>
+                                                <div className="tw-text-slate-800">{r.project}</div>
+                                                <div className="tw-text-xs tw-text-slate-500">{prettyType(r.investmentType)}</div>
+                                            </td>
+                                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{r.units}</td>
+                                            <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right tw-font-medium tw-tabular-nums tw-text-slate-900')}>{bdt(r.capital)}</td>
+                                            <td className={TD}>
+                                                <Pill tone={r.source === 'Rollover' ? 'sky' : 'green'} dot={false}>
+                                                    {r.source}
+                                                </Pill>
+                                            </td>
+                                            <td className={cx(TD, 'tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600')}>{date(r.placedOn)}</td>
+                                            <td className={cx(TD, 'tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600')}>{date(r.maturesOn)}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {register.map((r, i) => (
-                                            <tr key={`${r.reference}-${i}`}>
-                                                <td className="font-monospace">{r.reference}</td>
-                                                <td className="fw-semibold">{r.investor}</td>
-                                                <td>
-                                                    {r.project}
-                                                    <div className="text-muted small">
-                                                        {prettyType(r.investmentType)}
-                                                    </div>
-                                                </td>
-                                                <td className="text-end">{r.units}</td>
-                                                <td className="text-end fw-semibold">
-                                                    {money(r.capital)}
-                                                </td>
-                                                <td>
-                                                    <span
-                                                        className={`badge ${r.source === 'Rollover' ? 'bg-info text-dark' : 'bg-success'}`}
-                                                    >
-                                                        {r.source}
-                                                    </span>
-                                                </td>
-                                                <td>{r.placedOn}</td>
-                                                <td>{r.maturesOn}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </Panel>
-                </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </Panel>
 
-                <div className="col-12 col-xl-5 d-flex flex-column gap-3">
+                <div className="tw-grid tw-min-w-0 tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-2">
                     <Panel
                         title="Payout schedule"
                         subtitle="Grouped by the month a position matures"
                         csv={`/api/reports/export?report=schedule&${qs}`}
+                        footer={
+                            <>
+                                Each project quotes a return <strong className="tw-font-semibold tw-text-slate-700">range</strong>, so the payable is a band rather than a single figure.
+                            </>
+                        }
                     >
                         {schedule.length === 0 ? (
                             <Empty>Nothing matures between these dates.</Empty>
                         ) : (
-                            <div className="table-responsive drill-table">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Month</th>
-                                            <th className="text-end">Positions</th>
-                                            <th className="text-end">Capital</th>
-                                            <th className="text-end">Payable range</th>
+                                            <th className={TH}>Month</th>
+                                            <th className={cx(TH, 'tw-text-right')}>Positions</th>
+                                            <th className={cx(TH, 'tw-text-right')}>Capital</th>
+                                            <th className={cx(TH, 'tw-text-right')}>Payable range</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {schedule.map((r) => (
-                                            <tr key={r.month}>
-                                                <td className="fw-semibold">{r.month}</td>
-                                                <td className="text-end">{r.positions}</td>
-                                                <td className="text-end">{money(r.capital)}</td>
-                                                <td className="text-end">
-                                                    {money(r.minPayable)}
-                                                    {r.maxPayable !== r.minPayable && (
-                                                        <div className="text-muted small">
-                                                            up to {money(r.maxPayable)}
-                                                        </div>
-                                                    )}
+                                            <tr key={r.month} className={TR}>
+                                                <td className={cx(TD, 'tw-whitespace-nowrap tw-font-medium tw-text-slate-900')}>{monthYear(r.month)}</td>
+                                                <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{r.positions}</td>
+                                                <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right tw-tabular-nums')}>{bdt(r.capital)}</td>
+                                                <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right tw-tabular-nums')}>
+                                                    <span className="tw-font-medium tw-text-slate-900">{bdt(r.minPayable)}</span>
+                                                    {r.maxPayable !== r.minPayable && <div className="tw-text-xs tw-text-slate-500">up to {bdt(r.maxPayable)}</div>}
                                                 </td>
                                             </tr>
                                         ))}
@@ -299,48 +311,32 @@ export default function ReportsPage({ reports, error }: Props) {
                                 </table>
                             </div>
                         )}
-                        <p className="text-muted small mb-0 px-3 py-2 border-top">
-                            Each project quotes a return <strong>range</strong>, so the payable is a
-                            band rather than a single figure.
-                        </p>
                     </Panel>
 
-                    <Panel
-                        title="Collections by method"
-                        subtitle="Confirmed payments only"
-                        csv={`/api/reports/export?report=collections&${qs}`}
-                    >
+                    <Panel title="Collections by method" subtitle="Confirmed payments only" csv={`/api/reports/export?report=collections&${qs}`}>
                         {collections.length === 0 ? (
                             <Empty>No payments were confirmed between these dates.</Empty>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-sm table-hover align-middle">
+                            <div className="tw-overflow-x-auto">
+                                <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th>Method</th>
-                                            <th className="text-end">Bookings</th>
-                                            <th className="text-end">Amount</th>
+                                            <th className={TH}>Method</th>
+                                            <th className={cx(TH, 'tw-text-right')}>Bookings</th>
+                                            <th className={cx(TH, 'tw-text-right')}>Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {collections.map((r) => (
-                                            <tr key={r.method}>
-                                                <td className="fw-semibold">
-                                                    {prettyType(r.method)}
-                                                </td>
-                                                <td className="text-end">{r.bookings}</td>
-                                                <td className="text-end">
-                                                    {money(r.amount)}
-                                                    <div
-                                                        className="progress mt-1"
-                                                        style={{ height: 4 }}
-                                                        role="presentation"
-                                                    >
+                                            <tr key={r.method} className={TR}>
+                                                <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{prettyType(r.method)}</td>
+                                                <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{r.bookings}</td>
+                                                <td className={cx(TD, 'tw-w-44 tw-text-right')}>
+                                                    <span className="tw-whitespace-nowrap tw-tabular-nums">{bdt(r.amount)}</span>
+                                                    <div className="tw-mt-1.5 tw-h-1 tw-w-full tw-overflow-hidden tw-rounded-full tw-bg-slate-100" role="presentation">
                                                         <div
-                                                            className="progress-bar"
-                                                            style={{
-                                                                width: `${maxCollection > 0 ? Math.max(2, Math.round((r.amount / maxCollection) * 100)) : 0}%`,
-                                                            }}
+                                                            className="tw-ml-auto tw-h-1 tw-rounded-full tw-bg-brand-600"
+                                                            style={{ width: `${maxCollection > 0 ? Math.max(2, Math.round((r.amount / maxCollection) * 100)) : 0}%` }}
                                                         />
                                                     </div>
                                                 </td>
@@ -356,6 +352,10 @@ export default function ReportsPage({ reports, error }: Props) {
         </div>
     );
 }
+
+ReportsPage.getLayout = function PageLayout(page: ReactNode) {
+    return <MainLayout>{page}</MainLayout>;
+};
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
     if (!requireAdminPage(context)) return redirectToLogin;

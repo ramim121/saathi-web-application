@@ -31,7 +31,7 @@ const generateOTP = () => {
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log(otps);
+    // Never log `otps`: it holds every live account-deletion code.
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'POST') {
         const userIdentifier = req.body.userIdentifier;
