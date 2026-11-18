@@ -1,14 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useRef, useContext, useEffect } from 'react';
+import Link from 'next/link';
 import MainLayout from '@/layouts/MainLayout';
-import { Container, Row, Col, Form, Button, Spinner, Pagination, Table } from 'react-bootstrap';
-import { Editor } from '@tinymce/tinymce-react';
 import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { AppContext } from '@/context/AppContext';
 import { getRequestOptions } from '@/utils/Fetch';
-import Link from 'next/link';
+import { BellRing, ChevronRight, Loader2, Mail, MessageSquare, Send, Smartphone, X, type LucideIcon } from 'lucide-react';
+import { Card, Pill, Segmented, cx } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Required, Select, Textarea } from '@/ui/controls';
+import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SummaryEditor } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
     createdBy?: number;
@@ -48,8 +51,47 @@ interface FilterProps {
     pageSize: number
 }
 
+const INITIAL_FILTER: FilterProps = {
+    idManualNotifications: '',
+    sendViaSms: '',
+    sendViaEmail: '',
+    sendViaPush: '',
+    sendOn: '',
+    createdBy: '',
+    orderBy: 'idManualNotifications',
+    orderType: 'DESC',
+    page: 1,
+    pageSize: 10
+};
+
+/** One delivery channel: a yes/no switch, and its fields when switched on. */
+function Channel({ icon: Icon, title, on, onToggle, children }: { icon: LucideIcon; title: string; on: boolean; onToggle: (on: boolean) => void; children: React.ReactNode }) {
+    return (
+        <div className={cx('tw-rounded-2xl tw-border tw-transition', on ? 'tw-border-brand-200 tw-bg-brand-50/30' : 'tw-border-slate-200')}>
+            <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-4 tw-py-3">
+                <span className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                    <Icon className={cx('tw-h-4 tw-w-4', on ? 'tw-text-brand-700' : 'tw-text-slate-400')} aria-hidden /> {title}
+                </span>
+                <Segmented<'no' | 'yes'>
+                    label={`Send via ${title}`}
+                    value={on ? 'yes' : 'no'}
+                    onChange={(value) => onToggle(value === 'yes')}
+                    options={[
+                        { value: 'no', label: 'Off' },
+                        { value: 'yes', label: 'On' },
+                    ]}
+                />
+            </div>
+            {on && <div className="tw-space-y-4 tw-border-t tw-border-slate-100 tw-px-4 tw-py-4">{children}</div>}
+        </div>
+    );
+}
+
+const yesNo = (value: string | null | undefined) =>
+    value === 'yes' ? <Pill tone="green" dot={false}>Yes</Pill> : <span className="tw-text-xs tw-text-slate-400">No</span>;
+
 function ManualNotification() {
-    const { token, currentUser } = useContext(AppContext);
+    const { currentUser } = useContext(AppContext);
     const [formData, setFormData] = useState<FormDataType>({
         targetUserIds: '',
         sendViaSms: 'no',
@@ -73,6 +115,13 @@ function ManualNotification() {
         });
     }
 
+    const setChannel = (name: 'sendViaSms' | 'sendViaEmail' | 'sendViaPush', on: boolean) => {
+        // The email editor unmounts when email is switched off; forget it, so a
+        // later send reads the stored body rather than a destroyed editor.
+        if (name === 'sendViaEmail' && !on) editorRef.current = null;
+        setFormData({ ...formData, [name]: on ? 'yes' : 'no' });
+    };
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -94,25 +143,24 @@ function ManualNotification() {
                     newFormData.append('smsBody', formData.smsBody);
                     newFormData.append('sendViaEmail', formData.sendViaEmail);
                     newFormData.append('emailSubject', formData.emailSubject);
-
                     if (editorRef.current !== null) {
                         newFormData.append('emailBody', editorRef.current.getContent());
                     } else {
                         newFormData.append('emailBody', formData.emailBody);
                     }
-
                     newFormData.append('sendViaPush', formData.sendViaPush);
                     newFormData.append('pushNotificationTitle', formData.pushNotificationTitle);
                     newFormData.append('pushNotificationBody', formData.pushNotificationBody);
-
                     if (formData.pushNotificationImage) {
                         newFormData.append('pushNotificationImage', formData.pushNotificationImage);
                     }
+
                     const res = await fetch(API_URL + 'api/manual-notification/create', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: newFormData,
                     });
+
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
@@ -127,7 +175,6 @@ function ManualNotification() {
                             html: (await res.json()).message,
                         });
                     }
-
                 } catch (err) {
                     Swal.fire({
                         icon: 'error',
@@ -144,21 +191,10 @@ function ManualNotification() {
     };
 
     const [manualNotificationList, setManualNotificationList] = useState<ListProps[]>([]);
-    const [filter, setFilter] = useState<FilterProps>({
-        idManualNotifications: '',
-        sendViaSms: '',
-        sendViaEmail: '',
-        sendViaPush: '',
-        sendOn: '',
-        createdBy: '',
-        orderBy: 'idManualNotifications',
-        orderType: 'DESC',
-        page: 1,
-        pageSize: 10
-
-    });
+    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
+
     const fetchManualNotificationList = async () => {
         const query = new URLSearchParams(filter as any).toString();
         try {
@@ -183,274 +219,183 @@ function ManualNotification() {
             });
         }
     }
+
     useEffect(() => {
         fetchManualNotificationList();
     }, [filter]);
 
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // A changed filter starts again from page 1.
+    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
+    const channels = [formData.sendViaSms === 'yes' && 'SMS', formData.sendViaEmail === 'yes' && 'email', formData.sendViaPush === 'yes' && 'push'].filter(Boolean) as string[];
+    const recipients = formData.targetUserIds.split(',').map((s) => s.trim()).filter(Boolean);
+    const anyFilter = Boolean(filter.idManualNotifications || filter.sendViaSms || filter.sendViaEmail || filter.sendViaPush || filter.sendOn || filter.createdBy);
+
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={12}>
-                        <h4 className="text-start">Manual Notification Create</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4' className='mb-3'>Target User IDs <small>(optional)</small></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control 
-                                        type='text' 
-                                        name='targetUserIds' 
-                                        value={formData.targetUserIds} 
-                                        onChange={handleTextChange}
-                                        placeholder="Enter comma-separated user IDs (e.g., 1,2,3)"
-                                    />
-                                    <Form.Text className="text-muted">
-                                        Leave blank to send to all users, or enter specific user IDs separated by commas
-                                    </Form.Text>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Send Via Sms<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='sendViaSms' onChange={handleTextChange} value={formData.sendViaSms}>
-                                        <option>Select Option</option>
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            {formData.sendViaSms === 'yes' &&
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Sms Body<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control as='textarea' name='smsBody' value={formData.smsBody} onChange={handleTextChange} />
-                                    </Col>
-                                </Form.Group>
-                            }
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Send Via Email<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='sendViaEmail' onChange={handleTextChange} value={formData.sendViaEmail}>
-                                        <option>Select Option</option>
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            {formData.sendViaEmail === 'yes' &&
-                                <>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4' className='mb-3'>Email Subject<span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type='text' name='emailSubject' value={formData.emailSubject} onChange={handleTextChange} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4' className='mb-3'>Email Body<span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Editor
-                                                apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                                onInit={(evt, editor) => editorRef.current = editor}
-                                                id='summary'
-                                                init={{
-                                                    height: 400,
-                                                    plugins: [
-                                                        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                                                        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                                        'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                                                    ],
-                                                    toolbar: 'undo redo | blocks | ' +
-                                                        'bold italic backcolor | alignleft aligncenter ' +
-                                                        'alignright alignjustify | bullist numlist outdent indent | ' +
-                                                        'removeformat | help',
-                                                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                                                }}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                </>
-                            }
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Send Via Push<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='sendViaPush' onChange={handleTextChange} value={formData.sendViaPush}>
-                                        <option>Select Option</option>
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            {formData.sendViaPush === 'yes' &&
-                                <>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4' className='mb-3'>Push Notification Title<span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type='text' name='pushNotificationTitle' value={formData.pushNotificationTitle} onChange={handleTextChange} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4' className='mb-3'>Push Notification Body<span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control as='textarea' name='pushNotificationBody' value={formData.pushNotificationBody} onChange={handleTextChange} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4' className='mb-3'>Push Notification Image</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type='file' name='pushNotificationImage' onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                if (e.target.files && e.target.files[0]) {
-                                                    setFormData({
-                                                        ...formData,
-                                                        pushNotificationImage: e.target.files[0]
-                                                    });
-                                                }
-                                            }} />
-                                        </Col>
-                                    </Form.Group>
+        <div className="ui">
+            <PageHeader eyebrow="Content" title="Notifications" description="Send a message to everyone, or to chosen users, by SMS, email or app push." />
 
-                                </>
-                            }
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Col>
-                                            <Button className='w-100' variant="primary" type="submit" disabled={loading}>
-                                                {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                                {loading ? 'Submitting...' : 'Submit'}
-                                            </Button>
-                                        </Col>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-                <Row className='mt-3'>
-                    <Col>
-                        <Table size='sm' responsive striped bordered hover>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Send Via Sms</th>
-                                    <th>Send Via Email</th>
-                                    <th>Send Via Push</th>
-                                    <th>Send On</th>
-                                    <th>Created By</th>
-                                    <th>Actions</th>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <input type="number" className="form-control form-control-sm" placeholder="Search" name="idManualNotifications" onChange={handleInputOnChange} value={filter.idManualNotifications} />
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaSms" onChange={handleInputOnChange} value={filter.sendViaSms} />
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaEmail" onChange={handleInputOnChange} value={filter.sendViaEmail} />
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendViaPush" onChange={handleInputOnChange} value={filter.sendViaPush} />
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="sendOn" onChange={handleInputOnChange} value={filter.sendOn} />
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control form-control-sm" placeholder="Search" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
-                                    </td>
-                                    <td></td>
+            <form onSubmit={handleSubmit} className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 xl:tw-grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="tw-min-w-0 tw-space-y-4">
+                    <Card className="tw-p-5">
+                        <Field label="Recipients" hint="Leave blank to send to all users, or enter user IDs separated by commas (e.g. 1,2,3).">
+                            <Input type="text" name="targetUserIds" value={formData.targetUserIds} onChange={handleTextChange} placeholder="All users" />
+                        </Field>
+                    </Card>
+                    <Channel icon={MessageSquare} title="SMS" on={formData.sendViaSms === 'yes'} onToggle={(on) => setChannel('sendViaSms', on)}>
+                        <Field label={<>Message<Required /></>} hint={`${formData.smsBody.length} characters`}>
+                            <Textarea rows={3} name="smsBody" value={formData.smsBody} onChange={handleTextChange} />
+                        </Field>
+                    </Channel>
+                    <Channel icon={Mail} title="Email" on={formData.sendViaEmail === 'yes'} onToggle={(on) => setChannel('sendViaEmail', on)}>
+                        <Field label={<>Subject<Required /></>}>
+                            <Input type="text" name="emailSubject" value={formData.emailSubject} onChange={handleTextChange} />
+                        </Field>
+                        <div>
+                            <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">
+                                Body<Required />
+                            </p>
+                            <SummaryEditor id="summary" height={380} onInit={(editor) => (editorRef.current = editor)} />
+                        </div>
+                    </Channel>
+                    <Channel icon={Smartphone} title="App push" on={formData.sendViaPush === 'yes'} onToggle={(on) => setChannel('sendViaPush', on)}>
+                        <Field label={<>Title<Required /></>}>
+                            <Input type="text" name="pushNotificationTitle" value={formData.pushNotificationTitle} onChange={handleTextChange} />
+                        </Field>
+                        <Field label={<>Message<Required /></>}>
+                            <Textarea rows={3} name="pushNotificationBody" value={formData.pushNotificationBody} onChange={handleTextChange} />
+                        </Field>
+                        <Field label="Image" hint="Optional, shown in the notification where the phone supports it.">
+                            <FileInput
+                                accept="image/*"
+                                name="pushNotificationImage"
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        setFormData({
+                                            ...formData,
+                                            pushNotificationImage: e.target.files[0]
+                                        });
+                                    }
+                                }}
+                            />
+                        </Field>
+                    </Channel>
+                </div>
 
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {manualNotificationList.length > 0 ? manualNotificationList.map((notification, index) => (
-                                    <tr key={index}>
-                                        <td>{notification.idManualNotifications}</td>
-                                        <td>{notification.sendViaSms.charAt(0).toUpperCase() + notification.sendViaSms.slice(1)}</td>
-                                        <td>{notification.sendViaEmail.charAt(0).toUpperCase() + notification.sendViaEmail.slice(1)}</td>
-                                        <td>{notification.sendViaPush.charAt(0).toUpperCase() + notification.sendViaPush.slice(1)}</td>
-                                        <td>{notification.formattedSendOn}</td>
-                                        <td>{notification?.User?.fullName}</td>
-                                        <td style={{ whiteSpace: 'nowrap' }}>
-                                            <Link href={`/notification/${notification.idManualNotifications}`}>
-                                                <Button size='sm' variant="primary" className="me-2">Details</Button>
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={7} className="text-center">No Manual Notification found</td>
-                                    </tr>
+                <aside className="xl:tw-sticky xl:tw-top-24">
+                    <Card className="tw-p-5">
+                        <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                            <BellRing className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Ready to send
+                        </h2>
+                        <dl className="tw-mt-3 tw-space-y-2 tw-text-sm">
+                            <div className="tw-flex tw-justify-between tw-gap-3">
+                                <dt className="tw-text-slate-500">To</dt>
+                                <dd className="tw-text-right tw-font-medium tw-text-slate-900">{recipients.length ? `${recipients.length} user${recipients.length === 1 ? '' : 's'}` : 'All users'}</dd>
+                            </div>
+                            <div className="tw-flex tw-justify-between tw-gap-3">
+                                <dt className="tw-text-slate-500">By</dt>
+                                <dd className="tw-text-right tw-font-medium tw-text-slate-900">{channels.length ? channels.join(', ') : '—'}</dd>
+                            </div>
+                        </dl>
+                        <Button variant="primary" type="submit" className="tw-mt-4 tw-w-full" disabled={loading || channels.length === 0}>
+                            {loading ? <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden /> : <Send className="tw-h-4 tw-w-4" aria-hidden />}
+                            {loading ? 'Sending…' : 'Send notification'}
+                        </Button>
+                        {channels.length === 0 && <p className="tw-mt-2 tw-text-center tw-text-xs tw-text-slate-500">Switch on at least one channel.</p>}
+                    </Card>
+                </aside>
+            </form>
+
+            <TableCard
+                className="tw-mt-8"
+                toolbar={
+                    <div className="tw-flex tw-flex-col tw-gap-3">
+                        <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Sent before</p>
+                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 md:tw-grid-cols-3 xl:tw-grid-cols-[0.6fr_1fr_1fr_1fr_1.2fr_1.4fr_auto]">
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idManualNotifications" onChange={handleInputOnChange} value={filter.idManualNotifications} />
+                            </Field>
+                            {(['sendViaSms', 'sendViaEmail', 'sendViaPush'] as const).map((key) => (
+                                <Field key={key} label={key === 'sendViaSms' ? 'SMS' : key === 'sendViaEmail' ? 'Email' : 'Push'}>
+                                    <Select name={key} onChange={handleInputOnChange} value={filter[key]}>
+                                        <option value="">Any</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </Select>
+                                </Field>
+                            ))}
+                            <Field label="Sent on">
+                                <Input placeholder="e.g. 2026-11" name="sendOn" onChange={handleInputOnChange} value={filter.sendOn} />
+                            </Field>
+                            <Field label="Sent by">
+                                <Input placeholder="Name" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
+                            </Field>
+                            <div className="tw-flex tw-items-end">
+                                {anyFilter && (
+                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
+                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
+                                    </Button>
                                 )}
-
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td className='border-0' colSpan={7}>
-                                        <div className='d-flex justify-content-center'>
-                                            <Pagination>
-                                                <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                                                <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                                                {pageList()}
-                                                <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                                                <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                                            </Pagination>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </Table>
-                    </Col>
-                </Row>
-            </Container>
-        </>
-    )
+                            </div>
+                        </div>
+                    </div>
+                }
+                footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} sent · page ${filter.page} of ${pages}` : undefined} />}
+            >
+                <thead>
+                    <tr>
+                        <th className={cx(TH, 'tw-w-16')}>#</th>
+                        <th className={TH}>SMS</th>
+                        <th className={TH}>Email</th>
+                        <th className={TH}>Push</th>
+                        <th className={TH}>Sent on</th>
+                        <th className={TH}>Sent by</th>
+                        <th className={cx(TH, 'tw-text-right')}>
+                            <span className="tw-sr-only">Open</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {manualNotificationList.length > 0 ? manualNotificationList.map((notification) => (
+                        <tr key={notification.idManualNotifications} className={TR}>
+                            <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{notification.idManualNotifications}</td>
+                            <td className={TD}>{yesNo(notification.sendViaSms)}</td>
+                            <td className={TD}>{yesNo(notification.sendViaEmail)}</td>
+                            <td className={TD}>{yesNo(notification.sendViaPush)}</td>
+                            <td className={cx(TD, 'tw-whitespace-nowrap tw-tabular-nums tw-text-slate-600')}>{notification.formattedSendOn}</td>
+                            <td className={cx(TD, 'tw-text-slate-700')}>{notification?.User?.fullName || '—'}</td>
+                            <td className={cx(TD, 'tw-text-right')}>
+                                <Link
+                                    href={`/notification/${notification.idManualNotifications}`}
+                                    className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700"
+                                    aria-label={`Open notification ${notification.idManualNotifications}`}
+                                >
+                                    <ChevronRight className="tw-h-4 tw-w-4" aria-hidden />
+                                </Link>
+                            </td>
+                        </tr>
+                    )) : (
+                        <EmptyRow colSpan={7} title="Nothing sent yet" hint={anyFilter ? 'Try fewer filters.' : undefined} />
+                    )}
+                </tbody>
+            </TableCard>
+        </div>
+    );
 }
 
 export default ManualNotification;
