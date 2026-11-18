@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 import { S3_URL } from '@/config/public';
+import { Layers3 } from 'lucide-react';
+import { SafeImg, cx } from '@/ui/primitives';
+import { Field, FileInput, Input, Required, SearchInput } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
+import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
     idProjectCategories?: number
@@ -24,13 +29,11 @@ interface FilterProps {
 }
 
 function ProjectCategory() {
-
     const [formData, setFormData] = useState<FormDataType>({
         categoryName: '',
         categoryNameBn: '',
         categoryImage: null
     });
-
     const [filter, setFilter] = useState<FilterProps>({
         idProjectCategories: '',
         categoryName: '',
@@ -39,8 +42,6 @@ function ProjectCategory() {
         page: 1,
         pageSize: 10
     });
-
-
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [projectCategories, setProjectCategories] = useState<FormDataType[]>([]);
@@ -49,11 +50,14 @@ function ProjectCategory() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchProjectCategoryList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/project-categories/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setProjectCategories(data.data);
                     setTotal(data.total);
@@ -67,6 +71,7 @@ function ProjectCategory() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -75,50 +80,26 @@ function ProjectCategory() {
             }
         }
         fetchProjectCategoryList();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
+    // A changed filter starts again from page 1.
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
@@ -154,7 +135,6 @@ function ProjectCategory() {
                 const newFormData = new FormData();
                 newFormData.append('categoryName', formData.categoryName);
                 newFormData.append('categoryNameBn', formData.categoryNameBn || '');
-
                 if (formData.categoryImage !== null) {
                     newFormData.append('categoryImage', formData.categoryImage);
                 }
@@ -165,6 +145,7 @@ function ProjectCategory() {
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: newFormData,
                     });
+
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
@@ -180,7 +161,6 @@ function ProjectCategory() {
                         if (fileInputRef.current) {
                             fileInputRef.current.value = '';  // Clear file input
                         }
-
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -203,108 +183,81 @@ function ProjectCategory() {
         });
     };
 
-
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Project Category</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Category Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" name="categoryName" value={formData.categoryName} onChange={(e) => setFormData({ ...formData, categoryName: e.target.value })} required />
-                                    {/* Bangla counterpart — optional; blank falls back to English. */}
-                                    <Form.Control
-                                        className="mt-2"
-                                        type="text"
-                                        name="categoryNameBn"
-                                        lang="bn"
-                                        placeholder="বিভাগের নাম (বাংলা) — ঐচ্ছিক"
-                                        value={formData.categoryNameBn}
-                                        onChange={(e) => setFormData({ ...formData, categoryNameBn: e.target.value })}
-                                    />
-                                    <Form.Text muted>Bangla name is optional. Falls back to the English name if left blank.</Form.Text>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className="mb-3">Category Image</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" name="categoryImage" onChange={handleFileUpload} ref={fileInputRef} />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : 'Submit'}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-
-
-            <Container className='mt-5'>
-                <h4 className="text-start">Project Category List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Project categories"
+            description="How projects are grouped in the app and on the website."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
+                            <Field label="Category">
+                                <SearchInput placeholder="Search categories" name="categoryName" onChange={handleInputOnChange} value={filter.categoryName} />
+                            </Field>
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idProjectCategories" onChange={handleInputOnChange} value={filter.idProjectCategories} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} categories · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Category Name</th>
-                            <th>Category Image</th>
-                            {/* <th>Actions</th> */}
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idProjectCategories" onChange={handleInputOnChange} value={filter.idProjectCategories} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="categoryName" onChange={handleInputOnChange} value={filter.categoryName} />
-                            </td>
-                            <td></td>
-                            {/* <td></td> */}
-
+                            <th className={cx(TH, 'tw-w-20')}>#</th>
+                            <th className={TH}>Category</th>
                         </tr>
                     </thead>
                     <tbody>
                         {projectCategories.length > 0 ? projectCategories.map((project, index) => (
-                            <tr key={index}>
-                                <td>{project.idProjectCategories}</td>
-                                <td>{project.categoryName}</td>
-                                <td>
-                                    {project.categoryImage && <img src={`${S3_URL}project-category-image/${project.categoryImage}`} alt={project.categoryName} width={100} height={100} />}
-
+                            <tr key={project.idProjectCategories ?? index} className={TR}>
+                                <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{project.idProjectCategories}</td>
+                                <td className={TD}>
+                                    <div className="tw-flex tw-items-center tw-gap-3">
+                                        <SafeImg
+                                            src={project.categoryImage ? `${S3_URL}project-category-image/${project.categoryImage}` : null}
+                                            alt=""
+                                            className="tw-h-10 tw-w-10 tw-shrink-0 tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                            fallback={
+                                                <span className="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl tw-bg-slate-100 tw-text-slate-400">
+                                                    <Layers3 className="tw-h-4 tw-w-4" aria-hidden />
+                                                </span>
+                                            }
+                                        />
+                                        <div>
+                                            <div className="tw-font-medium tw-text-slate-900">{project.categoryName}</div>
+                                            {project.categoryNameBn && (
+                                                <div lang="bn" className="tw-text-xs tw-text-slate-500">
+                                                    {project.categoryNameBn}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </td>
-                                {/* <td>
-                                    <Button variant="primary" size="sm" onClick={handleEditChange(project)}>Edit</Button>
-                                </td> */}
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={3} className="text-center">No Project Category found</td>
-                            </tr>
+                            <EmptyRow colSpan={2} title="No categories match" />
                         )}
-
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="category" onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Category name<Required /></>}>
+                        <Input type="text" name="categoryName" placeholder="e.g. Agriculture and livestock" value={formData.categoryName} onChange={(e) => setFormData({ ...formData, categoryName: e.target.value })} required />
+                    </Field>
+                    {/* Bangla counterpart — optional; blank falls back to English. */}
+                    <Field label="Category name (বাংলা)">
+                        <Input type="text" name="categoryNameBn" lang="bn" placeholder="বিভাগের নাম — ঐচ্ছিক" value={formData.categoryNameBn} onChange={(e) => setFormData({ ...formData, categoryNameBn: e.target.value })} />
+                    </Field>
+                    <Field label="Image" hint="JPEG or PNG.">
+                        <FileInput accept="image/jpeg,image/png" name="categoryImage" onChange={handleFileUpload} ref={fileInputRef} />
+                    </Field>
+                    {formData.categoryImage instanceof File && (
+                        <LocalPreview file={formData.categoryImage} className="tw-h-28 tw-w-full tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-slate-200" />
+                    )}
+                </SetupFormCard>
+            }
+        />
     )
 }
 

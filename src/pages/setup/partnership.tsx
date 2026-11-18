@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL, S3_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
+import { Handshake, Pencil, Trash2 } from 'lucide-react';
+import { SafeImg, cx } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Required, SearchInput } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
+import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
 interface PartnershipFormData {
     idPartnerships?: number;
@@ -23,14 +28,32 @@ interface FilterProps {
     pageSize: number;
 }
 
+const EMPTY_FORM: PartnershipFormData = {
+    idPartnerships: undefined,
+    name: '',
+    nameBn: '',
+    image: '',
+    priority: null
+};
+
+function LogoTile({ image, name, size }: { image: string | File; name: string; size: 'sm' | 'lg' }) {
+    const box = size === 'lg' ? 'tw-h-24 tw-w-24' : 'tw-h-11 tw-w-11';
+    return (
+        <SafeImg
+            src={typeof image === 'string' && image ? `${S3_URL}partnerships/${image}` : null}
+            alt={name}
+            className={cx(box, 'tw-shrink-0 tw-rounded-xl tw-bg-white tw-object-contain tw-p-1 tw-ring-1 tw-ring-slate-200')}
+            fallback={
+                <span className={cx(box, 'tw-flex tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl tw-bg-slate-100 tw-text-slate-400')}>
+                    <Handshake className="tw-h-4 tw-w-4" aria-hidden />
+                </span>
+            }
+        />
+    );
+}
+
 function PartnershipPage() {
-    const [formData, setFormData] = useState<PartnershipFormData>({
-        idPartnerships: undefined,
-        name: '',
-        nameBn: '',
-        image: '',
-        priority: null
-    });
+    const [formData, setFormData] = useState<PartnershipFormData>(EMPTY_FORM);
 
     const [filter, setFilter] = useState<FilterProps>({
         idPartnerships: '',
@@ -50,11 +73,14 @@ function PartnershipPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchPartnershipList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/partnerships/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setPartnershipList(data.data);
                     setTotal(data.total);
@@ -68,6 +94,7 @@ function PartnershipPage() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -76,50 +103,26 @@ function PartnershipPage() {
             }
         }
         fetchPartnershipList();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
+    // A changed filter starts again from page 1.
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2;
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        const pagesArray = [];
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
@@ -180,13 +183,7 @@ function PartnershipPage() {
                             text: data.message,
                         });
                         setReload(true);
-                        setFormData({
-                            idPartnerships: undefined,
-                            name: '',
-                            nameBn: '',
-                            image: '',
-                            priority: null
-                        });
+                        setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
                             fileInputRef.current.value = '';
@@ -225,6 +222,12 @@ function PartnershipPage() {
             fileInputRef.current.value = '';
         }
         setIsEditing(true);
+    };
+
+    const cancelEdit = () => {
+        setFormData(EMPTY_FORM);
+        setIsEditing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleDelete = async (id?: number) => {
@@ -271,145 +274,104 @@ function PartnershipPage() {
     };
 
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Partnerships</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter partnership name"
-                                        name="name"
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        value={formData.name}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                {/* Bangla counterpart. Optional — content is written in
-                                    English first and translated afterwards, so leaving
-                                    this blank simply falls back to the English name. */}
-                                <Form.Label column sm='4' className='mb-3'>Name (বাংলা)</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="অংশীদারের নাম লিখুন"
-                                        name="nameBn"
-                                        lang="bn"
-                                        onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
-                                        value={formData.nameBn}
-                                    />
-                                    <Form.Text muted>Optional. Falls back to the English name if left blank.</Form.Text>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Image<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" name="image" onChange={handleFileUpload} ref={fileInputRef} />
-                                    {typeof formData.image === 'string' && formData.image && (
-                                        <div className="mt-2">
-                                            <img
-                                                src={`${S3_URL}partnerships/${formData.image}`}
-                                                alt={formData.image}
-                                                width={100}
-                                                height={100}
-                                            />
-                                        </div>
-                                    )}
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Priority<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter priority"
-                                        name="priority"
-                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })}
-                                        value={formData.priority || ''}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : (isEditing ? 'Update' : 'Submit')}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-            <Container className='mt-5'>
-                <h4 className="text-start">Partnership List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Partnerships"
+            description="Organisations Shathi works with, shown as logos in the app in priority order."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
+                            <Field label="Name">
+                                <SearchInput placeholder="Search partnerships" name="name" onChange={handleInputOnChange} value={filter.name} />
+                            </Field>
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idPartnerships" onChange={handleInputOnChange} value={filter.idPartnerships} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} partnerships · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Image</th>
-                            <th>Priority</th>
-                            <th>Actions</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idPartnerships" onChange={handleInputOnChange} value={filter.idPartnerships} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="name" onChange={handleInputOnChange} value={filter.name} />
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
+                            <th className={TH}>Partnership</th>
+                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <th className={cx(TH, 'tw-text-right')}>
+                                <span className="tw-sr-only">Actions</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {partnershipList.length > 0 ? partnershipList.map((item, index) => (
-                            <tr key={index}>
-                                <td>{item.idPartnerships}</td>
-                                <td>{item.name}</td>
-                                <td>
-                                    {typeof item.image === 'string' && item.image && (
-                                        <img src={`${S3_URL}partnerships/${item.image}`} alt={item.name} width={100} height={100} />
-                                    )}
+                            <tr key={item.idPartnerships ?? index} className={cx(TR, isEditing && formData.idPartnerships === item.idPartnerships && 'tw-bg-brand-50/50')}>
+                                <td className={TD}>
+                                    <div className="tw-flex tw-items-center tw-gap-3">
+                                        <LogoTile image={item.image} name={item.name} size="sm" />
+                                        <div className="tw-min-w-0">
+                                            <div className="tw-font-medium tw-text-slate-900">{item.name}</div>
+                                            <div className="tw-text-xs tw-text-slate-500">
+                                                <span className="tw-tabular-nums tw-text-slate-400">#{item.idPartnerships}</span>
+                                                {item.nameBn && (
+                                                    <>
+                                                        {' · '}
+                                                        <span lang="bn">{item.nameBn}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>{item.priority}</td>
-                                <td>
-                                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(item)}>
-                                        Edit
-                                    </Button>
-                                    <Button variant="danger" size="sm" onClick={() => handleDelete(item.idPartnerships)}>
-                                        Delete
-                                    </Button>
+                                <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{item.priority}</td>
+                                <td className={cx(TD, 'tw-whitespace-nowrap tw-text-right')}>
+                                    <div className="tw-inline-flex tw-gap-1">
+                                        <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}>
+                                            <Pencil className="tw-h-3.5 tw-w-3.5" aria-hidden /> Edit
+                                        </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(item.idPartnerships)}
+                                            className="tw-rounded-lg tw-p-2 tw-text-slate-400 hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                            aria-label={`Delete ${item.name}`}
+                                        >
+                                            <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={5} className="text-center">No Partnership found</td>
-                            </tr>
+                            <EmptyRow colSpan={3} title="No partnerships match" hint={filter.name || filter.idPartnerships ? 'Try a different search.' : undefined} />
                         )}
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="partnership" editingId={isEditing ? formData.idPartnerships : null} onCancelEdit={cancelEdit} onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Name<Required /></>}>
+                        <Input type="text" placeholder="e.g. BRAC" name="name" onChange={(e) => setFormData({ ...formData, name: e.target.value })} value={formData.name} />
+                    </Field>
+                    {/* Bangla counterpart. Optional — content is written in English
+                        first and translated afterwards, so leaving this blank simply
+                        falls back to the English name. */}
+                    <Field label="Name (বাংলা)" hint="Optional; falls back to the English name.">
+                        <Input type="text" placeholder="অংশীদারের নাম লিখুন" name="nameBn" lang="bn" onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })} value={formData.nameBn} />
+                    </Field>
+                    <div>
+                        <Field label={<>Logo<Required /></>} hint={isEditing ? 'Leave empty to keep the current logo.' : 'JPEG or PNG.'}>
+                            <FileInput accept="image/jpeg,image/png" name="image" onChange={handleFileUpload} ref={fileInputRef} />
+                        </Field>
+                        {formData.image instanceof File ? (
+                            <LocalPreview file={formData.image} className="tw-mt-2 tw-h-24 tw-w-24 tw-rounded-xl tw-bg-white tw-object-contain tw-p-1 tw-ring-1 tw-ring-slate-200" />
+                        ) : formData.image ? (
+                            <div className="tw-mt-2">
+                                <LogoTile image={formData.image} name={formData.name} size="lg" />
+                            </div>
+                        ) : null}
+                    </div>
+                    <Field label={<>Priority<Required /></>} hint="Lower numbers show first.">
+                        <Input type="number" placeholder="e.g. 1" name="priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value ? parseInt(e.target.value) : null })} value={formData.priority || ''} />
+                    </Field>
+                </SetupFormCard>
+            }
+        />
     )
 }
 
@@ -422,4 +384,3 @@ PartnershipPage.getLayout = function PageLayout(page: any) {
         </MainLayout>
     )
 }
-

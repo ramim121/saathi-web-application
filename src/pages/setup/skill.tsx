@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Button, Col, Container, Form, Pagination, Row, Table, Spinner } from "react-bootstrap";
 import Swal from 'sweetalert2';
 import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
+import { cx } from '@/ui/primitives';
+import { Field, Input, Required, SearchInput } from '@/ui/controls';
+import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
 interface FormDataType {
     idSkills?: number
@@ -20,11 +23,9 @@ interface FilterProps {
 }
 
 function Skill() {
-
     const [formData, setFormData] = useState<FormDataType>({
         skillName: '',
     });
-
     const [filter, setFilter] = useState<FilterProps>({
         idSkills: '',
         skillName: '',
@@ -33,8 +34,6 @@ function Skill() {
         page: 1,
         pageSize: 10
     });
-
-
     const [total, setTotal] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [skillList, setSkillList] = useState<FormDataType[]>([]);
@@ -42,11 +41,14 @@ function Skill() {
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
+        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        let stale = false;
         const fetchSkillList = async () => {
             const query = new URLSearchParams(filter as any).toString();
             try {
                 const res = await fetch(`/api/skills/list?${query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setSkillList(data.data);
                     setTotal(data.total);
@@ -60,6 +62,7 @@ function Skill() {
                     });
                 }
             } catch (err: any) {
+                if (stale) return;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -68,50 +71,26 @@ function Skill() {
             }
         }
         fetchSkillList();
+        return () => {
+            stale = true;
+        };
     }, [filter, reload]);
 
+    // A changed filter starts again from page 1.
     const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilter({
             ...filter,
-            [name]: value
+            [name]: value,
+            page: 1
         });
     }
 
-    const pagesNumber = () => {
-        if (total === 0) {
-            return [];
-        }
-        let from = Number(filter.page) - 4;
-        if (from < 1) {
-            from = 1;
-        }
-        let to = from + 4 * 2
-        if (to >= Math.ceil(total / 10)) {
-            to = Math.ceil(total / 10)
-        }
-        let pagesArray = []
-
-        for (let page = from; page <= to; page++) {
-            pagesArray.push(page)
-        }
-        return pagesArray
-    }
-
-    const pageList = () => {
-        return pagesNumber().map((pageNumber) => {
-            return (
-                <Pagination.Item key={pageNumber} active={pageNumber === filter.page} onClick={() => handlePageChange(pageNumber)}>
-                    {pageNumber}
-                </Pagination.Item>
-            )
-        })
-    }
-
+    const pages = Math.max(1, totalPages || 1);
     const handlePageChange = (page: number) => {
         setFilter({
             ...filter,
-            page: page
+            page: Math.min(Math.max(1, page), pages)
         })
     }
 
@@ -139,7 +118,6 @@ function Skill() {
                         setFormData({
                             skillName: '',
                         });
-
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -163,83 +141,49 @@ function Skill() {
     };
 
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Skills</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Skill Name<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" name="skillName" value={formData.skillName} onChange={(e) => setFormData({ ...formData, skillName: e.target.value })} required />
-                                </Col>
-                            </Form.Group>
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : 'Submit'}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-
-
-            <Container className='mt-5'>
-                <h4 className="text-start">Skills List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
+        <SetupShell
+            title="Skills"
+            description="The skills partners can be tagged with when they are registered."
+            list={
+                <TableCard
+                    toolbar={
+                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
+                            <Field label="Skill">
+                                <SearchInput placeholder="Search skills" name="skillName" onChange={handleInputOnChange} value={filter.skillName} />
+                            </Field>
+                            <Field label="#">
+                                <Input type="number" placeholder="ID" name="idSkills" onChange={handleInputOnChange} value={filter.idSkills} />
+                            </Field>
+                        </div>
+                    }
+                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} skills · page ${filter.page} of ${pages}` : undefined} />}
+                >
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Skill Name</th>
-                            {/* <th>Actions</th> */}
-                        </tr>
-                        <tr>
-                            <td>
-                                <input type="number" className="form-control form-control-sm" placeholder="Search" name="idSkills" onChange={handleInputOnChange} value={filter.idSkills} />
-                            </td>
-                            <td>
-                                <input type="text" className="form-control form-control-sm" placeholder="Search" name="skillName" onChange={handleInputOnChange} value={filter.skillName} />
-                            </td>
-                            {/* <td></td> */}
-
+                            <th className={cx(TH, 'tw-w-20')}>#</th>
+                            <th className={TH}>Skill</th>
                         </tr>
                     </thead>
                     <tbody>
                         {skillList.length > 0 ? skillList.map((skill, index) => (
-                            <tr key={index}>
-                                <td>{skill.idSkills}</td>
-                                <td>{skill.skillName}</td>
-                                {/* <td>
-                                    <Button variant="primary" size="sm" onClick={handleEditChange(project)}>Edit</Button>
-                                </td> */}
+                            <tr key={skill.idSkills ?? index} className={TR}>
+                                <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{skill.idSkills}</td>
+                                <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{skill.skillName}</td>
                             </tr>
                         )) : (
-                            <tr>
-                                <td colSpan={2} className="text-center">No Skill found</td>
-                            </tr>
+                            <EmptyRow colSpan={2} title="No skills match" />
                         )}
-
                     </tbody>
-                </Table>
-                <Pagination>
-                    <Pagination.First onClick={() => handlePageChange(1)} disabled={filter.page === 1} />
-                    <Pagination.Prev onClick={() => handlePageChange(filter.page - 1)} disabled={filter.page === 1} />
-                    {pageList()}
-                    <Pagination.Next onClick={() => handlePageChange(filter.page + 1)} disabled={filter.page === totalPages} />
-                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={filter.page === totalPages} />
-                </Pagination>
-            </Container>
-        </>
+                </TableCard>
+            }
+            form={
+                <SetupFormCard noun="skill" onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Skill name<Required /></>}>
+                        <Input type="text" name="skillName" placeholder="e.g. Cattle rearing" value={formData.skillName} onChange={(e) => setFormData({ ...formData, skillName: e.target.value })} required />
+                    </Field>
+                </SetupFormCard>
+            }
+        />
     )
 }
 

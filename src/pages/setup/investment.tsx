@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Col, Container, Form, InputGroup, Row, Table, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
+import { Card, Pill, Segmented, Skeleton, cx } from '@/ui/primitives';
+import { Field, Input, Required, Select } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { returnRange, words } from '@/ui/status';
+import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
 interface FormDataType {
     idInvestmentSetup?: number,
@@ -17,7 +21,6 @@ interface FormDataType {
     planName?: string,
 }
 
-
 function Investment() {
     const [formData, setFormData] = useState<FormDataType>({
         nameOfThePlan: '',
@@ -28,10 +31,10 @@ function Investment() {
         duration: 0,
         tenure: 'months',
     });
-
     const [investmentList, setInvestmentList] = useState<FormDataType[]>([]);
     const [reload, setReload] = useState<boolean>(true);
     const [loading, setLoading] = useState<boolean>(false);
+    const [loaded, setLoaded] = useState<boolean>(false);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -53,8 +56,8 @@ function Investment() {
         setFormData({ ...formData, tenure: e.target.value });
     }
 
-    const handleReturnTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFormData({ ...formData, returnType: e.target.value, maximumReturn: formData.minimumReturn });
+    const handleReturnTypeChange = (returnType: string) => {
+        setFormData({ ...formData, returnType, maximumReturn: formData.minimumReturn });
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -72,7 +75,6 @@ function Investment() {
                 try {
                     // Proceed with the API request
                     const res = await fetch(API_URL + 'api/investments/create', postRequestOptions(formData));
-
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
@@ -112,7 +114,6 @@ function Investment() {
         });
     }
 
-
     useEffect(() => {
         const fetchInvestmentSetupList = async () => {
             try {
@@ -134,6 +135,8 @@ function Investment() {
                     title: 'Error',
                     text: err.message,
                 });
+            } finally {
+                setLoaded(true);
             }
         }
         if (reload) {
@@ -141,125 +144,101 @@ function Investment() {
         }
     }, [reload]);
 
+    const fixed = formData.returnType === 'fixed';
 
     return (
-        <>
-            <Container>
-                <Row className="justify-content-center">
-                    <Col md={6}>
-                        <h4 className="text-start">Investment Setup</h4>
-                        <hr />
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Name of the plan<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="text" placeholder="Enter name of the plan" name="nameOfThePlan" onChange={handleOnChange} value={formData.nameOfThePlan} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Investment Type<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='investmentType' onChange={handleInvestmentTypeChange} value={formData.investmentType}>
-                                        <option>Select investment type</option>
-                                        <option value="sustainable_return">Sustainable Return</option>
-                                        <option value="fast_return">Fast Return</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Return Type<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Select name='returnType' onChange={handleReturnTypeChange} value={formData.returnType}>
-                                        <option value="variable">Variable</option>
-                                        <option value="fixed">Fixed</option>
-                                    </Form.Select>
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>{formData.returnType === "fixed" ? "Total " : "Minimum "} Return<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <InputGroup>
-                                        <Form.Control type="number" placeholder="Enter minimum return" name="minimumReturn" onChange={minimumReturnChange} value={formData.minimumReturn} />
-                                        <InputGroup.Text>%</InputGroup.Text>
-                                    </InputGroup>
-                                </Col>
-                            </Form.Group>
-                            {formData.returnType === 'variable' &&
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Maximum Return<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <InputGroup>
-                                            <Form.Control type="number" placeholder="Enter maximum return" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn} />
-                                            <InputGroup.Text>%</InputGroup.Text>
-                                        </InputGroup>
-                                    </Col>
-                                </Form.Group>
-                            }
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Tenure<span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <InputGroup>
-                                        <Form.Control type="number" placeholder="Enter duration" name="duration" onChange={handleOnChange} value={formData.duration} />
-                                        <Form.Select name='tenure' onChange={handleTenureChange} value={formData.tenure}>
-                                            <option value="months">Months</option>
-                                            <option value="years">Years</option>
-                                        </Form.Select>
-                                    </InputGroup>
-                                </Col>
-                            </Form.Group>
-
-                            <Row>
-                                <Col sm='4'></Col>
-                                <Col sm='8'>
-                                    <Row className='justify-content-center'>
-                                        <Button className='w-50' variant="primary" type="submit" disabled={loading}>
-                                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                            {loading ? 'Submitting...' : 'Submit'}
-                                        </Button>
-                                    </Row>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Col>
-                </Row>
-            </Container>
-
-            <Container className='mt-5'>
-                <h4 className="text-start">Investment Setup List</h4>
-                <hr />
-                <Table responsive striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Plan Name</th>
-                            <th>Investment Type</th>
-                            <th>Return Type</th>
-                            <th>Return</th>
-                            <th>Tenure</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {investmentList.length > 0 ? investmentList.map((investment, index) => (
-                            <tr key={index}>
-                                <td>{index + 1}</td>
-                                <td>{investment.planName}</td>
-                                <td>{investment.investmentType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</td>
-                                <td>{investment.returnType}</td>
-                                <td>{investment.minimumReturn}% - {investment.maximumReturn}%</td>
-                                <td>{investment.duration} {investment.tenure}</td>
-                            </tr>
-                        )) : (
+        <SetupShell
+            title="Investment plans"
+            description="The terms a project is built from: its type, return range and duration. A project picks one plan when it is created."
+            list={
+                !loaded ? (
+                    <Card className="tw-space-y-3 tw-p-5">
+                        {[0, 1, 2].map((i) => (
+                            <Skeleton key={i} className="tw-h-5 tw-w-full" />
+                        ))}
+                    </Card>
+                ) : (
+                    <TableCard>
+                        <thead>
                             <tr>
-                                <td colSpan={6} className="text-center">No investment setup found</td>
+                                <th className={cx(TH, 'tw-w-12')}>#</th>
+                                <th className={TH}>Plan</th>
+                                <th className={TH}>Type</th>
+                                <th className={TH}>Return</th>
+                                <th className={TH}>Term</th>
                             </tr>
+                        </thead>
+                        <tbody>
+                            {investmentList.length > 0 ? investmentList.map((investment, index) => (
+                                <tr key={investment.idInvestmentSetup ?? index} className={TR}>
+                                    <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{index + 1}</td>
+                                    <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{investment.planName}</td>
+                                    <td className={cx(TD, 'tw-text-slate-600')}>{words(investment.investmentType)}</td>
+                                    <td className={cx(TD, 'tw-whitespace-nowrap')}>
+                                        <span className="tw-font-medium tw-tabular-nums tw-text-slate-900">{returnRange(investment.minimumReturn, investment.maximumReturn)}</span>{' '}
+                                        <Pill tone={investment.returnType === 'fixed' ? 'sky' : 'violet'} dot={false}>{words(investment.returnType)}</Pill>
+                                    </td>
+                                    <td className={cx(TD, 'tw-whitespace-nowrap tw-text-slate-600')}>{investment.duration} {investment.tenure}</td>
+                                </tr>
+                            )) : (
+                                <EmptyRow colSpan={5} title="No plans yet" />
+                            )}
+                        </tbody>
+                    </TableCard>
+                )
+            }
+            form={
+                <SetupFormCard noun="plan" onSubmit={handleSubmit} loading={loading}>
+                    <Field label={<>Plan name<Required /></>}>
+                        <Input type="text" placeholder="e.g. Cattle 4 months" name="nameOfThePlan" onChange={handleOnChange} value={formData.nameOfThePlan} />
+                    </Field>
+                    <Field label={<>Investment type<Required /></>}>
+                        <Select name="investmentType" onChange={handleInvestmentTypeChange} value={formData.investmentType}>
+                            <option value="" disabled>
+                                Choose a type
+                            </option>
+                            <option value="sustainable_return">Sustainable return</option>
+                            <option value="fast_return">Fast return</option>
+                        </Select>
+                    </Field>
+                    <div>
+                        <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">
+                            Return type<Required />
+                        </p>
+                        <Segmented
+                            label="Return type"
+                            value={formData.returnType}
+                            onChange={handleReturnTypeChange}
+                            options={[
+                                { value: 'variable', label: 'Variable (a range)' },
+                                { value: 'fixed', label: 'Fixed' },
+                            ]}
+                        />
+                    </div>
+                    <div className={cx('tw-grid tw-gap-3', fixed ? 'tw-grid-cols-1' : 'tw-grid-cols-2')}>
+                        <Field label={<>{fixed ? 'Return' : 'From'} (%)<Required /></>}>
+                            <Input type="number" step="any" placeholder="e.g. 12" name="minimumReturn" onChange={minimumReturnChange} value={formData.minimumReturn || ''} />
+                        </Field>
+                        {!fixed && (
+                            <Field label={<>To (%)<Required /></>}>
+                                <Input type="number" step="any" placeholder="e.g. 14" name="maximumReturn" onChange={handleOnChange} value={formData.maximumReturn || ''} />
+                            </Field>
                         )}
-
-                    </tbody>
-                </Table>
-            </Container>
-
-        </>
-
+                    </div>
+                    <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <Field label={<>Duration<Required /></>}>
+                            <Input type="number" placeholder="e.g. 4" name="duration" onChange={handleOnChange} value={formData.duration || ''} />
+                        </Field>
+                        <Field label="In">
+                            <Select name="tenure" onChange={handleTenureChange} value={formData.tenure}>
+                                <option value="months">Months</option>
+                                <option value="years">Years</option>
+                            </Select>
+                        </Field>
+                    </div>
+                </SetupFormCard>
+            }
+        />
     );
 }
 
