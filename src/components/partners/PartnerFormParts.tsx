@@ -41,6 +41,14 @@ type Props = {
     onSkillsChange: (selected: any) => void;
 };
 
+/**
+ * Preselected gender for a new partner, or one with none recorded. Shathi's
+ * partners are rural women farmers: production had 42 women and 11 men among
+ * its 53 individual partners on 2026-11-18. The old default, Male, recorded
+ * the wrong value whenever nobody changed it.
+ */
+export const DEFAULT_PARTNER_GENDER = 'Female' as const;
+
 export const PARTNER_TYPES = [
     { value: 'none', label: 'None' },
     { value: 'project', label: 'Project' },
@@ -114,11 +122,11 @@ export function PartnerProfileSections({ formData, onChange, patch, skills, onSk
                             </p>
                             <Segmented<'Male' | 'Female' | 'Other'>
                                 label="Gender"
-                                value={formData.gender || 'Male'}
+                                value={formData.gender || DEFAULT_PARTNER_GENDER}
                                 onChange={(value) => patch({ gender: value })}
                                 options={[
-                                    { value: 'Male', label: 'Male' },
                                     { value: 'Female', label: 'Female' },
+                                    { value: 'Male', label: 'Male' },
                                     { value: 'Other', label: 'Other' },
                                 ]}
                             />

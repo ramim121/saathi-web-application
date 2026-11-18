@@ -11,7 +11,7 @@ import { ArrowLeft, ImageOff, Loader2, Trash2 } from 'lucide-react';
 import { Avatar, Card, SafeImg, Skeleton } from '@/ui/primitives';
 import { Button, Field, FileInput, Input, Textarea } from '@/ui/controls';
 import { FormSection, LocalPreview } from '@/components/projects/ProjectFormParts';
-import { PartnerProfileSections } from '@/components/partners/PartnerFormParts';
+import { DEFAULT_PARTNER_GENDER, PartnerProfileSections } from '@/components/partners/PartnerFormParts';
 
 interface FormDataType {
     name: string,
@@ -71,7 +71,7 @@ function PartnerEdit() {
         featuredImages: [],
         disability: 'no',
         partnerType: 'none',
-        gender: 'Male',
+        gender: DEFAULT_PARTNER_GENDER,
         household_size: '',
         dependents_size: '',
         livelihood_activity: '',
@@ -140,7 +140,7 @@ function PartnerEdit() {
                         featuredImages: partnerData.FeaturedImages,
                         disability: partnerData.disability,
                         partnerType: partnerData.partnerType,
-                        gender: partnerData.PartnerAdditionalInfo?.gender || 'Male',
+                        gender: partnerData.PartnerAdditionalInfo?.gender || DEFAULT_PARTNER_GENDER,
                         household_size: partnerData.PartnerAdditionalInfo?.household_size || '',
                         dependents_size: partnerData.PartnerAdditionalInfo?.dependents_size || '',
                         livelihood_activity: partnerData.PartnerAdditionalInfo?.livelihood_activity || '',

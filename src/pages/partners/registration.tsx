@@ -9,7 +9,7 @@ import { Card, cx } from '@/ui/primitives';
 import { Button, Field, FileInput } from '@/ui/controls';
 import { PageHeader } from '@/ui/layout';
 import { FormSection, LocalPreview } from '@/components/projects/ProjectFormParts';
-import { PartnerProfileSections } from '@/components/partners/PartnerFormParts';
+import { DEFAULT_PARTNER_GENDER, PartnerProfileSections } from '@/components/partners/PartnerFormParts';
 
 interface FormDataType {
     name: string,
@@ -57,7 +57,7 @@ function Registration() {
         featuredImages: '',
         disability: 'no',
         partnerType: 'none',
-        gender: 'Male',
+        gender: DEFAULT_PARTNER_GENDER,
         household_size: '',
         dependents_size: '',
         livelihood_activity: '',
