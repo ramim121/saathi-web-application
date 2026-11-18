@@ -1,15 +1,50 @@
+import fs from 'fs';
 import admin from 'firebase-admin';
-import serviceAccount from './firebase.json';
 import AppFcmToken from '@/models/AppFcmToken';
 
-// checl if firebase is already initialized
-if (!(admin.apps.length)) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    });
+/**
+ * Firebase Cloud Messaging: push notifications to the mobile app.
+ *
+ * The service-account key is a JSON file kept on the server, outside the
+ * repository, at the path in FIREBASE_SERVICE_ACCOUNT_PATH. Never commit it:
+ * this repository is public, and Google disables any service-account key it
+ * finds in a public repository. That is how the previous key, committed as
+ * src/config/firebase.json, stopped working on 2026-09-13.
+ *
+ * Without a key nothing fails: sends are skipped, and the start-up token
+ * check does not run.
+ */
+
+const TOKEN_CHECK_EVERY_MS = 1000 * 60 * 60 * 12;
+const TOKEN_GONE = new Set(['messaging/invalid-registration-token', 'messaging/registration-token-not-registered']);
+
+// undefined: not tried yet; null: no usable key.
+let firebase: admin.app.App | null | undefined;
+
+function loadApp(): admin.app.App | null {
+    if (admin.apps.length) return admin.app();
+    const file = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    if (!file) {
+        console.warn('Push notifications are off: FIREBASE_SERVICE_ACCOUNT_PATH is not set.');
+        return null;
+    }
+    try {
+        const account = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return admin.initializeApp({ credential: admin.credential.cert(account as admin.ServiceAccount) });
+    } catch (error) {
+        console.error(`Push notifications are off: the Firebase key at ${file} could not be loaded: ${(error as Error).message}`);
+        return null;
+    }
+}
+
+function messaging(): admin.messaging.Messaging | null {
+    if (firebase === undefined) firebase = loadApp();
+    return firebase ? firebase.messaging() : null;
 }
 
 export default async function sendNotif(to: string, title: string, body: string) {
+    const fcm = messaging();
+    if (!fcm) return undefined;
     const message = {
         token: to,
         notification: {
@@ -20,14 +55,12 @@ export default async function sendNotif(to: string, title: string, body: string)
             notification: {
                 channelId: "saathi-app-001",
                 icon: "@mipmap/ic_launcher",
-                // sound: "default",
-                // imageUrl: "https://example.com/image.jpg",
             },
         },
     };
 
     try {
-        const response = await admin.messaging().send(message);
+        const response = await fcm.send(message);
         console.log((new Date()).toISOString() + ' Mobile notification:', to, response);
         return response;
     } catch (error: any) {
@@ -38,12 +71,14 @@ export default async function sendNotif(to: string, title: string, body: string)
 export async function sendNotificationToTopic(topic: string, title: string, body: string, data = {}) {
     console.log('Sending notification to topic:', topic);
     try {
+        const fcm = messaging();
+        if (!fcm) throw new Error('Push notifications are not configured (FIREBASE_SERVICE_ACCOUNT_PATH).');
+
         // Validate topic name (Firebase has specific requirements for topic names)
         if (!isValidTopicName(topic)) {
             throw new Error('Invalid topic name. Must only contain letters, numbers, hyphens, and underscores.');
         }
 
-        // Construct the message
         const message = {
             notification: {
                 title,
@@ -67,11 +102,10 @@ export async function sendNotificationToTopic(topic: string, title: string, body
                     }
                 }
             },
-            topic: topic // Specify the topic
+            topic: topic
         };
 
-        // Send the message
-        const response = await admin.messaging().send(message as admin.messaging.Message);
+        const response = await fcm.send(message as admin.messaging.Message);
         return {
             success: true,
             messageId: response,
@@ -91,67 +125,69 @@ function isValidTopicName(topic: string) {
     return topicRegex.test(topic);
 }
 
-// sendNotif("____" + (new Date()).toISOString() + " " + 'Hello', 'How are you doing', "c4NASXquQGi-tlj3-41Z3_:APA91bGT3qaL9FFg5xPLDDDCf7CIrIK1ldzJBD_LpNAv0Ndu9l7Su6V7q426gz1nPi-FsbIBinfD_BtVBxyLU97tRWBE1XvxwbBLJjkV9AAbNqwm9NdeQ5bCT9sSPI5xjUsSlNaIZ-N6");
-
+/**
+ * Sorts device tokens into ones FCM still accepts and ones it has dropped
+ * (app uninstalled, token rotated). Each check is a dry run: FCM validates
+ * the message and the token but delivers nothing, so phones are not woken.
+ * If the first sends all fail for another reason (a bad key, say), it stops
+ * and reports once instead of logging a line per token.
+ */
 export async function validateFCMTokens(tokens: string[]) {
-    const message = {
-        data: { score: '850', time: '2:45' },
-    };
+    const validTokens: string[] = [];
+    const invalidTokens: string[] = [];
+    const fcm = messaging();
+    if (!fcm) return { validTokens, invalidTokens };
 
-    const validTokens = [];
-    const invalidTokens = [];
-
+    let otherFailures = 0;
+    let firstFailure = '';
     for (const token of tokens) {
         try {
-            const response = await admin.messaging().send({
-                ...message,
-                token: token,
-            });
-            // If the message was sent successfully, the token is valid
+            await fcm.send({ data: { score: '850', time: '2:45' }, token }, true);
             validTokens.push(token);
         } catch (error: any) {
-            const errorCode = error.errorInfo.code;
-
-            // Handle invalid token errors
-            if (errorCode === 'messaging/invalid-registration-token' ||
-                errorCode === 'messaging/registration-token-not-registered') {
+            const code = error?.errorInfo?.code || error?.code;
+            if (TOKEN_GONE.has(code)) {
                 invalidTokens.push(token);
-            } else {
-                console.error("Error for token", token, ":", error.message);
+                continue;
             }
+            otherFailures++;
+            if (!firstFailure) firstFailure = `${code}: ${error?.message}`;
+            if (otherFailures >= 3 && validTokens.length === 0 && invalidTokens.length === 0) break;
         }
     }
-
+    if (otherFailures) {
+        console.error(`FCM token check: ${otherFailures} of ${tokens.length} checks failed for a reason other than the token (first: ${firstFailure}).`);
+    }
     return { validTokens, invalidTokens };
 }
 
 const runTokenValidation = async () => {
-    console.log('========= Running token validation =========');
-    let tokenData = await AppFcmToken.findAll();
+    try {
+        const tokenData = await AppFcmToken.findAll();
+        const tokens = tokenData.map(token => token.fcmToken);
+        const result = await validateFCMTokens(tokens);
+        console.log(`FCM token check: ${result.validTokens.length} valid, ${result.invalidTokens.length} no longer registered.`);
+        for (const token of result.invalidTokens) {
+            await AppFcmToken.destroy({ where: { fcmToken: token } });
+        }
+    } catch (error) {
+        console.error('FCM token check failed:', (error as Error).message);
+    }
+};
 
-    let tokens = tokenData.map(token => token.fcmToken);
-
-    validateFCMTokens(tokens)
-        .then(result => {
-            console.log('Valid tokens:', result.validTokens.length);
-            console.log('Invalid tokens:', result.invalidTokens.length);
-
-            result.invalidTokens.forEach(async (token) => {
-                let data = await AppFcmToken.destroy({ where: { fcmToken: token } });
-                console.log("Token deleted: ", data, token);
-            })
-
-        })
-        .catch(error => {
-            console.error('Validation failed:', error);
-        });
-}
-
-function run() {
+/**
+ * Drops dead tokens at start-up and every 12 hours, as before, but only in a
+ * running server with a key: never during `next build` (which imports this
+ * module), and once per process however many bundles load it.
+ */
+function startTokenChecks() {
+    const flags = globalThis as typeof globalThis & { __shathiFcmTokenChecks?: boolean };
+    if (flags.__shathiFcmTokenChecks) return;
+    if (process.env.NEXT_PHASE === 'phase-production-build') return;
+    if (!messaging()) return;
+    flags.__shathiFcmTokenChecks = true;
     runTokenValidation();
-    setInterval(() => {
-        runTokenValidation();
-    }, 1000 * 60 * 60 * 12);
+    setInterval(runTokenValidation, TOKEN_CHECK_EVERY_MS);
 }
 
-run();
+startTokenChecks();

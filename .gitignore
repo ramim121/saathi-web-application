@@ -39,3 +39,8 @@ npm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 coverage
+
+# Firebase service-account keys live on the server (FIREBASE_SERVICE_ACCOUNT_PATH),
+# never in this public repository; Google disables keys it finds in public repos.
+src/config/firebase*.json
+*firebase-adminsdk*.json
