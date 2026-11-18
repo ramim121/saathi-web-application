@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
-import { Container, Table, Button } from "react-bootstrap";
 import { getRequestOptions, deleteRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/public';
 import { API_URL } from '@/config/public';
-import Link from "next/link";
+import { CalendarDays, Newspaper, PenLine, Pencil, Plus, Trash2 } from "lucide-react";
+import { Card, SafeImg, Skeleton } from "@/ui/primitives";
+import { Button, LinkButton } from "@/ui/controls";
+import { PageHeader } from "@/ui/layout";
+import { date } from "@/ui/format";
 
 interface ListProps {
     idBlogs: number,
@@ -16,9 +19,24 @@ interface ListProps {
     featuredImage: string | null
 }
 
+/** The post as plain text, for a two-line excerpt. */
+function excerpt(html: string | null | undefined): string {
+    return (html || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function List() {
     const [blogsList, setBlogsList] = useState<ListProps[]>([]);
     const [reload, setReload] = useState<boolean>(true);
+    const [loaded, setLoaded] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchBlogsList = async () => {
@@ -41,6 +59,8 @@ function List() {
                     title: 'Error',
                     text: err.message,
                 });
+            } finally {
+                setLoaded(true);
             }
         }
         fetchBlogsList();
@@ -63,7 +83,7 @@ function List() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Blog deleted successfully',
+                            text: 'Blog deleted successfully!',
                         });
                         setReload(true);
                     } else {
@@ -84,52 +104,82 @@ function List() {
         });
     }
 
-
     return (
-        <Container>
-            <h4 className="text-start">Blogs List</h4>
-            <hr />
-            <Table responsive striped bordered hover>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Heading</th>
-                        <th>Description</th>
-                        <th>Written By</th>
-                        <th>Written Date</th>
-                        <th>Featured Image</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {blogsList.length > 0 ? blogsList.map((blog, index) => (
-                        <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{blog.heading}</td>
-                            <td dangerouslySetInnerHTML={{ __html: blog.description }}></td>
-                            <td>{blog.writtenBy}</td>
-                            <td>{blog.writtenDate}</td>
-                            <td>
-                                {blog.featuredImage && <img src={`${S3_URL}blog-featured-images/${blog.featuredImage}`} alt={blog.featuredImage} width={100} height={100} />}
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap' }}>
-                                <Button variant="danger" size="sm" onClick={() => handleDelete(blog.idBlogs)} className="me-2">Delete</Button>
-                                <Link href={`/blogs/edit/${blog.idBlogs}`}>
-                                    <Button variant="info" size="sm">Edit</Button>
-                                </Link>
-                            </td>
-                        </tr>
-                    )) : (
-                        <tr>
-                            <td colSpan={7} className="text-center">No blogs found</td>
-                        </tr>
-                    )}
+        <div className="ui">
+            <PageHeader
+                eyebrow="Content"
+                title="Blogs"
+                description="Posts published on the website and in the app."
+                actions={
+                    <LinkButton href="/blogs/create" variant="primary">
+                        <Plus className="tw-h-4 tw-w-4" aria-hidden /> New blog
+                    </LinkButton>
+                }
+            />
 
-                </tbody>
-            </Table>
-        </Container>
+            {!loaded ? (
+                <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2 xl:tw-grid-cols-3">
+                    {[0, 1, 2].map((i) => (
+                        <Card key={i} className="tw-overflow-hidden">
+                            <Skeleton className="tw-aspect-[16/9] tw-w-full tw-rounded-none" />
+                            <div className="tw-space-y-2 tw-p-4">
+                                <Skeleton className="tw-h-4 tw-w-3/4" />
+                                <Skeleton className="tw-h-3 tw-w-full" />
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            ) : blogsList.length === 0 ? (
+                <Card className="tw-flex tw-flex-col tw-items-center tw-gap-2 tw-py-14 tw-text-sm tw-text-slate-500">
+                    <Newspaper className="tw-h-7 tw-w-7 tw-text-slate-400" aria-hidden />
+                    No blogs yet.
+                </Card>
+            ) : (
+                <ul className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2 xl:tw-grid-cols-3">
+                    {blogsList.map((blog) => (
+                        <li key={blog.idBlogs}>
+                            <Card className="tw-flex tw-h-full tw-flex-col tw-overflow-hidden">
+                                <SafeImg
+                                    src={blog.featuredImage ? `${S3_URL}blog-featured-images/${blog.featuredImage}` : null}
+                                    alt=""
+                                    className="tw-aspect-[16/9] tw-w-full tw-bg-slate-100 tw-object-cover"
+                                    fallback={
+                                        <span className="tw-flex tw-aspect-[16/9] tw-w-full tw-items-center tw-justify-center tw-bg-slate-50 tw-text-slate-300">
+                                            <Newspaper className="tw-h-8 tw-w-8" aria-hidden />
+                                        </span>
+                                    }
+                                />
+                                <div className="tw-flex tw-flex-1 tw-flex-col tw-p-4">
+                                    <h2 className="tw-line-clamp-2 tw-font-semibold tw-leading-snug tw-text-slate-900">{blog.heading}</h2>
+                                    <p className="tw-mt-1.5 tw-line-clamp-3 tw-text-sm tw-text-slate-600">{excerpt(blog.description)}</p>
+                                    <div className="tw-mt-auto tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1 tw-pt-3 tw-text-xs tw-text-slate-500">
+                                        {blog.writtenBy && (
+                                            <span className="tw-inline-flex tw-items-center tw-gap-1">
+                                                <PenLine className="tw-h-3.5 tw-w-3.5" aria-hidden /> {blog.writtenBy}
+                                            </span>
+                                        )}
+                                        {blog.writtenDate && (
+                                            <span className="tw-inline-flex tw-items-center tw-gap-1 tw-tabular-nums">
+                                                <CalendarDays className="tw-h-3.5 tw-w-3.5" aria-hidden /> {date(String(blog.writtenDate))}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="tw-flex tw-justify-end tw-gap-1.5 tw-border-t tw-border-slate-100 tw-px-3 tw-py-2">
+                                    <Button size="sm" variant="danger-outline" onClick={() => handleDelete(blog.idBlogs)}>
+                                        <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden /> Delete
+                                    </Button>
+                                    <LinkButton href={`/blogs/edit/${blog.idBlogs}`} size="sm">
+                                        <Pencil className="tw-h-3.5 tw-w-3.5" aria-hidden /> Edit
+                                    </LinkButton>
+                                </div>
+                            </Card>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     )
-
 }
 
 export default List;
