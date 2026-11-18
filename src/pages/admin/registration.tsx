@@ -5,23 +5,25 @@ import Swal from 'sweetalert2';
 import { postRequestOptions } from '@/utils/Fetch';
 import { KeyRound, ShieldCheck, ShieldPlus } from 'lucide-react';
 import { Card } from '@/ui/primitives';
-import { Button, Field, Input, Required } from '@/ui/controls';
+import { Button, Field, Input, PasswordInput, Required } from '@/ui/controls';
 import { PageHeader } from '@/ui/layout';
+import { ADMIN_PASSWORD_MIN } from '@/utils/adminPassword';
 
 interface FormDataType {
     name: string,
     email: string,
-    phoneNumber: string
+    phoneNumber: string,
+    password: string
 }
+
+const EMPTY: FormDataType = { name: '', email: '', phoneNumber: '', password: '' };
 
 function Registration() {
     // The old number field started at '0' so the leading zero survived; a phone
     // field keeps it, so it starts empty and typing the full 01… number works.
-    const [formData, setFormData] = useState<FormDataType>({
-        name: '',
-        email: '',
-        phoneNumber: ''
-    });
+    const [formData, setFormData] = useState<FormDataType>(EMPTY);
+    // Checked here only; not sent.
+    const [confirm, setConfirm] = useState('');
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,6 +36,14 @@ function Registration() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (formData.password.length < ADMIN_PASSWORD_MIN) {
+            Swal.fire({ icon: 'error', title: 'Password too short', text: `Use at least ${ADMIN_PASSWORD_MIN} characters.` });
+            return;
+        }
+        if (formData.password !== confirm) {
+            Swal.fire({ icon: 'error', title: 'Passwords do not match', text: 'Type the same password in both fields.' });
+            return;
+        }
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to register!",
@@ -53,11 +63,8 @@ function Registration() {
                             title: 'Success',
                             text: 'Admin registration successful!',
                         });
-                        setFormData({
-                            name: '',
-                            email: '',
-                            phoneNumber: '',
-                        });
+                        setFormData(EMPTY);
+                        setConfirm('');
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -76,6 +83,7 @@ function Registration() {
         });
     };
 
+    const mismatch = confirm.length > 0 && confirm !== formData.password;
 
     return (
         <div className="ui">
@@ -86,12 +94,20 @@ function Registration() {
                         <Field label={<>Full name<Required /></>}>
                             <Input type="text" placeholder="Their full name" name="name" autoComplete="off" onChange={handleOnChange} value={formData.name} />
                         </Field>
-                        <Field label={<>Email<Required /></>}>
+                        <Field label={<>Email<Required /></>} hint="They sign in with this email.">
                             <Input type="email" placeholder="name@digigramventures.com" name="email" autoComplete="off" onChange={handleOnChange} value={formData.email} />
                         </Field>
                         <Field label={<>Phone number<Required /></>} hint="11 digits, starting with 01.">
                             <Input type="tel" inputMode="numeric" placeholder="01XXXXXXXXX" name="phoneNumber" autoComplete="off" onChange={handlePhoneChange} value={formData.phoneNumber} />
                         </Field>
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+                            <Field label={<>Password<Required /></>} hint={`At least ${ADMIN_PASSWORD_MIN} characters.`}>
+                                <PasswordInput name="password" autoComplete="new-password" onChange={handleOnChange} value={formData.password} />
+                            </Field>
+                            <Field label={<>Confirm password<Required /></>} hint={mismatch ? <span className="tw-text-rose-600">Does not match yet.</span> : undefined}>
+                                <PasswordInput name="confirmPassword" autoComplete="new-password" onChange={(e) => setConfirm(e.target.value)} value={confirm} />
+                            </Field>
+                        </div>
                         <div className="tw-flex tw-justify-end tw-pt-1">
                             <Button variant="primary" type="submit">
                                 <ShieldPlus className="tw-h-4 tw-w-4" aria-hidden />
@@ -109,8 +125,8 @@ function Registration() {
                     <div className="tw-flex tw-gap-3">
                         <KeyRound className="tw-mt-0.5 tw-h-4 tw-w-4 tw-shrink-0 tw-text-amber-600" aria-hidden />
                         <p>
-                            <strong className="tw-font-semibold tw-text-slate-900">No password is set here.</strong> Signing in to this panel needs an email and a password, so the new
-                            account can&apos;t sign in until a password is added to it.
+                            They sign in with this email and password. Share the password privately; they can change it under{' '}
+                            <strong className="tw-font-semibold tw-text-slate-900">Your account</strong>.
                         </p>
                     </div>
                 </Card>

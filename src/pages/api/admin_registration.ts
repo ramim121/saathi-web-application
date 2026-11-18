@@ -1,10 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import bcrypt from 'bcrypt';
 import { User } from '@/models/__associations';
 import Joi from 'joi';
 import sequelize from '@/config/db';
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '@/config/constants';
-import JWTPayload from '@/types/JWTPayload';
+import { requireAdmin, withCors } from '@/utils/auth';
+import { ADMIN_PASSWORD_MAX, ADMIN_PASSWORD_MIN } from '@/utils/adminPassword';
+
+// Admin sign-in (api/login) is email + password, so a new admin needs both.
 
 const schema = Joi.object({
     name: Joi.string().required().messages({
@@ -21,45 +23,52 @@ const schema = Joi.object({
         "string.empty": "Phone number can not be empty",
         "string.pattern.base": "Phone number must be 11 digits and start with 01",
     }),
+    password: Joi.string().min(ADMIN_PASSWORD_MIN).max(ADMIN_PASSWORD_MAX).required().messages({
+        "any.required": "Password is required",
+        "string.empty": "Password can not be empty",
+        "string.min": `Password must be at least ${ADMIN_PASSWORD_MIN} characters`,
+        "string.max": `Password can be at most ${ADMIN_PASSWORD_MAX} characters`,
+    }),
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-        let tokenData = req.headers.authorization;
-        let token = tokenData?.split(' ')[1];
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, message: 'Method not allowed' });
+        return;
+    }
 
-        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
+    const { name, email, phoneNumber, password } = req.body;
+    const { error } = schema.validate({ name, email, phoneNumber, password }, { abortEarly: false });
+    if (error) {
+        return res.status(400).json({ success: false, message: error.details.map((e) => e.message).join(". <br>") });
+    }
 
-        let userInfo = jwt.decode(token) as JWTPayload;
-        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
+    // Sign-in finds the admin by email, so two admins must not share one.
+    const existing = await User.findOne({ where: { email, userType: 'admin' }, attributes: ['idUsers'] });
+    if (existing) {
+        return res.status(400).json({ success: false, message: 'An admin with this email already exists' });
+    }
 
-        const { name, email, phoneNumber } = req.body
-        const options = {
-            abortEarly: false,
-        };
-        const { error } = schema.validate({ name, email, phoneNumber }, options);
-        if (error) {
-            let errorMessage: string[] = [];
-
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
-            });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
-        }
-        const transaction = await sequelize.transaction();
-        try {
-            const admin = await User.create({
-                fullName: name,
-                email,
-                phoneNumber,
-                userType: 'admin'
-            }, { transaction });
-            await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Admin registered successfully', data: admin })
-        } catch (err) {
-            return res.status(400).json({ success: false, message: (err as Error).message })
-        }
-    } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+    const transaction = await sequelize.transaction();
+    try {
+        const admin = await User.create({
+            fullName: name,
+            email,
+            phoneNumber,
+            userType: 'admin',
+            password: await bcrypt.hash(password, 10),
+        }, { transaction });
+        await transaction.commit();
+        // Never echo the created row: it now carries the password hash.
+        return res.status(200).json({
+            success: true,
+            message: 'Admin registered successfully',
+            data: { idUsers: admin.idUsers, fullName: admin.fullName, email: admin.email },
+        });
+    } catch (err) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: (err as Error).message });
     }
 }
+
+export default withCors(requireAdmin(handler));

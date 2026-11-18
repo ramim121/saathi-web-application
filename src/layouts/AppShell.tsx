@@ -196,7 +196,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
                                 <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Shathi admin</p>
                             )}
                         </div>
-                        <div className="tw-flex tw-items-center tw-gap-2.5">
+                        <Link
+                            href="/account"
+                            title="Your account"
+                            aria-label={`Your account (${name})`}
+                            className="-tw-mr-1 tw-flex tw-items-center tw-gap-2.5 tw-rounded-xl tw-py-1 tw-pl-2 tw-pr-1 tw-transition hover:tw-bg-slate-100 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500"
+                        >
                             <span className="tw-hidden tw-text-right tw-leading-tight sm:tw-block">
                                 <span className="tw-block tw-text-[13px] tw-font-medium tw-text-slate-900">{name}</span>
                                 {me?.email && me.fullName && <span className="tw-block tw-text-[11px] tw-text-slate-500">{me.email}</span>}
@@ -204,7 +209,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             <span className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-bg-brand-100 tw-text-xs tw-font-semibold tw-text-brand-800" aria-hidden>
                                 {initials(name)}
                             </span>
-                        </div>
+                        </Link>
                     </header>
 
                     <main id="main-content" className="tw-mx-auto tw-w-full tw-max-w-[1440px] tw-px-4 tw-py-6 sm:tw-px-6 lg:tw-px-8 print:tw-p-0">

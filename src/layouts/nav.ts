@@ -9,6 +9,7 @@ import {
     FolderKanban,
     FolderPlus,
     Handshake,
+    KeyRound,
     Layers3,
     LayoutDashboard,
     Link2,
@@ -116,6 +117,7 @@ export const NAV: NavGroup[] = [
             { label: 'Testimonials', href: '/setup/investor_testimonial', icon: MessageSquareQuote },
             { label: 'API map', href: '/api-viewer', icon: Code2 },
             { label: 'Add admin', href: '/admin/registration', icon: ShieldPlus },
+            { label: 'Your account', href: '/account', icon: KeyRound },
         ],
     },
 ];

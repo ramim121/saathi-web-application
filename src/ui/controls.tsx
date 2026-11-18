@@ -1,5 +1,6 @@
 import {
     forwardRef,
+    useState,
     type ButtonHTMLAttributes,
     type InputHTMLAttributes,
     type ReactNode,
@@ -7,7 +8,7 @@ import {
     type TextareaHTMLAttributes,
 } from 'react';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Eye, EyeOff, Search } from 'lucide-react';
 import { cx } from './primitives';
 
 /**
@@ -30,6 +31,24 @@ export const SearchInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTML
         <span className={cx('tw-relative tw-block', className)}>
             <Search className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 tw-h-4 tw-w-4 -tw-translate-y-1/2 tw-text-slate-400" aria-hidden />
             <input ref={ref} type="search" className={cx(FIELD, 'tw-pl-9')} {...props} />
+        </span>
+    );
+});
+
+/** A password field with a show/hide toggle. */
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>>(function PasswordInput({ className, ...props }, ref) {
+    const [shown, setShown] = useState(false);
+    return (
+        <span className={cx('tw-relative tw-block', className)}>
+            <input ref={ref} type={shown ? 'text' : 'password'} className={cx(FIELD, 'tw-pr-10')} {...props} />
+            <button
+                type="button"
+                onClick={() => setShown((s) => !s)}
+                className="tw-absolute tw-right-1.5 tw-top-1/2 -tw-translate-y-1/2 tw-rounded-lg tw-p-1.5 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-600"
+                aria-label={shown ? 'Hide password' : 'Show password'}
+            >
+                {shown ? <EyeOff className="tw-h-4 tw-w-4" aria-hidden /> : <Eye className="tw-h-4 tw-w-4" aria-hidden />}
+            </button>
         </span>
     );
 });
