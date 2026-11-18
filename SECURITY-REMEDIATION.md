@@ -141,11 +141,37 @@ it would eject users mid-session. Outcome:
 | Endpoint | App callers | Action |
 |---|---|---|
 | `/api/user/investors` | **none** | ✅ Locked in place → admin |
-| `/api/investors/invested-projects/[id]` | `MyInvestedProjects`, `MyInvestment`, `PendingProofOfPaymentList` | ⏸ Left as-is. New `/api/v2/investments/mine` added — same payload, user id from the token instead of the URL |
-| `/api/bookings/details/[id]` | `OrderDetails`, `MyOrderDetails` | ⏸ Left as-is. Website will use an ownership-checked v2 route |
+| `/api/investors/invested-projects/[id]` | `MyInvestedProjects`, `MyInvestment`, `PendingProofOfPaymentList` | 🔒 **Locked 2026-11-17 (#153)**: token required, and the id must be the caller's own (or an admin's). Partners in the payload carry public fields only. `/api/v2/investments/mine` remains |
+| `/api/bookings/details/[id]` | `OrderDetails`, `MyOrderDetails` | 🔒 **Locked 2026-11-17 (#153)**: token required; owner or admin, anyone else gets 404. The website's v2 route delegates here and still works |
 | `/api/partners/get_all_partners` | `PartnersScreen` (a bottom tab, possibly reachable before login) | ✅ Projection trimmed, route left open — see below |
 
 Retire each original once the app ships a build pointing at v2.
+
+**Why the two ⏸ rows could be locked after all (2026-11-17).** The app opens
+them only from signed-in screens, with that user's own id and booking ids
+(from the cart, the bank-transfer screen and their investment lists), and
+`Get` always sends the stored token. An owner check therefore returns the
+same 200 as before. A 401 — and the forced logout — now happens only when the
+token really is missing or expired (tokens last 30 days), which other
+token-checked routes already did.
+
+### Found and fixed on 2026-11-17
+
+An anonymous sweep of the read-style routes on staging, then production,
+found more personal data open to anyone. All of the following are now fixed
+and deployed:
+
+| Where | What leaked | Fix |
+|---|---|---|
+| `/projects/details/[id]` (server-rendered page) | no sign-in check; page data held every investor's and partner's full user row | `requireAdminPage`; loader trimmed (#150) |
+| `/api/partners/details/[id]` | any user id, investors included: full user row, plus booking rows through each partnership | full record for admins only; others get partners' public fields and projects (#152) |
+| `/api/partners/get_partner_for_assign` | 172 partners' phones and their investors' full user rows | admin-only, nested rows trimmed (#152) |
+| `/api/investors/invested-projects/[id]` and `/api/bookings/details/[id]` | see the table above | owner checks (#153) |
+| `/api/projects/top-partners/[projectId]/[limit]` | partners' full user rows and household details | public fields only (#153) |
+
+After these, the sweep finds values only in `banks/[id]` (bank branch contact
+emails) and `digigram_bank_info` (DigiGram's own payment account), both meant
+to be public.
 
 ### Partner personal data on public endpoints — resolved
 
@@ -187,9 +213,10 @@ Two fields were deliberately **kept**:
 - **`phoneNumber` in `partners/list`** — admin-only and confirmed in use.
 
 `projects/project-partners/[id]` is still unauthenticated. It could be locked to
-admin — no mobile screen calls it — except that `src/pages/bookings/create.tsx`
-fetches it **without** `getRequestOptions()`, so it sends no token. Fix that
-caller first, then gate the route.
+admin — no mobile screen calls it. The blocker named here is gone:
+`src/pages/bookings/create.tsx` sends the admin token since redesign pass 3
+(#149), as do the booking details and Assign projects pages. Its projection
+holds no contact or identity fields.
 
 ### Still open — needs your decision
 
@@ -202,11 +229,15 @@ caller first, then gate the route.
   way NID scans already are. This changes how the app renders the proof
   thumbnail, so it needs an app release — hence it is listed here rather than
   patched.
-- `bookings/details/{id}` is unauthenticated and takes the booking id from the
-  URL, so any booking is readable by id. Cannot be locked in place (the live app
-  calls it from `OrderDetails` and `MyOrderDetails`, and a 401 force-logs-out the
-  user). Phase F adds an ownership-checked v2 route; the website must use that
-  one and never the original.
+- ~~`bookings/details/{id}` is unauthenticated~~ — locked with an owner check
+  on 2026-11-17 (#153); see above.
+- The Firebase service-account key committed as `src/config/firebase.json` was
+  disabled by Google (`invalid_grant: Invalid JWT Signature`): no push
+  notification has been delivered since 2026-09-13. Generate a new key in the
+  Firebase console, keep it on the server outside the repo, and load it from a
+  path in `.env`. Before installing it, stop `src/config/fcm.ts` from running
+  its token "validation" at import time — every `next build` imports it, so
+  each build would message every device.
 - `src/models/__sync.ts` calls `.sync({ force: true })` on every table — a
   drop-all-data script sitting in the repo. It has no npm script pointing at it,
   but it should be deleted or renamed to something that cannot be run by accident.

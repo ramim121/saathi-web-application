@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions } from "@/utils/Fetch";
-import { Container, Row, Table, Col, Tab, Tabs } from "react-bootstrap";
-import Carousel from 'react-bootstrap/Carousel';
 import { S3_URL } from '@/config/public';
 import Swal from "sweetalert2";
-import Link from "next/link";
+import { ArrowLeft, ArrowUpRight, FolderKanban, Home, ImageOff, Pencil, ShieldAlert, UserRound } from "lucide-react";
+import { Avatar, Card, Pill, SafeImg, Skeleton, cx } from "@/ui/primitives";
+import { LinkButton } from "@/ui/controls";
+import { EmptyRow, TableCard, TD, TH, TR } from "@/ui/layout";
+import { date } from "@/ui/format";
+import { words } from "@/ui/status";
 
 interface DetailsProps {
     idUsers: number,
@@ -63,10 +67,22 @@ interface DetailsProps {
     }[]
 }
 
+const TYPE_TONE: Record<string, 'green' | 'sky' | 'violet' | 'slate'> = { project: 'green', product: 'sky', both: 'violet', none: 'slate' };
+
+function Fact({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
+    return (
+        <div className={cx(wide && 'sm:tw-col-span-2')}>
+            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">{label}</dt>
+            <dd className="tw-mt-0.5 tw-whitespace-pre-line tw-break-words tw-text-sm tw-text-slate-800">{children || <span className="tw-text-slate-400">—</span>}</dd>
+        </div>
+    );
+}
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
     const [details, setDetails] = useState<DetailsProps>({} as DetailsProps);
+    const [loadFailed, setLoadFailed] = useState<boolean>(false);
 
     useEffect(() => {
         if (id != undefined) {
@@ -74,16 +90,18 @@ function Details() {
                 try {
                     const res = await fetch('/api/partners/details/' + id, getRequestOptions());
                     const data = await res.json();
-                    if (res.status === 200) {
+                    if (res.status === 200 && data.data) {
                         setDetails(data.data);
                     } else {
+                        setLoadFailed(true);
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: data.message,
+                            text: data.message || 'Partner not found.',
                         });
                     }
                 } catch (err: any) {
+                    setLoadFailed(true);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -95,162 +113,227 @@ function Details() {
         }
     }, [id])
 
+    const loaded = Boolean(details.idUsers);
+    const info = details.PartnerAdditionalInfo;
+    const partnerships = details.Partnerships ?? [];
+    const images = details.FeaturedImages ?? [];
+    const skillList = (details.skills || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+    if (loadFailed && !loaded) {
+        return (
+            <div className="ui">
+                <Card className="tw-mx-auto tw-mt-10 tw-max-w-md tw-p-8 tw-text-center">
+                    <ShieldAlert className="tw-mx-auto tw-h-8 tw-w-8 tw-text-amber-500" aria-hidden />
+                    <h1 className="tw-mt-3 tw-text-lg tw-font-semibold tw-text-slate-900">This partner could not be loaded</h1>
+                    <Link href="/partners/list" className="tw-mt-5 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600">
+                        <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> All partners
+                    </Link>
+                </Card>
+            </div>
+        );
+    }
+
     return (
-        <Container>
-            <h4 className="text-start"> Partner Details ({details?.fullName})</h4>
-            <hr />
-            <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
-                <Tab eventKey="details" title="Details">
-                    <Row>
-                        <Col md={6}>
-                            <Table bordered>
-                                <tbody>
-                                    <tr>
-                                        <td>Full Name</td>
-                                        <td>{details?.fullName}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Phone Number</td>
-                                        <td>{details.phoneNumber}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Age</td>
-                                        <td>{details.age}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Location/Address</td>
-                                        <td>{details.location}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Disability</td>
-                                        <td>{details.disability?.charAt(0).toUpperCase() + details.disability?.slice(1)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Education</td>
-                                        <td>{details.education}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Profile Picture</td>
-                                        <td className="text-center">
-                                            {details.ProfilePicture && <img src={`${S3_URL}profile-picture/${id}/${details.ProfilePicture?.fileName}`} alt={details.ProfilePicture?.originalFileName} width={100} height={100} />}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Gender</td>
-                                        <td>{details.PartnerAdditionalInfo?.gender}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Household Size</td>
-                                        <td>{details.PartnerAdditionalInfo?.household_size}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Dependents Size</td>
-                                        <td>{details.PartnerAdditionalInfo?.dependents_size}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Livelihood Activity</td>
-                                        <td>{details.PartnerAdditionalInfo?.livelihood_activity}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Primary Goal</td>
-                                        <td>{details.PartnerAdditionalInfo?.primary_goal}</td>
-                                    </tr>
-                                </tbody>
-                            </Table>
-                        </Col>
-                        <Col md={6}>
-                            <Table bordered>
-                                <tbody>
-                                    <tr>
-                                        <td>Role</td>
-                                        <td>{details.role}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Joining Date</td>
-                                        <td>{details.joiningDate}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Skills</td>
-                                        <td>{details.skills}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Interested In</td>
-                                        <td>{details.interestedIn}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Partner Type</td>
-                                        <td>{details.partnerType?.charAt(0).toUpperCase() + details.partnerType?.slice(1)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Bio</td>
-                                        <td>{details.bio}</td>
-                                    </tr>
-                                </tbody>
-                            </Table>
-                        </Col>
-                    </Row>
-                </Tab>
-                <Tab eventKey="projects" title="Projects">
-                    <Table bordered>
+        <div className="ui">
+            <Link href="/partners/list" className="tw-mb-3 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-medium tw-text-slate-500 hover:tw-text-slate-900">
+                <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> All partners
+            </Link>
+
+            <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
+                <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
+                    {loaded ? (
+                        <SafeImg
+                            src={details.ProfilePicture ? `${S3_URL}profile-picture/${id}/${details.ProfilePicture.fileName}` : null}
+                            alt={details.fullName}
+                            className="tw-h-16 tw-w-16 tw-shrink-0 tw-rounded-2xl tw-object-cover tw-ring-1 tw-ring-slate-200"
+                            fallback={<Avatar name={details.fullName || '?'} seed={details.idUsers} size="lg" />}
+                        />
+                    ) : (
+                        <Skeleton className="tw-h-16 tw-w-16 tw-rounded-2xl" />
+                    )}
+                    <div className="tw-min-w-0">
+                        <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.14em] tw-text-brand-700">Partner{loaded ? ` #${details.idUsers}` : ''}</p>
+                        {loaded ? (
+                            <h1 className="tw-mt-1 tw-text-[26px] tw-font-semibold tw-leading-8 tw-tracking-tight tw-text-slate-900">{details.fullName}</h1>
+                        ) : (
+                            <Skeleton className="tw-mt-2 tw-h-7 tw-w-56" />
+                        )}
+                        {loaded && (
+                            <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                <Pill tone={TYPE_TONE[details.partnerType] ?? 'slate'} dot={false}>
+                                    {words(details.partnerType)} partner
+                                </Pill>
+                                {details.disability === 'yes' && <Pill tone="amber" dot={false}>Disability</Pill>}
+                                {details.role && <span className="tw-text-xs tw-text-slate-500">{details.role}</span>}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {loaded && (
+                    <LinkButton href={`/partners/edit/${details.idUsers}`}>
+                        <Pencil className="tw-h-4 tw-w-4" aria-hidden /> Edit partner
+                    </LinkButton>
+                )}
+            </div>
+
+            {loaded && (
+                <div className="tw-space-y-6">
+                    <div className="tw-grid tw-grid-cols-1 tw-gap-4 lg:tw-grid-cols-3">
+                        <Card className="tw-p-5 lg:tw-col-span-2">
+                            <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                                <UserRound className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Profile
+                            </h2>
+                            <dl className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-4 sm:tw-grid-cols-2">
+                                <Fact label="Phone">
+                                    <span className="tw-tabular-nums">{details.phoneNumber}</span>
+                                </Fact>
+                                <Fact label="Age">{details.age ? `${details.age} years` : null}</Fact>
+                                <Fact label="Location / address">{details.location}</Fact>
+                                <Fact label="Joined">{details.joiningDate ? date(String(details.joiningDate)) : null}</Fact>
+                                <Fact label="Education">{details.education}</Fact>
+                                <Fact label="Interested in">{details.interestedIn}</Fact>
+                                <Fact label="Skills" wide>
+                                    {skillList.length ? (
+                                        <span className="tw-flex tw-flex-wrap tw-gap-1.5">
+                                            {skillList.map((skill) => (
+                                                <span key={skill} className="tw-rounded-lg tw-bg-brand-50 tw-px-2 tw-py-0.5 tw-text-xs tw-font-medium tw-text-brand-800">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                        </span>
+                                    ) : null}
+                                </Fact>
+                                <Fact label="Bio" wide>{details.bio}</Fact>
+                            </dl>
+                        </Card>
+                        <Card className="tw-p-5">
+                            <h2 className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                                <Home className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Household
+                            </h2>
+                            <dl className="tw-mt-4 tw-space-y-4">
+                                <Fact label="Gender">{info?.gender}</Fact>
+                                <div className="tw-grid tw-grid-cols-2 tw-gap-4">
+                                    <Fact label="Household size">{info?.household_size}</Fact>
+                                    <Fact label="Dependents">{info?.dependents_size}</Fact>
+                                </div>
+                                <Fact label="Livelihood activity">{info?.livelihood_activity}</Fact>
+                                <Fact label="Primary goal">{info?.primary_goal}</Fact>
+                            </dl>
+                        </Card>
+                    </div>
+
+                    <TableCard
+                        toolbar={
+                            <div>
+                                <p className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-semibold tw-text-slate-900">
+                                    <FolderKanban className="tw-h-4 tw-w-4 tw-text-slate-400" aria-hidden /> Projects with room left
+                                </p>
+                                <p className="tw-text-xs tw-text-slate-500">Projects still taking bookings where this partner has capacity to spare.</p>
+                            </div>
+                        }
+                    >
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Main Image</th>
-                                <th>Project Name</th>
-                                <th>Location</th>
-                                <th>Unit Capacity</th>
-                                <th>Already Invested</th>
-                                <th>Booking Id</th>
+                                <th className={TH}>Project</th>
+                                <th className={cx(TH, 'tw-text-right')}>Capacity</th>
+                                <th className={cx(TH, 'tw-text-right')}>Confirmed</th>
+                                <th className={cx(TH, 'tw-text-right')}>Remaining</th>
+                                <th className={TH}>Bookings</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {details.Partnerships && details.Partnerships.map((project, index) => (
-                                <tr key={index}>
-                                    <td>{index + 1}</td>
-                                    <td>
-                                        <img src={`${S3_URL}project-main-image/${project.Project.idProjects}/${project.Project?.MainImage?.fileName}`} alt={project.Project?.MainImage?.originalFileName} width={100} height={100} loading="lazy" />
-                                    </td>
-                                    <td>{project.Project?.projectName}</td>
-                                    <td>{project.Project?.location}</td>
-                                    <td>{project.partnerUnitCapacity}</td>
-                                    <td>{project.alreadyInvestedUnits}</td>
-                                    <td>
-                                        {project.ProjectPartnerInvestors!
-                                            .map((investor, i, array) => {
-                                                const bookingId = investor?.ProjectInvestor?.ProjectInvestmentBooking?.bookingId;
-                                                const bookingUrl = `/bookings/details/${investor?.ProjectInvestor?.ProjectInvestmentBooking?.idProjectInvestmentBookings}`;
-                                                if (bookingId) {
-                                                    return (
-                                                        <span key={bookingId}>
-                                                            <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
-                                                                {bookingId}
+                            {partnerships.length === 0 ? (
+                                <EmptyRow colSpan={5} title="No open projects with room" hint="Assign this partner to a project from Assign partners." />
+                            ) : (
+                                partnerships.map((project, index) => {
+                                    const bookings = (project.ProjectPartnerInvestors ?? [])
+                                        .map((investor) => investor?.ProjectInvestor?.ProjectInvestmentBooking)
+                                        .filter((booking) => booking?.bookingId);
+                                    return (
+                                        <tr key={project.Project?.idProjects ?? index} className={TR}>
+                                            <td className={TD}>
+                                                <div className="tw-flex tw-items-center tw-gap-3">
+                                                    <SafeImg
+                                                        src={project.Project?.MainImage?.fileName ? `${S3_URL}project-main-image/${project.Project.idProjects}/${project.Project.MainImage.fileName}` : null}
+                                                        className="tw-h-10 tw-w-10 tw-shrink-0 tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                                        fallback={
+                                                            <span className="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl tw-bg-slate-100 tw-text-slate-400">
+                                                                <FolderKanban className="tw-h-4 tw-w-4" aria-hidden />
+                                                            </span>
+                                                        }
+                                                    />
+                                                    <div className="tw-min-w-0">
+                                                        <Link href={`/projects/details/${project.Project?.idProjects}`} className="tw-font-medium tw-text-slate-900 hover:tw-text-brand-700">
+                                                            {project.Project?.projectName}
+                                                        </Link>
+                                                        <div className="tw-text-xs tw-text-slate-500">{project.Project?.location}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{project.partnerUnitCapacity}</td>
+                                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{project.alreadyInvestedUnits}</td>
+                                            <td className={cx(TD, 'tw-text-right tw-tabular-nums')}>{Number(project.partnerUnitCapacity) - Number(project.alreadyInvestedUnits || 0)}</td>
+                                            <td className={TD}>
+                                                <div className="tw-flex tw-flex-wrap tw-gap-1">
+                                                    {bookings.length === 0 ? (
+                                                        <span className="tw-text-xs tw-text-slate-400">None</span>
+                                                    ) : (
+                                                        bookings.map((booking) => (
+                                                            <Link
+                                                                key={booking!.idProjectInvestmentBookings}
+                                                                href={`/bookings/details/${booking!.idProjectInvestmentBookings}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="tw-inline-flex tw-items-center tw-gap-0.5 tw-rounded-md tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-700 hover:tw-bg-brand-50 hover:tw-text-brand-700"
+                                                            >
+                                                                {booking!.bookingId}
+                                                                <ArrowUpRight className="tw-h-3 tw-w-3" aria-hidden />
                                                             </Link>
-                                                            {i < array.length - 1 && ', '} {/* Add a comma except after the last item */}
-                                                        </span>
-                                                    );
-                                                }
-                                                return null;
-                                            })
-                                            .filter(Boolean)}
-                                    </td>
-                                </tr>
-                            ))}
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
-                    </Table>
-                </Tab>
-                <Tab eventKey="featured-images" title="Featured Images">
-                    <Col>
-                        <Carousel>
-                            {details.FeaturedImages && details.FeaturedImages.map((image, index) => (
-                                <Carousel.Item key={index}>
-                                    <img src={`${S3_URL}featured-image/${id}/${image.fileName}`} alt={image.originalFileName} width={1200} height={400} />
-                                </Carousel.Item>
-                            ))}
-                        </Carousel>
-                    </Col>
-                </Tab>
-            </Tabs>
-        </Container>
+                    </TableCard>
+
+                    <Card className="tw-p-5">
+                        <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">Featured images</h2>
+                        {images.length === 0 ? (
+                            <div className="tw-flex tw-flex-col tw-items-center tw-gap-2 tw-py-8 tw-text-sm tw-text-slate-500">
+                                <ImageOff className="tw-h-6 tw-w-6 tw-text-slate-400" aria-hidden />
+                                No featured images. Add them from Edit partner.
+                            </div>
+                        ) : (
+                            <ul className="tw-mt-4 tw-grid tw-grid-cols-2 tw-gap-3 sm:tw-grid-cols-3 lg:tw-grid-cols-4">
+                                {images.map((image) => {
+                                    const url = `${S3_URL}featured-image/${id}/${image.fileName}`;
+                                    return (
+                                        <li key={image.idFiles}>
+                                            <a href={url} target="_blank" rel="noopener noreferrer" className="tw-group tw-block tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50">
+                                                <SafeImg
+                                                    src={url}
+                                                    alt={image.originalFileName}
+                                                    className="tw-aspect-[4/3] tw-w-full tw-object-cover tw-transition group-hover:tw-scale-[1.02]"
+                                                    fallback={
+                                                        <span className="tw-flex tw-aspect-[4/3] tw-w-full tw-items-center tw-justify-center tw-text-slate-300">
+                                                            <ImageOff className="tw-h-6 tw-w-6" aria-hidden />
+                                                        </span>
+                                                    }
+                                                />
+                                            </a>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </Card>
+                </div>
+            )}
+        </div>
     );
 }
 

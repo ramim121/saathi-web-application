@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/public';
-// import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
-import Select from 'react-select';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
+import { Check, Circle, Loader2 } from 'lucide-react';
+import { Card, cx } from '@/ui/primitives';
+import { Button, Field, FileInput } from '@/ui/controls';
+import { PageHeader } from '@/ui/layout';
+import { FormSection, LocalPreview } from '@/components/projects/ProjectFormParts';
+import { PartnerProfileSections } from '@/components/partners/PartnerFormParts';
 
 interface FormDataType {
     name: string,
@@ -60,7 +63,6 @@ function Registration() {
         livelihood_activity: '',
         primary_goal: ''
     });
-    // const bioRef = useRef<any>(null);
     const profilePicRef = useRef<HTMLInputElement>(null);
     const featuredImagesRef = useRef<HTMLInputElement>(null);
     const [skills, setSkills] = useState<Skills[]>([]);
@@ -91,7 +93,7 @@ function Registration() {
         fetchSkills();
     }, []);
 
-    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -221,277 +223,80 @@ function Registration() {
         });
     };
 
+    const checklist: [string, boolean][] = [
+        ['Name and phone', Boolean(formData.name && formData.phoneNumber)],
+        ['Age and role', Boolean(Number(formData.age) > 0 && formData.role)],
+        ['Joining date', Boolean(formData.joiningDate)],
+        ['Location', Boolean(formData.location)],
+        ['Skills', Boolean(formData.skills)],
+    ];
+    const featuredFiles: File[] = formData.featuredImages ? Array.from(formData.featuredImages as FileList) : [];
+
     return (
-        <>
-            <Container>
-                <h4 className="text-start">Partner Registration</h4>
-                <hr />
-                <Form onSubmit={handleSubmit}>
-                    <Row>
-                        <Col md={6}>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Name <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter your full name"
-                                        name="name"
-                                        onChange={handleOnChange}
-                                        value={formData.name}
+        <div className="ui">
+            <PageHeader
+                eyebrow="People"
+                title="Register partner"
+                description="Add a farmer or producer Shathi works with. Projects are assigned afterwards, from Assign partners."
+            />
 
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row}>
-                                <Form.Label column sm='4' className='mb-3'>Phone Number <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter your phone number"
-                                        name="phoneNumber"
-                                        onChange={handleOnChange}
-                                        value={formData.phoneNumber}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Age <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter your age"
-                                        name="age"
-                                        onChange={handleOnChange}
-                                        value={formData.age}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Role <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter your role"
-                                        name="role"
-                                        onChange={handleOnChange}
-                                        value={formData.role}
-                                    />
-                                </Col>
-                            </Form.Group>
+            <form onSubmit={handleSubmit} className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 xl:tw-grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="tw-min-w-0 tw-space-y-6">
+                    <PartnerProfileSections
+                        formData={formData}
+                        onChange={handleOnChange}
+                        patch={(fields) => setFormData({ ...formData, ...(fields as Partial<FormDataType>) })}
+                        skills={skills}
+                        onSkillsChange={handleSkillsChange}
+                    />
 
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Skills <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Select
-                                        id="long-value-select"
-                                        instanceId="long-value-select"
-                                        options={skills}
-                                        value={formData.multiSkills}
-                                        onChange={handleSkillsChange}
-                                        menuPosition='fixed'
-                                        isMulti
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Joining Date <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='date'
-                                        name="joiningDate"
-                                        onChange={handleOnChange}
-                                        value={formData.joiningDate}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Location / Address <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter your current location/address"
-                                        name="location"
-                                        onChange={handleOnChange}
-                                        value={formData.location}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Disabilty <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Select
-                                        id="disability"
-                                        instanceId="disability"
-                                        options={[
-                                            { value: 'yes', label: 'Yes' },
-                                            { value: 'no', label: 'No' }
-                                        ]}
-                                        value={{ value: formData.disability, label: formData.disability === 'yes' ? 'Yes' : 'No' }}
-                                        onChange={(selectedOption: any) => setFormData({ ...formData, disability: selectedOption.value })}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Profile Picture </Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" onChange={handleFileUpload} ref={profilePicRef} />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Featured Images</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} />
-                                </Col>
-                            </Form.Group>
-                        </Col>
-                        <Col sm={6}>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Education</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter your last degree"
-                                        name="education"
-                                        onChange={handleOnChange}
-                                        value={formData.education}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Interested In</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter your interested projects"
-                                        name="interestedIn"
-                                        onChange={handleOnChange}
-                                        value={formData.interestedIn}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Bio</Form.Label>
-                                <Col sm='8' style={{ zIndex: '0' }}>
-                                    {/* <Editor
-                                        apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                        onInit={(evt, editor) => bioRef.current = editor}
-                                        id='painPoints'
-                                        init={{
-                                            height: 360,
-                                            plugins: [
-                                                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                                                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                                'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                                            ],
-                                            toolbar: 'undo redo | blocks | ' +
-                                                'bold italic backcolor | alignleft aligncenter ' +
-                                                'alignright alignjustify | bullist numlist outdent indent | ' +
-                                                'removeformat | help',
-                                            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                                        }}
-                                    /> */}
-                                    <Form.Control
-                                        as="textarea"
-                                        placeholder="Enter partners bio"
-                                        name="bio"
-                                        onChange={handleOnChange}
-                                        value={formData.bio}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Partner Type</Form.Label>
-                                <Col sm='8'>
-                                    <Select
-                                        id="partnerType"
-                                        instanceId="partnerType"
-                                        options={[
-                                            { value: 'none', label: 'None' },
-                                            { value: 'project', label: 'Project' },
-                                            { value: 'product', label: 'Product' },
-                                            { value: 'both', label: 'Both' }
-                                        ]}
-                                        value={{ value: formData.partnerType, label: formData.partnerType === 'none' ? 'None' : formData.partnerType === 'project' ? 'Project' : formData.partnerType === 'product' ? 'Product' : 'Both' }}
-                                        onChange={(selectedOption: any) => setFormData({ ...formData, partnerType: selectedOption.value })}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Gender <span className='text-danger'>*</span></Form.Label>
-                                <Col sm='8'>
-                                    <Select
-                                        id="gender"
-                                        instanceId="gender"
-                                        options={[
-                                            { value: 'Male', label: 'Male' },
-                                            { value: 'Female', label: 'Female' },
-                                            { value: 'Other', label: 'Other' }
-                                        ]}
-                                        value={{ value: formData.gender, label: formData.gender }}
-                                        onChange={(selectedOption: any) => setFormData({ ...formData, gender: selectedOption.value })}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Household Size</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter household size"
-                                        name="household_size"
-                                        onChange={handleOnChange}
-                                        value={formData.household_size}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Dependents Size</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter dependents size"
-                                        name="dependents_size"
-                                        onChange={handleOnChange}
-                                        value={formData.dependents_size}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Livelihood Activity</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        type='text'
-                                        placeholder="Enter livelihood activity"
-                                        name="livelihood_activity"
-                                        onChange={handleOnChange}
-                                        value={formData.livelihood_activity}
-                                    />
-                                </Col>
-                            </Form.Group>
-                            <Form.Group as={Row} className='mb-3'>
-                                <Form.Label column sm='4'>Primary Goal</Form.Label>
-                                <Col sm='8'>
-                                    <Form.Control
-                                        as="textarea"
-                                        placeholder="Enter primary goal"
-                                        name="primary_goal"
-                                        onChange={handleOnChange}
-                                        value={formData.primary_goal}
-                                    />
-                                </Col>
-                            </Form.Group>
-                        </Col>
-                        {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
-                    </Row>
-                    <Row className='justify-content-center'>
-                        <Button className='w-25' variant="primary" type="submit" disabled={loading}>
-                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                            {loading ? 'Submitting...' : 'Submit'}
+                    <FormSection title="Images" description="JPEG or PNG.">
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-5 sm:tw-grid-cols-2">
+                            <div>
+                                <Field label="Profile picture">
+                                    <FileInput accept="image/jpeg,image/png" onChange={handleFileUpload} ref={profilePicRef} />
+                                </Field>
+                                {formData.profilePicture instanceof File && (
+                                    <LocalPreview file={formData.profilePicture} className="tw-mt-3 tw-h-28 tw-w-28 tw-rounded-2xl tw-object-cover tw-ring-1 tw-ring-slate-200" />
+                                )}
+                            </div>
+                            <div>
+                                <Field label="Featured images" hint="Choosing again replaces the selection.">
+                                    <FileInput accept="image/jpeg,image/png" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} />
+                                </Field>
+                                {featuredFiles.length > 0 && (
+                                    <ul className="tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-2">
+                                        {featuredFiles.map((file, index) => (
+                                            <li key={index}>
+                                                <LocalPreview file={file} className="tw-aspect-square tw-w-full tw-rounded-lg tw-object-cover tw-ring-1 tw-ring-slate-200" />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    </FormSection>
+                </div>
+
+                <aside className="xl:tw-sticky xl:tw-top-24">
+                    <Card className="tw-p-5">
+                        <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">Before you register</h2>
+                        <ul className="tw-mt-3 tw-space-y-2">
+                            {checklist.map(([label, done]) => (
+                                <li key={label} className={cx('tw-flex tw-items-center tw-gap-2 tw-text-sm', done ? 'tw-text-slate-700' : 'tw-text-slate-400')}>
+                                    {done ? <Check className="tw-h-4 tw-w-4 tw-text-emerald-600" aria-hidden /> : <Circle className="tw-h-4 tw-w-4" aria-hidden />}
+                                    {label}
+                                </li>
+                            ))}
+                        </ul>
+                        <Button variant="primary" type="submit" className="tw-mt-5 tw-w-full" disabled={loading}>
+                            {loading && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden />}
+                            {loading ? 'Registering…' : 'Register partner'}
                         </Button>
-                    </Row>
-                </Form>
-            </Container>
-        </>
+                    </Card>
+                </aside>
+            </form>
+        </div>
     );
 }
 
