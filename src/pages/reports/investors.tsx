@@ -340,7 +340,7 @@ export default function InvestorReportPage({ investors: initialInvestors, initia
 
                 {/* In print the list is hidden, so the grid collapses to one column —
                     otherwise the statement would land in the list's 300px track. */}
-                <div className="tw-grid tw-gap-6 lg:tw-grid-cols-[300px_minmax(0,1fr)] print:tw-block">
+                <div className="tw-grid tw-grid-cols-1 tw-gap-6 lg:tw-grid-cols-[300px_minmax(0,1fr)] print:tw-block">
                     {/* ---------------------------------------------------- list */}
                     <aside className="print:tw-hidden">
                         <Card className="tw-flex tw-flex-col tw-overflow-hidden lg:tw-sticky lg:tw-top-4 lg:tw-h-[calc(100vh-2rem)] lg:tw-max-h-[880px]">
@@ -598,7 +598,9 @@ function Stat({
 
 function Meta({ icon: IconCmp, children }: { icon: Icon; children: ReactNode }) {
     return (
-        <span className="tw-inline-flex tw-min-w-0 tw-items-center tw-gap-1.5">
+        // max-w-full: outside a flex row (the bank line) an inline-flex box would
+        // otherwise take its full text width and push the page sideways on a phone.
+        <span className="tw-inline-flex tw-min-w-0 tw-max-w-full tw-items-center tw-gap-1.5">
             <IconCmp className="tw-h-3.5 tw-w-3.5 tw-shrink-0 tw-text-slate-400" aria-hidden />
             <span className="tw-truncate">{children}</span>
         </span>
@@ -631,14 +633,14 @@ function Overview({ investors, onPick }: { investors: InvestorListItem[]; onPick
 
     return (
         <div className="tw-space-y-6">
-            <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4 print:tw-grid-cols-4">
+            <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4 print:tw-grid-cols-4">
                 <Stat emphasis icon={Wallet} label="Money working" value={bdt(totals.active)} hint={`${plural(totals.working, 'investor')} with active bookings`} />
                 <Stat icon={Hourglass} accent="sky" label="Payout due" value={bdt(totals.payout)} hint={`${plural(totals.due, 'investor')} waiting to be paid`} />
                 <Stat icon={Clock3} accent="amber" label="Pending" value={bdt(totals.pending)} hint={`awaiting confirmation · ${plural(totals.waiting, 'investor')}`} />
                 <Stat icon={TrendingUp} label="Total ever invested" value={bdt(totals.lifetime)} hint={`by ${plural(totals.invested, 'investor')}, rollovers included`} />
             </div>
 
-            <div className="tw-grid tw-gap-6 xl:tw-grid-cols-2">
+            <div className="tw-grid tw-grid-cols-1 tw-gap-6 xl:tw-grid-cols-2">
                 <Card className="tw-p-5">
                     <h3 className="tw-text-sm tw-font-semibold tw-text-slate-900">Largest active positions</h3>
                     <p className="tw-mt-0.5 tw-text-xs tw-text-slate-500">Money working right now, by investor.</p>
@@ -738,7 +740,7 @@ function InvestorPanel({ detail }: { detail: InvestorDetail }) {
             </Card>
 
             {/* Figures */}
-            <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4 print:tw-grid-cols-4">
+            <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4 print:tw-grid-cols-4">
                 <Stat
                     emphasis
                     icon={Wallet}
@@ -1017,7 +1019,7 @@ function PanelSkeleton({ name }: { name?: string }) {
                     <Skeleton className="tw-h-4 tw-w-72" />
                 </div>
             </Card>
-            <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4">
+            <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-4">
                 {Array.from({ length: 8 }, (_, k) => (
                     <Card key={k} className="tw-space-y-3 tw-p-4">
                         <Skeleton className="tw-h-4 tw-w-24" />
