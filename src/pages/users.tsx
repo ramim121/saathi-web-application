@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Modal } from "react-bootstrap";
-import { postRequestOptions } from "@/utils/Fetch";
+import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { User, UserBank, Bank, BankBranch } from "@/models/__associations";
 import UserType from "@/types/User";
 import { S3_URL } from '@/config/public';
 import { NextPage, GetServerSidePropsContext } from "next";
 import { API_URL } from '@/config/public';
 import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
-import { Check, Landmark, RotateCcw, X } from "lucide-react";
-import { Avatar, Pill, cx } from "@/ui/primitives";
+// listUsers is server-only and used only in getServerSideProps, so Next drops it
+// from the browser bundle; the page size comes from a browser-safe module.
+import { listUsers } from "@/utils/adminUsers";
+import { USERS_PAGE_SIZE } from "@/utils/adminUsersShared";
+import { Check, Landmark, Loader2, RotateCcw, X } from "lucide-react";
+import { Avatar, Pill, Skeleton, cx } from "@/ui/primitives";
 import { Button, Field, Input, SearchInput, Select } from "@/ui/controls";
 import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
 import { capitalise, dhakaDmy } from "@/ui/status";
@@ -18,7 +21,7 @@ import { date } from "@/ui/format";
 
 /**
  * Users (investors, partners, admins). Redesigned 2026-11-17; the filters,
- * paging, verification actions and both dialogs behave exactly as before.
+ * paging, verification actions and both dialogs behave as before.
  *
  * Changes that are not just looks:
  * - the joining date is formatted in Asia/Dhaka (display and filter alike) —
@@ -26,11 +29,17 @@ import { date } from "@/ui/format";
  *   text, which broke hydration for admins in Bangladesh;
  * - users without a photo get their initials, not a random image fetched from
  *   picsum.photos;
- * - the server-side query no longer ships password hashes to the browser.
+ * - since 2026-11-18 the table loads one page at a time (api/admin/users) with
+ *   the same filters, applied by the database, and the dialogs load the one
+ *   user they show. The page used to carry every user with every column:
+ *   600 kB of page data at ~600 users.
  */
 
+type Row = UserType & { bankCount?: number };
+type UsersPage = { data: Row[]; total: number; page: number; totalPages: number };
+
 interface UserListProps {
-    users: UserType[];
+    initial: UsersPage;
 }
 
 const EMPTY_FILTERS = {
@@ -39,7 +48,6 @@ const EMPTY_FILTERS = {
     userType: "",
     age: "",
     joining: "",
-    partnerType: "",
     status: "",
     nid: "",
     email: "",
@@ -94,18 +102,84 @@ function Verified({ ok }: { ok: boolean }) {
     return ok ? <Pill tone="green">Verified</Pill> : <Pill tone="slate">Not verified</Pill>;
 }
 
-const UserList: NextPage<UserListProps> = ({ users }) => {
-    const [usersList, setUsersList] = useState<UserType[]>(users);
-    const [filteredUsers, setFilteredUsers] = useState<UserType[]>(users);
+const UserList: NextPage<UserListProps> = ({ initial }) => {
+    const [rows, setRows] = useState<Row[]>(initial.data);
+    const [total, setTotal] = useState(initial.total);
+    const [totalPages, setTotalPages] = useState(initial.totalPages);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [reloadKey, setReloadKey] = useState(0);
+    const [listLoading, setListLoading] = useState(false);
+    const [details, setDetails] = useState<Record<number, UserType>>({});
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
     const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
     const [showBankModal, setShowBankModal] = useState(false);
     const [bankModalUser, setBankModalUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [filters, setFilters] = useState(EMPTY_FILTERS);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const usersPerPage = 10;
+    // The first page arrives with the HTML; after that every change fetches.
+    // Typing waits 250 ms; paging goes at once. An answer to an older request
+    // is dropped when a newer one has been sent.
+    const firstLoad = useRef(true);
+    const lastFilterKey = useRef(JSON.stringify(EMPTY_FILTERS));
+    useEffect(() => {
+        if (firstLoad.current) {
+            firstLoad.current = false;
+            return;
+        }
+        const filterKey = JSON.stringify(filters);
+        const delay = filterKey === lastFilterKey.current ? 0 : 250;
+        lastFilterKey.current = filterKey;
+        let stale = false;
+        const timer = setTimeout(async () => {
+            setListLoading(true);
+            try {
+                const query = new URLSearchParams({ ...filters, page: String(currentPage), pageSize: String(USERS_PAGE_SIZE) }).toString();
+                const res = await fetch(`/api/admin/users?${query}`, getRequestOptions());
+                const data = await res.json();
+                if (stale) return;
+                if (!res.ok) {
+                    Swal.fire("Error", data.message || "Could not load users", "error");
+                    return;
+                }
+                // A verification can drop the last row of the last page out of the filter.
+                if (data.data.length === 0 && currentPage > 1 && data.total > 0) {
+                    setCurrentPage(Math.max(1, data.totalPages));
+                    return;
+                }
+                setRows(data.data);
+                setTotal(data.total);
+                setTotalPages(data.totalPages);
+            } catch (error) {
+                if (!stale) Swal.fire("Error", "Could not load users", "error");
+            } finally {
+                if (!stale) setListLoading(false);
+            }
+        }, delay);
+        return () => {
+            stale = true;
+            clearTimeout(timer);
+        };
+    }, [filters, currentPage, reloadKey]);
+
+    /** One user's full record, fetched once and kept for both dialogs. */
+    const ensureDetails = async (idUsers: number): Promise<UserType | null> => {
+        if (details[idUsers]) return details[idUsers];
+        try {
+            const res = await fetch(`/api/admin/users/${idUsers}`, getRequestOptions());
+            const data = await res.json();
+            if (!res.ok) {
+                Swal.fire("Error", data.message || "Could not load this user", "error");
+                return null;
+            }
+            setDetails((d) => ({ ...d, [idUsers]: data.data }));
+            setSelectedUser((s) => (s && s.idUsers === idUsers ? { ...s, ...data.data } : s));
+            return data.data;
+        } catch {
+            Swal.fire("Error", "Could not load this user", "error");
+            return null;
+        }
+    };
 
     const verifyUserInformation = async (idUsers: number, verificationType: string, verificationStatus: string = "") => {
         try {
@@ -119,13 +193,10 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
             if (data.success) {
                 Swal.fire("Success", data.message, "success");
                 setSelectedUser(data.userData);
-                let updatedUsers = usersList.map((user) => {
-                    if (user.idUsers === idUsers) {
-                        return { ...user, ...data.userData };
-                    }
-                    return user;
-                });
-                setUsersList(updatedUsers);
+                setDetails((d) => ({ ...d, [idUsers]: { ...d[idUsers], ...data.userData } }));
+                setRows((list) => list.map((user) => (user.idUsers === idUsers ? { ...user, ...data.userData } : user)));
+                // The change may move the user out of the current filter.
+                setReloadKey((k) => k + 1);
             } else {
                 Swal.fire("Error", data.message, "error");
             }
@@ -136,86 +207,32 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
         }
     };
 
-    useEffect(() => {
-        let tempUsers = [...usersList];
-
-        if (filters.name) {
-            tempUsers = tempUsers.filter(
-                (user) =>
-                    user.fullName &&
-                    user.fullName.toLowerCase().includes(filters.name.toLowerCase())
-            );
-        }
-        if (filters.phoneEmail) {
-            tempUsers = tempUsers.filter(
-                (user) =>
-                    (user.phoneNumber &&
-                        user.phoneNumber.toLowerCase().includes(filters.phoneEmail.toLowerCase())) ||
-                    (user.email && user.email.toLowerCase().includes(filters.phoneEmail.toLowerCase()))
-            );
-        }
-        if (filters.userType) {
-            tempUsers = tempUsers.filter(
-                (user) =>
-                    user.userType &&
-                    user.userType.toLowerCase().includes(filters.userType.toLowerCase())
-            );
-        }
-        if (filters.age) {
-            tempUsers = tempUsers.filter((user) => user.age && user.age.toString() === filters.age);
-        }
-        if (filters.joining) {
-            tempUsers = tempUsers.filter(
-                (user) =>
-                    user.createdAt &&
-                    dhakaDmy(user.createdAt).includes(filters.joining)
-            );
-        }
-        if (filters.partnerType) {
-            tempUsers = tempUsers.filter(
-                (user) =>
-                    user.disability &&
-                    user.disability.toLowerCase().includes(filters.partnerType.toLowerCase())
-            );
-        }
-        if (filters.status) {
-            tempUsers = tempUsers.filter(
-                (user) => user.status && user.status.toLowerCase() === filters.status.toLowerCase()
-            );
-        }
-        if (filters.nid) {
-            tempUsers = tempUsers.filter((user) => user.nidVerified === filters.nid);
-        }
-        if (filters.email) {
-            tempUsers = tempUsers.filter((user) => user.emailVerified === filters.email);
-        }
-        if (filters.phone) {
-            tempUsers = tempUsers.filter((user) => user.phoneVerified === filters.phone);
-        }
-
-        setFilteredUsers(tempUsers);
-        setCurrentPage(1);
-    }, [filters, usersList]);
-
-    const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-
-    const paginateUsers = filteredUsers.slice(
-        (currentPage - 1) * usersPerPage,
-        currentPage * usersPerPage
-    );
-
     const handlePageChange = (pageNumber: number) => {
         setCurrentPage(Math.min(Math.max(1, pageNumber), Math.max(1, totalPages)));
     };
 
-    const set = (key: keyof typeof EMPTY_FILTERS) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    // A changed filter starts again from page 1.
+    const set = (key: keyof typeof EMPTY_FILTERS) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFilters({ ...filters, [key]: e.target.value });
+        setCurrentPage(1);
+    };
     const filtered = Object.values(filters).some(Boolean);
 
-    const openDetails = (user: UserType) => {
-        setSelectedUser(user);
+    const openDetails = (user: Row) => {
+        setSelectedUser(details[user.idUsers] ? { ...user, ...details[user.idUsers] } : user);
         setShowUserDetailsModal(true);
+        void ensureDetails(user.idUsers);
     };
+
+    const openBanks = (user: Row) => {
+        setBankModalUser(user);
+        setShowBankModal(true);
+        void ensureDetails(user.idUsers);
+    };
+
+    const selectedLoaded = Boolean(selectedUser && details[selectedUser.idUsers]);
+    const bankDetails = bankModalUser ? details[bankModalUser.idUsers] : undefined;
+    const first = total ? (currentPage - 1) * USERS_PAGE_SIZE + 1 : 0;
 
     return (
         <div className="ui">
@@ -224,8 +241,9 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                 title="Investors & users"
                 description="Everyone with an account — investors, partners and admins. Open a name for details and verification."
                 actions={
-                    <span className="tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-600 tw-ring-1 tw-ring-slate-200">
-                        {filteredUsers.length.toLocaleString("en-IN")} {filtered ? "matching" : "users"}
+                    <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-medium tw-tabular-nums tw-text-slate-600 tw-ring-1 tw-ring-slate-200">
+                        {listLoading && <Loader2 className="tw-h-3 tw-w-3 tw-animate-spin tw-text-slate-400" aria-hidden />}
+                        {total.toLocaleString("en-IN")} {filtered ? "matching" : "users"}
                     </span>
                 }
             />
@@ -286,7 +304,14 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                 </div>
                 {filtered && (
                     <div className="tw-mt-3 tw-flex tw-justify-end">
-                        <Button size="sm" variant="ghost" onClick={() => setFilters(EMPTY_FILTERS)}>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                                setFilters(EMPTY_FILTERS);
+                                setCurrentPage(1);
+                            }}
+                        >
                             <RotateCcw className="tw-h-3.5 tw-w-3.5" aria-hidden /> Clear filters
                         </Button>
                     </div>
@@ -299,11 +324,7 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         page={currentPage}
                         totalPages={totalPages}
                         onChange={handlePageChange}
-                        summary={
-                            filteredUsers.length
-                                ? `Showing ${(currentPage - 1) * usersPerPage + 1}–${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length.toLocaleString("en-IN")}`
-                                : "No users"
-                        }
+                        summary={total ? `Showing ${first}–${Math.min(currentPage * USERS_PAGE_SIZE, total)} of ${total.toLocaleString("en-IN")}` : "No users"}
                     />
                 }
             >
@@ -320,10 +341,10 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                         <th className={TH}>Bank</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {paginateUsers.length > 0 ? (
-                        paginateUsers.map((user, index) => (
-                            <tr key={index} className={TR}>
+                <tbody className={cx("tw-transition-opacity", listLoading && "tw-opacity-60")} aria-busy={listLoading}>
+                    {rows.length > 0 ? (
+                        rows.map((user) => (
+                            <tr key={user.idUsers} className={TR}>
                                 <td className={cx(TD, "tw-tabular-nums tw-text-slate-400")}>{user.idUsers}</td>
                                 <td className={TD}>
                                     <button type="button" onClick={() => openDetails(user)} className="tw-group tw-flex tw-items-center tw-gap-3 tw-text-left">
@@ -350,13 +371,10 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                     <VerifyTicks nid={user.nidVerified === "yes"} phone={user.phoneVerified === "yes"} email={user.emailVerified === "yes"} />
                                 </td>
                                 <td className={TD}>
-                                    {user.UserBanks && user.UserBanks.length > 0 ? (
+                                    {(user.bankCount ?? 0) > 0 ? (
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setBankModalUser(user);
-                                                setShowBankModal(true);
-                                            }}
+                                            onClick={() => openBanks(user)}
                                             className="tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-lg tw-px-2 tw-py-1 tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-bg-brand-50"
                                         >
                                             <Landmark className="tw-h-3.5 tw-w-3.5" aria-hidden /> View
@@ -421,112 +439,134 @@ const UserList: NextPage<UserListProps> = ({ users }) => {
                                 </div>
                             </div>
 
-                            <dl className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-3 tw-p-6 tw-text-sm sm:tw-grid-cols-2">
-                                {(
-                                    [
-                                        ["Date of birth", selectedUser.dateOfBirth ? date(String(selectedUser.dateOfBirth)) : "—"],
-                                        ["Age", selectedUser.age],
-                                        ["Location", selectedUser.location],
-                                        ["Role", selectedUser.role],
-                                        ["Education", selectedUser.education],
-                                        ["Disability", selectedUser.disability],
-                                        ["Partner type", selectedUser.partnerType],
-                                        ["Interested in", selectedUser.interestedIn],
-                                        ["Skills", selectedUser.skills],
-                                    ] as [string, React.ReactNode][]
-                                ).map(([label, value]) => (
-                                    <div key={label}>
-                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">{label}</dt>
-                                        <dd className="tw-mt-0.5 tw-text-slate-800">{value || "—"}</dd>
-                                    </div>
-                                ))}
-                                <div className="sm:tw-col-span-2">
-                                    <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bio</dt>
-                                    <dd className="tw-mt-0.5 tw-whitespace-pre-line tw-text-slate-800">{selectedUser.bio || "—"}</dd>
-                                </div>
-                            </dl>
-
-                            {selectedUser.nidVerificationStatus != "none" && (
-                                <div className="tw-border-t tw-border-slate-100 tw-p-6">
-                                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-                                        <h3 className="tw-text-sm tw-font-semibold tw-text-slate-900">NID</h3>
-                                        <span className="tw-text-sm tw-tabular-nums tw-text-slate-600">{selectedUser.nidNumber}</span>
-                                        {selectedUser.nidVerified == "yes" ? (
-                                            <Pill tone="green">Verified</Pill>
-                                        ) : (
-                                            <Pill tone={selectedUser.nidVerificationStatus == "rejected" ? "rose" : "amber"}>{capitalise(selectedUser.nidVerificationStatus)}</Pill>
-                                        )}
-                                        {selectedUser.nidVerified != "yes" && selectedUser.nidVerificationStatus == "pending" && (
-                                            <span className="tw-ml-auto tw-flex tw-gap-2">
-                                                <Button size="sm" variant="success" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "approved") }}>
-                                                    Approve
-                                                </Button>
-                                                <Button size="sm" variant="danger" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "rejected") }}>
-                                                    Reject
-                                                </Button>
-                                            </span>
-                                        )}
-                                    </div>
-                                    {/* Served through an authenticated route rather than the
-                                        public bucket URL. These are national ID cards; the route
-                                        checks that the caller is the owner or an admin and
-                                        redirects to a five-minute presigned URL. It takes the
-                                        user id, not a filename, so a leaked filename grants
-                                        nothing. */}
-                                    <div className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2">
-                                        {(["front", "back"] as const).map((side) => (
-                                            <figure key={side} className="tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img className="tw-w-full" src={`/api/files/nid/${selectedUser.idUsers}?side=${side}`} alt={`NID ${side}`} />
-                                                <figcaption className="tw-border-t tw-border-slate-200 tw-px-3 tw-py-1.5 tw-text-xs tw-capitalize tw-text-slate-500">{side}</figcaption>
-                                            </figure>
+                            {selectedLoaded ? (
+                                <>
+                                    <dl className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-3 tw-p-6 tw-text-sm sm:tw-grid-cols-2">
+                                        {(
+                                            [
+                                                ["Date of birth", selectedUser.dateOfBirth ? date(String(selectedUser.dateOfBirth)) : "—"],
+                                                ["Age", selectedUser.age],
+                                                ["Location", selectedUser.location],
+                                                ["Role", selectedUser.role],
+                                                ["Education", selectedUser.education],
+                                                ["Disability", selectedUser.disability],
+                                                ["Partner type", selectedUser.partnerType],
+                                                ["Interested in", selectedUser.interestedIn],
+                                                ["Skills", selectedUser.skills],
+                                            ] as [string, React.ReactNode][]
+                                        ).map(([label, value]) => (
+                                            <div key={label}>
+                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">{label}</dt>
+                                                <dd className="tw-mt-0.5 tw-text-slate-800">{value || "—"}</dd>
+                                            </div>
                                         ))}
-                                    </div>
+                                        <div className="sm:tw-col-span-2">
+                                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bio</dt>
+                                            <dd className="tw-mt-0.5 tw-whitespace-pre-line tw-text-slate-800">{selectedUser.bio || "—"}</dd>
+                                        </div>
+                                    </dl>
+
+                                    {selectedUser.nidVerificationStatus != "none" && (
+                                        <div className="tw-border-t tw-border-slate-100 tw-p-6">
+                                            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                                <h3 className="tw-text-sm tw-font-semibold tw-text-slate-900">NID</h3>
+                                                <span className="tw-text-sm tw-tabular-nums tw-text-slate-600">{selectedUser.nidNumber}</span>
+                                                {selectedUser.nidVerified == "yes" ? (
+                                                    <Pill tone="green">Verified</Pill>
+                                                ) : (
+                                                    <Pill tone={selectedUser.nidVerificationStatus == "rejected" ? "rose" : "amber"}>{capitalise(selectedUser.nidVerificationStatus)}</Pill>
+                                                )}
+                                                {selectedUser.nidVerified != "yes" && selectedUser.nidVerificationStatus == "pending" && (
+                                                    <span className="tw-ml-auto tw-flex tw-gap-2">
+                                                        <Button size="sm" variant="success" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "approved") }}>
+                                                            Approve
+                                                        </Button>
+                                                        <Button size="sm" variant="danger" disabled={isLoading} onClick={() => { verifyUserInformation(selectedUser.idUsers, "nid", "rejected") }}>
+                                                            Reject
+                                                        </Button>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Served through an authenticated route rather than the
+                                                public bucket URL. These are national ID cards; the route
+                                                checks that the caller is the owner or an admin and
+                                                redirects to a five-minute presigned URL. It takes the
+                                                user id, not a filename, so a leaked filename grants
+                                                nothing. */}
+                                            <div className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2">
+                                                {(["front", "back"] as const).map((side) => (
+                                                    <figure key={side} className="tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50">
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img className="tw-w-full" src={`/api/files/nid/${selectedUser.idUsers}?side=${side}`} alt={`NID ${side}`} />
+                                                        <figcaption className="tw-border-t tw-border-slate-200 tw-px-3 tw-py-1.5 tw-text-xs tw-capitalize tw-text-slate-500">{side}</figcaption>
+                                                    </figure>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-4 tw-p-6 sm:tw-grid-cols-2" aria-busy="true" aria-label="Loading details">
+                                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                                        <div key={i} className="tw-space-y-1.5">
+                                            <Skeleton className="tw-h-3 tw-w-20" />
+                                            <Skeleton className="tw-h-4 tw-w-40" />
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
                     </Modal.Body>
                 </Modal>
             )}
-            {bankModalUser && bankModalUser.UserBanks && (
+            {bankModalUser && (
                 <Modal size="lg" show={showBankModal} onHide={() => setShowBankModal(false)}>
                     <Modal.Header closeButton>
                         <Modal.Title>Bank information — {bankModalUser.fullName}</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <div className="ui tw-space-y-3">
-                            {bankModalUser.UserBanks.map((ub, i) => (
-                                <dl key={i} className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-2 tw-rounded-xl tw-border tw-border-slate-200 tw-p-4 tw-text-sm sm:tw-grid-cols-2">
-                                    <div>
-                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account name</dt>
-                                        <dd className="tw-mt-0.5 tw-text-slate-800">{ub.accountHolderName}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account number</dt>
-                                        <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.accountNumber}</dd>
-                                    </div>
-                                    {ub.Bank && (
+                            {!bankDetails ? (
+                                <div className="tw-space-y-2" aria-busy="true" aria-label="Loading bank information">
+                                    <Skeleton className="tw-h-4 tw-w-48" />
+                                    <Skeleton className="tw-h-4 tw-w-64" />
+                                </div>
+                            ) : (bankDetails.UserBanks ?? []).length === 0 ? (
+                                <p className="tw-text-sm tw-text-slate-500">No bank account on file.</p>
+                            ) : (
+                                (bankDetails.UserBanks ?? []).map((ub, i) => (
+                                    <dl key={i} className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-2 tw-rounded-xl tw-border tw-border-slate-200 tw-p-4 tw-text-sm sm:tw-grid-cols-2">
                                         <div>
-                                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bank</dt>
-                                            <dd className="tw-mt-0.5 tw-text-slate-800">
-                                                {ub.Bank.bankNameFull} ({ub.Bank.bankNameShort})
-                                            </dd>
+                                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account name</dt>
+                                            <dd className="tw-mt-0.5 tw-text-slate-800">{ub.accountHolderName}</dd>
                                         </div>
-                                    )}
-                                    {ub.BankBranch && (
-                                        <>
+                                        <div>
+                                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Account number</dt>
+                                            <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.accountNumber}</dd>
+                                        </div>
+                                        {ub.Bank && (
                                             <div>
-                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Branch</dt>
-                                                <dd className="tw-mt-0.5 tw-text-slate-800">{ub.BankBranch.branchName}</dd>
+                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Bank</dt>
+                                                <dd className="tw-mt-0.5 tw-text-slate-800">
+                                                    {ub.Bank.bankNameFull} ({ub.Bank.bankNameShort})
+                                                </dd>
                                             </div>
-                                            <div>
-                                                <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Routing number</dt>
-                                                <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.BankBranch.routingNumber}</dd>
-                                            </div>
-                                        </>
-                                    )}
-                                </dl>
-                            ))}
+                                        )}
+                                        {ub.BankBranch && (
+                                            <>
+                                                <div>
+                                                    <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Branch</dt>
+                                                    <dd className="tw-mt-0.5 tw-text-slate-800">{ub.BankBranch.branchName}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Routing number</dt>
+                                                    <dd className="tw-mt-0.5 tw-tabular-nums tw-text-slate-800">{ub.BankBranch.routingNumber}</dd>
+                                                </div>
+                                            </>
+                                        )}
+                                    </dl>
+                                ))
+                            )}
                         </div>
                     </Modal.Body>
                 </Modal>
@@ -544,28 +584,14 @@ UserList.getLayout = function PageLayout(page: any) {
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
     // This query runs before any client-side layout check, and its result is
-    // embedded in the served HTML — so without this guard the whole user table
-    // (email, phone, NID, bank accounts) was readable by an anonymous request.
+    // embedded in the served HTML — so without this guard user data would be
+    // readable by an anonymous request.
     if (!requireAdminPage(context)) return redirectToLogin;
 
-    const users = await User.findAll({
-        // Everything the page shows, minus the password hash: it is never
-        // displayed, and every row's hash was being serialised into the HTML.
-        attributes: { exclude: ['password'] },
-        order: [['idUsers', 'DESC']],
-        include: [
-            {
-                model: UserBank,
-                include: [
-                    { model: Bank },
-                    { model: BankBranch },
-                ],
-            },
-        ],
-    });
+    const initial = await listUsers({}, 1, USERS_PAGE_SIZE);
     return {
         props: {
-            users: JSON.parse(JSON.stringify(users)),
+            initial: JSON.parse(JSON.stringify(initial)),
         },
     };
 }
