@@ -97,8 +97,19 @@ export default async function handler(
 				{
 					model: PartnerAdditionalInfo,
 					as: 'PartnerAdditionalInfo',
-					required: false,
-					where: gender ? { gender: { [Op.like]: `%${gender}%` } } : undefined
+					// Required only while filtering by gender. With `required: false`
+					// the condition sat in a LEFT JOIN, so the filter never removed
+					// anyone — it only blanked the household details of the partners
+					// who did not match. Without a filter, partners who have no
+					// household details are still listed.
+					required: Boolean(gender),
+					// Exact for the three options the filter offers: LIKE '%Male%' also
+					// matched every "Female". Anything else is still a partial match.
+					where: gender
+						? ['Male', 'Female', 'Other'].includes(String(gender))
+							? { gender: String(gender) }
+							: { gender: { [Op.like]: `%${gender}%` } }
+						: undefined
 				}],
 
 				where: whereClause,

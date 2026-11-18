@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Col, Container, Form, Row, Spinner, Tab, Tabs, Table, Card } from 'react-bootstrap';
+import Link from 'next/link';
 import { API_URL } from '@/config/public';
-import { Editor } from '@tinymce/tinymce-react';
 import MainLayout from '@/layouts/MainLayout';
-import Select from 'react-select';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { useRouter } from 'next/router';
 import { getRequestOptions } from "@/utils/Fetch";
 import { S3_URL } from '@/config/public';
+import { ArrowLeft, ImageOff, Loader2, Trash2 } from 'lucide-react';
+import { Avatar, Card, SafeImg, Skeleton } from '@/ui/primitives';
+import { Button, Field, FileInput, Input, Textarea } from '@/ui/controls';
+import { FormSection, LocalPreview } from '@/components/projects/ProjectFormParts';
+import { PartnerProfileSections } from '@/components/partners/PartnerFormParts';
 
 interface FormDataType {
     name: string,
@@ -83,11 +86,11 @@ function PartnerEdit() {
         livelihood_activity_bn: '',
         primary_goal_bn: ''
     });
-    const bioRef = useRef<any>(null);
     const profilePicRef = useRef<HTMLInputElement>(null);
     const featuredImagesRef = useRef<HTMLInputElement>(null);
     const [skills, setSkills] = useState<Skills[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const [loaded, setLoaded] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchSkills = async () => {
@@ -152,6 +155,7 @@ function PartnerEdit() {
                         livelihood_activity_bn: partnerData.PartnerAdditionalInfo?.livelihood_activity_bn || '',
                         primary_goal_bn: partnerData.PartnerAdditionalInfo?.primary_goal_bn || ''
                     });
+                    setLoaded(true);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -172,11 +176,7 @@ function PartnerEdit() {
         }
     }, [id]);
 
-    // useEffect(() => {
-    //     bioRef.current?.setContent(formData.bio);
-    // }, [formData.bio]);
-
-    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -329,428 +329,169 @@ function PartnerEdit() {
         });
     };
 
+    const removeFeaturedImage = (index: number) => {
+        setFormData(prevFormData => ({
+            ...prevFormData,
+            featuredImages: prevFormData.featuredImages?.filter((img: any, i: number) => i !== index)
+        }));
+    };
+
+    const featured: any[] = formData.featuredImages ?? [];
+    const existingPicture = formData.profilePicture && formData.profilePicture.idFiles !== undefined ? formData.profilePicture : null;
+
     return (
-        <>
-            <Container>
-                <h4 className="text-start">Partner Edit</h4>
-                <hr />
-                <Form onSubmit={handleSubmit}>
-                    <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
-                        <Tab eventKey="details" title="Details">
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Name <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Enter your full name"
-                                                name="name"
-                                                onChange={handleOnChange}
-                                                value={formData.name}
+        <div className="ui">
+            <Link href={`/partners/details/${id ?? ''}`} className="tw-mb-3 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-medium tw-text-slate-500 hover:tw-text-slate-900">
+                <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> Back to partner
+            </Link>
+            <div className="tw-mb-6">
+                <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.14em] tw-text-brand-700">Edit partner{id ? ` #${id}` : ''}</p>
+                {loaded ? (
+                    <h1 className="tw-mt-1 tw-text-[26px] tw-font-semibold tw-leading-8 tw-tracking-tight tw-text-slate-900">{formData.name || 'Unnamed partner'}</h1>
+                ) : (
+                    <Skeleton className="tw-mt-2 tw-h-7 tw-w-56" />
+                )}
+            </div>
 
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row}>
-                                        <Form.Label column sm='4' className='mb-3'>Phone Number <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type="number"
-                                                placeholder="Enter your phone number"
-                                                name="phoneNumber"
-                                                onChange={handleOnChange}
-                                                value={formData.phoneNumber}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Age <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type="number"
-                                                placeholder="Enter your age"
-                                                name="age"
-                                                onChange={handleOnChange}
-                                                value={formData.age}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Role <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Enter your role"
-                                                name="role"
-                                                onChange={handleOnChange}
-                                                value={formData.role}
-                                            />
-                                        </Col>
-                                    </Form.Group>
+            <form onSubmit={handleSubmit} className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 xl:tw-grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="tw-min-w-0 tw-space-y-6">
+                    <PartnerProfileSections
+                        formData={formData}
+                        onChange={handleOnChange}
+                        patch={(fields) => setFormData({ ...formData, ...(fields as Partial<FormDataType>) })}
+                        skills={skills}
+                        onSkillsChange={handleSkillsChange}
+                    />
 
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Skills <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Select
-                                                id="long-value-select"
-                                                instanceId="long-value-select"
-                                                options={skills}
-                                                value={formData.multiSkills}
-                                                onChange={handleSkillsChange}
-                                                menuPosition='fixed'
-                                                isMulti
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Joining Date <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='date'
-                                                name="joiningDate"
-                                                onChange={handleOnChange}
-                                                value={formData.joiningDate}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Location / Address <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter your current location/address"
-                                                name="location"
-                                                onChange={handleOnChange}
-                                                value={formData.location}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Disabilty <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Select
-                                                id="disability"
-                                                instanceId="disability"
-                                                options={[
-                                                    { value: 'yes', label: 'Yes' },
-                                                    { value: 'no', label: 'No' }
-                                                ]}
-                                                value={{ value: formData.disability, label: formData.disability === 'yes' ? 'Yes' : 'No' }}
-                                                onChange={(selectedOption: any) => setFormData({ ...formData, disability: selectedOption.value })}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Partner Type</Form.Label>
-                                        <Col sm='8'>
-                                            <Select
-                                                id="partnerType"
-                                                instanceId="partnerType"
-                                                options={[
-                                                    { value: 'none', label: 'None' },
-                                                    { value: 'project', label: 'Project' },
-                                                    { value: 'product', label: 'Product' },
-                                                    { value: 'both', label: 'Both' }
-                                                ]}
-                                                value={{ value: formData.partnerType, label: formData.partnerType === 'none' ? 'None' : formData.partnerType === 'project' ? 'Project' : formData.partnerType === 'product' ? 'Product' : 'Both' }}
-                                                onChange={(selectedOption: any) => setFormData({ ...formData, partnerType: selectedOption.value })}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Gender <span className='text-danger'>*</span></Form.Label>
-                                        <Col sm='8'>
-                                            <Select
-                                                id="gender"
-                                                instanceId="gender"
-                                                options={[
-                                                    { value: 'Male', label: 'Male' },
-                                                    { value: 'Female', label: 'Female' },
-                                                    { value: 'Other', label: 'Other' }
-                                                ]}
-                                                value={{ value: formData.gender, label: formData.gender }}
-                                                onChange={(selectedOption: any) => setFormData({ ...formData, gender: selectedOption.value })}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                </Col>
-                                <Col sm={6}>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Education</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter your last degree"
-                                                name="education"
-                                                onChange={handleOnChange}
-                                                value={formData.education}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Interested In</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter your interested projects"
-                                                name="interestedIn"
-                                                onChange={handleOnChange}
-                                                value={formData.interestedIn}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Bio</Form.Label>
-                                        <Col sm='8' style={{ zIndex: '0' }}>
-                                            {/* <Editor
-                                                apiKey="abqylwi3epqtdz7e4t0aasmr5f62etpkkrrd9kiuktqf004r"
-                                                onInit={(evt, editor) => bioRef.current = editor}
-                                                id='painPoints'
-                                                init={{
-                                                    height: 360,
-                                                    plugins: [
-                                                        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                                                        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                                        'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                                                    ],
-                                                    toolbar: 'undo redo | blocks | ' +
-                                                        'bold italic backcolor | alignleft aligncenter ' +
-                                                        'alignright alignjustify | bullist numlist outdent indent | ' +
-                                                        'removeformat | help',
-                                                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-                                                }}
-                                            /> */}
-                                            <Form.Control
-                                                as="textarea"
-                                                placeholder="Enter partners bio"
-                                                name="bio"
-                                                onChange={handleOnChange}
-                                                value={formData.bio}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Household Size</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter household size"
-                                                name="household_size"
-                                                onChange={handleOnChange}
-                                                value={formData.household_size}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Dependents Size</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter dependents size"
-                                                name="dependents_size"
-                                                onChange={handleOnChange}
-                                                value={formData.dependents_size}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Livelihood Activity</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                type='text'
-                                                placeholder="Enter livelihood activity"
-                                                name="livelihood_activity"
-                                                onChange={handleOnChange}
-                                                value={formData.livelihood_activity}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Primary Goal</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control
-                                                as="textarea"
-                                                placeholder="Enter primary goal"
-                                                name="primary_goal"
-                                                onChange={handleOnChange}
-                                                value={formData.primary_goal}
-                                            />
-                                        </Col>
-                                    </Form.Group>
-                                </Col>
-                                {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
-                            </Row>
-                        </Tab>
-                        <Tab eventKey="images" title="Images">
-                            <Row>
-                                <Col md={6}>
-                                    <Card className='mb-3'>
-                                        <Card.Header className='text-center'>Profile Picture</Card.Header>
-                                        <Card.Body>
-                                            <Form.Group as={Row} className='mb-3'>
-                                                <Col sm='12'>
-                                                    <Form.Control type="file" onChange={handleFileUpload} ref={profilePicRef} />
-                                                </Col>
-                                            </Form.Group>
-                                            {(formData.profilePicture !== undefined || formData.profilePicture !== null) && (
-                                                <>
-                                                    {formData.profilePicture?.idFiles !== undefined ? (
-                                                        <img
-                                                            src={`${S3_URL}profile-picture/${id}/${formData.profilePicture?.fileName}`}
-                                                            alt={formData.profilePicture?.originalFileName}
-                                                            width={100}
-                                                            height={100}
-                                                        />
+                    {/*
+                      Bangla profile copy, grouped in its own section rather than
+                      interleaved with the English fields. The partner profile is
+                      mirrored on the public website in Bangla, and translation
+                      happens as a separate pass after the English record exists —
+                      so these all stay optional, and every blank field falls back
+                      to its English counterpart at render time.
+
+                      Contact, identity and verification fields are deliberately
+                      absent: they are data, not copy, and are not translated.
+                    */}
+                    <FormSection title="বাংলা / Bangla" description="Every field here is optional. Anything left blank falls back to the English value, so a partly translated profile still renders.">
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+                            <Field label="Full name (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="পুরো নাম" name="fullNameBn" onChange={handleOnChange} value={formData.fullNameBn} />
+                            </Field>
+                            <Field label="Role (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="ভূমিকা" name="roleBn" onChange={handleOnChange} value={formData.roleBn} />
+                            </Field>
+                            <Field label="Location (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="অবস্থান" name="locationBn" onChange={handleOnChange} value={formData.locationBn} />
+                            </Field>
+                            <Field label="Education (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="সর্বশেষ ডিগ্রি" name="educationBn" onChange={handleOnChange} value={formData.educationBn} />
+                            </Field>
+                            <Field label="Skills (বাংলা)" hint="Comma-separated, matching the English skills list.">
+                                <Input type="text" lang="bn" placeholder="দক্ষতা — কমা দিয়ে আলাদা করুন" name="skillsBn" onChange={handleOnChange} value={formData.skillsBn} />
+                            </Field>
+                            <Field label="Interested in (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="আগ্রহের বিষয়" name="interestedInBn" onChange={handleOnChange} value={formData.interestedInBn} />
+                            </Field>
+                            <Field label="Livelihood activity (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="জীবিকার কাজ" name="livelihood_activity_bn" onChange={handleOnChange} value={formData.livelihood_activity_bn} />
+                            </Field>
+                            <Field label="Primary goal (বাংলা)">
+                                <Input type="text" lang="bn" placeholder="প্রধান লক্ষ্য" name="primary_goal_bn" onChange={handleOnChange} value={formData.primary_goal_bn} />
+                            </Field>
+                            <Field label="Bio (বাংলা)" className="sm:tw-col-span-2">
+                                <Textarea rows={5} lang="bn" placeholder="সংক্ষিপ্ত পরিচিতি" name="bioBn" onChange={handleOnChange} value={formData.bioBn} />
+                            </Field>
+                        </div>
+                    </FormSection>
+
+                    <FormSection title="Images" description="JPEG or PNG. New featured images are added to the existing ones.">
+                        <div className="tw-grid tw-grid-cols-1 tw-gap-6 md:tw-grid-cols-[12rem_minmax(0,1fr)]">
+                            <div>
+                                <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">Profile picture</p>
+                                {formData.profilePicture instanceof File ? (
+                                    <LocalPreview file={formData.profilePicture} className="tw-h-40 tw-w-40 tw-rounded-2xl tw-object-cover tw-ring-1 tw-ring-slate-200" />
+                                ) : (
+                                    <SafeImg
+                                        src={existingPicture ? `${S3_URL}profile-picture/${id}/${existingPicture.fileName}` : null}
+                                        alt={existingPicture?.originalFileName}
+                                        className="tw-h-40 tw-w-40 tw-rounded-2xl tw-object-cover tw-ring-1 tw-ring-slate-200"
+                                        fallback={
+                                            <span className="tw-flex tw-h-40 tw-w-40 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-slate-50 tw-ring-1 tw-ring-slate-200">
+                                                <Avatar name={formData.name || '?'} seed={Number(id) || 0} size="lg" />
+                                            </span>
+                                        }
+                                    />
+                                )}
+                                <FileInput className="tw-mt-3" accept="image/jpeg,image/png" onChange={handleFileUpload} ref={profilePicRef} aria-label="Replace the profile picture" />
+                            </div>
+                            <div className="tw-min-w-0">
+                                <p className="tw-mb-1.5 tw-text-xs tw-font-medium tw-text-slate-600">Featured images</p>
+                                {featured.length === 0 ? (
+                                    <p className="tw-rounded-xl tw-border tw-border-dashed tw-border-slate-200 tw-px-4 tw-py-6 tw-text-center tw-text-sm tw-text-slate-400">No featured images</p>
+                                ) : (
+                                    <ul className="tw-grid tw-grid-cols-2 tw-gap-3 sm:tw-grid-cols-3">
+                                        {featured.map((image: any, index: number) => {
+                                            const isNew = image instanceof File;
+                                            const name = isNew ? image.name : image.originalFileName;
+                                            return (
+                                                <li key={isNew ? `new-${index}-${image.name}` : image.idFiles} className="tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200">
+                                                    {isNew ? (
+                                                        <LocalPreview file={image} className="tw-aspect-[4/3] tw-w-full tw-object-cover" />
                                                     ) : (
-                                                        formData.profilePicture && formData.profilePicture instanceof File && (
-                                                            <img
-                                                                src={URL.createObjectURL(formData.profilePicture)}
-                                                                alt={formData.profilePicture.name}
-                                                                width={100}
-                                                                height={100}
+                                                        <a href={`${S3_URL}featured-image/${id}/${image.fileName}`} target="_blank" rel="noopener noreferrer" className="tw-block">
+                                                            <SafeImg
+                                                                src={`${S3_URL}featured-image/${id}/${image.fileName}`}
+                                                                alt={image.originalFileName}
+                                                                className="tw-aspect-[4/3] tw-w-full tw-object-cover"
+                                                                fallback={
+                                                                    <span className="tw-flex tw-aspect-[4/3] tw-w-full tw-items-center tw-justify-center tw-bg-slate-50 tw-text-slate-300">
+                                                                        <ImageOff className="tw-h-5 tw-w-5" aria-hidden />
+                                                                    </span>
+                                                                }
                                                             />
-                                                        )
+                                                        </a>
                                                     )}
-                                                </>
-                                            )}
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
-                                <Col md={6}>
-                                    <Card className='mb-3'>
-                                        <Card.Header className='text-center'>Featured Images</Card.Header>
-                                        <Card.Body>
-                                            <Form.Group as={Row} className='mb-3'>
-                                                <Col sm='12'>
-                                                    <Form.Control type="file" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} />
-                                                </Col>
-                                            </Form.Group>
-                                            <Table bordered>
-                                                <thead>
-                                                    <tr>
-                                                        <th>#</th>
-                                                        <th>Image</th>
-                                                        <th>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {formData.featuredImages?.map((image: any, index: number) => (
-                                                        <tr key={index}>
-                                                            <td>{index + 1}</td>
-                                                            <td>
-                                                                {image.idFiles !== undefined ? <a href={`${S3_URL}featured-image/${id}/${image.fileName}`} target="_blank" rel="noopener noreferrer">{image.originalFileName}</a> : <a href={URL.createObjectURL(image)} target="_blank" rel="noopener noreferrer">{image.name}</a>}
-                                                            </td>
-                                                            <td>
-                                                                <Button variant="danger" size="sm" onClick={() => {
-                                                                    setFormData(prevFormData => ({
-                                                                        ...prevFormData,
-                                                                        featuredImages: prevFormData.featuredImages?.filter((img: any, i: number) => i !== index)
-                                                                    }));
-                                                                }}>Remove</Button>
+                                                    <div className="tw-flex tw-items-center tw-gap-2 tw-border-t tw-border-slate-200 tw-bg-white tw-px-2.5 tw-py-1.5">
+                                                        <span className="tw-min-w-0 tw-flex-1 tw-truncate tw-text-xs tw-text-slate-600" title={name}>{name}</span>
+                                                        {isNew && <span className="tw-rounded tw-bg-sky-50 tw-px-1.5 tw-text-[10px] tw-font-semibold tw-text-sky-700">NEW</span>}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFeaturedImage(index)}
+                                                            className="tw-rounded-md tw-p-1 tw-text-slate-400 hover:tw-bg-rose-50 hover:tw-text-rose-600"
+                                                            aria-label={`Remove ${name}`}
+                                                        >
+                                                            <Trash2 className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                                        </button>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                                <FileInput className="tw-mt-3" accept="image/jpeg,image/png" multiple onChange={handleFeatureImageUpload} ref={featuredImagesRef} aria-label="Add featured images" />
+                            </div>
+                        </div>
+                    </FormSection>
+                </div>
 
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </Table>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
-                            </Row>
-                        </Tab>
-                        {/*
-                          Bangla profile copy, grouped in its own tab rather than
-                          interleaved with the English fields. The partner profile is
-                          mirrored on the public website in Bangla, and translation
-                          happens as a separate pass after the English record exists —
-                          so these all stay optional, and every blank field falls back
-                          to its English counterpart at render time.
-
-                          Contact, identity and verification fields are deliberately
-                          absent: they are data, not copy, and are not translated.
-                        */}
-                        <Tab eventKey="bangla" title="বাংলা / Bangla">
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Full name (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="পুরো নাম" name="fullNameBn" onChange={handleOnChange} value={formData.fullNameBn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Role (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="ভূমিকা" name="roleBn" onChange={handleOnChange} value={formData.roleBn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Location (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="অবস্থান" name="locationBn" onChange={handleOnChange} value={formData.locationBn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Education (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="সর্বশেষ ডিগ্রি" name="educationBn" onChange={handleOnChange} value={formData.educationBn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Skills (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="দক্ষতা — কমা দিয়ে আলাদা করুন" name="skillsBn" onChange={handleOnChange} value={formData.skillsBn} />
-                                            <Form.Text muted>Comma-separated, matching the English skills list.</Form.Text>
-                                        </Col>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Interested in (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="আগ্রহের বিষয়" name="interestedInBn" onChange={handleOnChange} value={formData.interestedInBn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Livelihood activity (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="জীবিকার কাজ" name="livelihood_activity_bn" onChange={handleOnChange} value={formData.livelihood_activity_bn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Primary goal (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control type="text" lang="bn" placeholder="প্রধান লক্ষ্য" name="primary_goal_bn" onChange={handleOnChange} value={formData.primary_goal_bn} />
-                                        </Col>
-                                    </Form.Group>
-                                    <Form.Group as={Row} className='mb-3'>
-                                        <Form.Label column sm='4'>Bio (বাংলা)</Form.Label>
-                                        <Col sm='8'>
-                                            <Form.Control as="textarea" rows={6} lang="bn" placeholder="সংক্ষিপ্ত পরিচিতি" name="bioBn" onChange={handleOnChange} value={formData.bioBn} />
-                                        </Col>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col>
-                                    <p className="text-muted small mb-0">
-                                        Every field on this tab is optional. Anything left blank falls back to the
-                                        English value on the website, so a partly translated profile still renders.
-                                    </p>
-                                </Col>
-                            </Row>
-                        </Tab>
-                    </Tabs>
-                    <Row className='justify-content-center'>
-                        <Button className='w-25' variant="primary" type="submit" disabled={loading}>
-                            {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                            {loading ? 'Submitting...' : 'Submit'}
+                <aside className="xl:tw-sticky xl:tw-top-24">
+                    <Card className="tw-p-5">
+                        <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">Save changes</h2>
+                        <p className="tw-mt-1 tw-text-xs tw-text-slate-500">Removed images are dropped when you save; new ones are uploaded.</p>
+                        {/* Disabled until the partner has loaded: saving the empty form would blank the record. */}
+                        <Button variant="primary" type="submit" className="tw-mt-4 tw-w-full" disabled={loading || !loaded}>
+                            {loading && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden />}
+                            {loading ? 'Saving…' : 'Save partner'}
                         </Button>
-                    </Row>
-                </Form>
-            </Container>
-        </>
+                        <Link href={`/partners/details/${id ?? ''}`} className="tw-mt-2 tw-block tw-text-center tw-text-xs tw-font-medium tw-text-slate-500 hover:tw-text-slate-800">
+                            Cancel
+                        </Link>
+                    </Card>
+                </aside>
+            </form>
+        </div>
     );
 }
 

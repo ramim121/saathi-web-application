@@ -59,6 +59,9 @@ export function selectStyles<Option, IsMulti extends boolean = false, Group exte
             backgroundColor: state.isSelected ? '#eef7f2' : state.isFocused ? '#f8fafc' : 'transparent',
             '&:active': { backgroundColor: '#d6ece0' },
         }),
+        multiValue: (base) => ({ ...base, borderRadius: 8, backgroundColor: '#eef7f2' }),
+        multiValueLabel: (base) => ({ ...base, color: '#06442b', fontSize: 12, fontWeight: 500, padding: '2px 6px' }),
+        multiValueRemove: (base) => ({ ...base, borderRadius: 8, color: '#2b805b', '&:hover': { backgroundColor: '#d6ece0', color: '#06442b' } }),
         noOptionsMessage: (base) => ({ ...base, fontSize: 13, color: '#64748b' }),
         menuPortal: (base) => ({ ...base, zIndex: 1080 }),
     };
