@@ -1,17 +1,23 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import MainLayout from "@/layouts/MainLayout";
 import { useRouter } from "next/router";
 import { getRequestOptions, postRequestOptions } from "@/utils/Fetch";
-import { Container, Row, Table, Col, Tab, Tabs, Form, Button, Spinner } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { S3_URL } from '@/config/public';
-import Select from 'react-select';
+import ReactSelect from 'react-select';
+import { ArrowLeft, Download, ImageOff, Loader2, Package, Plus, Upload, UserPlus } from "lucide-react";
+import { Avatar, Card, Pill, SafeImg, Segmented, Skeleton, cx } from "@/ui/primitives";
+import { Button, Field, FileInput, Input, Required } from "@/ui/controls";
+import { EmptyRow, TableCard, TD, TH, TR } from "@/ui/layout";
+import { selectStyles } from "@/ui/select";
+import { bdtExact } from "@/ui/format";
+import { words } from "@/ui/status";
 
 interface DetailsProps {
-
     idProducts: number,
     productName: string,
     idProductCategories: number,
@@ -52,7 +58,6 @@ interface DetailsProps {
         packingName: string,
         size: string,
     }[]
-
 }
 
 interface PartnerProps {
@@ -69,6 +74,8 @@ interface PackingProps {
     size: string,
 }
 
+type Tab = 'overview' | 'images' | 'packings' | 'partners';
+
 function Details() {
     const router = useRouter();
     const { id } = router.query;
@@ -77,6 +84,7 @@ function Details() {
     const [images, setImages] = useState<any>('');
     const fileRef = useRef<HTMLInputElement>(null);
     const [reload, setReload] = useState<boolean>(false);
+    const [tab, setTab] = useState<Tab>('overview');
     const [assignedPartners, setAssignedPartners] = useState<PartnerProps>({
         idUsers: 0,
         fullName: '',
@@ -104,11 +112,13 @@ function Details() {
     useEffect(() => {
         if (reload) {
             fetchProductDetails();
+            // The partner tab's packing picker reads this list; it used to keep
+            // showing the old packings until the page was reloaded.
+            fetchProductPacking();
         }
     }, [reload])
 
     const fetchProductDetails = async () => {
-        setReload(true);
         try {
             const res = await fetch('/api/products/details/' + id, getRequestOptions());
             const data = await res.json();
@@ -180,14 +190,12 @@ function Details() {
         if (files) {
             const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
             const invalidFiles = [];
-
             for (let i = 0; i < files.length; i++) {
                 const fileType = files[i].type;
                 if (!validImageTypes.includes(fileType)) {
                     invalidFiles.push(files[i].name);
                 }
             }
-
             if (invalidFiles.length > 0) {
                 Swal.fire({
                     icon: 'error',
@@ -210,7 +218,6 @@ function Details() {
             });
             return;
         }
-
         Swal.fire({
             title: 'Are you sure?',
             text: 'Do you want to upload this images?',
@@ -238,7 +245,6 @@ function Details() {
                         headers: { 'Authorization': 'Bearer ' + getCookie('saathi-token') },
                         body: formData,
                     });
-
                     if (response.ok) {
                         Swal.fire({
                             icon: 'success',
@@ -246,6 +252,7 @@ function Details() {
                             text: 'Images uploaded successfully!',
                         });
                         fileRef.current!.value = '';
+                        setImages('');
                         setReload(true);
                     } else {
                         Swal.fire({
@@ -286,7 +293,6 @@ function Details() {
                 try {
                     setLoading(true);
                     const response = await fetch(API_URL + 'api/products/assign_partners', postRequestOptions(formData));
-
                     if (response.ok) {
                         Swal.fire({
                             icon: 'success',
@@ -343,7 +349,6 @@ function Details() {
                 try {
                     setLoading(true);
                     const response = await fetch(API_URL + 'api/products/add_packing', postRequestOptions(formData));
-
                     if (response.ok) {
                         Swal.fire({
                             icon: 'success',
@@ -375,238 +380,246 @@ function Details() {
         });
     };
 
+    const loaded = Boolean(details.idProducts);
+    const productImages = details.ProductImages ?? [];
+    const packings = details.ProductPackings ?? [];
+    const productPartners = details.ProductPartners ?? [];
+    const partnerOptions = partners.map((partner) => ({ ...partner, value: partner.idUsers, label: partner.fullName }));
+    const packingOptions = packingList.map((p) => ({ ...p, value: p.idProductPackings, label: p.packingName + ' - ' + p.size }));
+    const menuPortalTarget = typeof document !== 'undefined' ? document.body : undefined;
+
     return (
-        <Container>
-            <h4 className="text-start"> Product Details ({details?.productName})</h4>
-            <hr />
-            <Tabs defaultActiveKey="details" id="uncontrolled-tab-example" className="mb-3">
-                <Tab eventKey="details" title="Details">
-                    <Row>
-                        <Col md={6}>
-                            <Table bordered>
-                                <tbody>
-                                    <tr>
-                                        <td>Product Name</td>
-                                        <td>{details?.productName}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Product Category</td>
-                                        <td>{details?.ProductCategory?.productCategoryName}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Unit</td>
-                                        <td>{details?.Unit?.unitName}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Product Description</td>
-                                        <td>{details?.productDescription}</td>
-                                    </tr>
-                                </tbody>
-                            </Table>
-                        </Col>
-                    </Row>
-                </Tab>
-                <Tab eventKey="images" title="Images">
-                    <Row>
-                        <Col md={2}></Col>
-                        <Col md={8}>
-                            <Form.Group controlId="formFile" className="mb-3">
-                                <Form.Control type="file" ref={fileRef} multiple={true} onChange={handleImageChange} />
-                                <div className="d-flex justify-content-center">
+        <div className="ui">
+            <Link href="/products/list" className="tw-mb-3 tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-font-medium tw-text-slate-500 hover:tw-text-slate-900">
+                <ArrowLeft className="tw-h-4 tw-w-4" aria-hidden /> Products
+            </Link>
+            <div className="tw-mb-6 tw-flex tw-items-center tw-gap-4">
+                <span className="tw-flex tw-h-14 tw-w-14 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-brand-50 tw-text-brand-700">
+                    <Package className="tw-h-6 tw-w-6" aria-hidden />
+                </span>
+                <div className="tw-min-w-0">
+                    <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.14em] tw-text-brand-700">Product{loaded ? ` #${details.idProducts}` : ''}</p>
+                    {loaded ? (
+                        <h1 className="tw-mt-1 tw-text-[26px] tw-font-semibold tw-leading-8 tw-tracking-tight tw-text-slate-900">{details.productName}</h1>
+                    ) : (
+                        <Skeleton className="tw-mt-2 tw-h-7 tw-w-56" />
+                    )}
+                    {loaded && (
+                        <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
+                            {[details.ProductCategory?.productCategoryName, details.Unit?.unitName].filter(Boolean).join(' · ')}
+                        </p>
+                    )}
+                </div>
+            </div>
 
-                                    <Button className='btn btn-primary btn-sm text-light w-50 mt-2' onClick={handleImageUpload}>
-                                        Upload
-                                    </Button>
-                                </div>
-                            </Form.Group>
-                        </Col>
-                        <Col md={2}></Col>
-                    </Row>
-                    <Row>
-                        <Table bordered responsive>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Image</th>
-                                    <th>Name</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {details.ProductImages?.map((image, index) => (
-                                    <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>
-                                            <img src={`${S3_URL}product-image/${id}/${image.imageName}`} alt={image.imageName} style={{ width: '100px', height: '100px' }} />
-                                        </td>
-                                        <td>{image.imageNameOriginal}</td>
-                                        <td>
-                                            {image.imageStatus?.charAt(0).toUpperCase() + image.imageStatus?.slice(1)}
-                                        </td>
-                                        <td>
-                                            <Button
-                                                variant="success"
-                                                size="sm"
-                                                onClick={() => window.open(`${S3_URL}product-image/${id}/${image.imageName}`, '_blank')}
+            <div className="tw-mb-5">
+                <Segmented<Tab>
+                    label="Product sections"
+                    value={tab}
+                    onChange={setTab}
+                    options={[
+                        { value: 'overview', label: 'Overview' },
+                        { value: 'images', label: 'Photos', count: productImages.length },
+                        { value: 'packings', label: 'Packings', count: packings.length },
+                        { value: 'partners', label: 'Partners', count: productPartners.length },
+                    ]}
+                />
+            </div>
+
+            {tab === 'overview' && (
+                <Card className="tw-max-w-3xl tw-p-5">
+                    <dl className="tw-grid tw-grid-cols-1 tw-gap-x-6 tw-gap-y-4 sm:tw-grid-cols-2">
+                        <div>
+                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Category</dt>
+                            <dd className="tw-mt-0.5 tw-text-sm tw-text-slate-800">{details.ProductCategory?.productCategoryName || '—'}</dd>
+                        </div>
+                        <div>
+                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Unit</dt>
+                            <dd className="tw-mt-0.5 tw-text-sm tw-text-slate-800">{details.Unit?.unitName || '—'}</dd>
+                        </div>
+                        <div className="sm:tw-col-span-2">
+                            <dt className="tw-text-xs tw-font-medium tw-text-slate-500">Description</dt>
+                            <dd className="tw-mt-0.5 tw-whitespace-pre-line tw-text-sm tw-text-slate-800">{details.productDescription || '—'}</dd>
+                        </div>
+                    </dl>
+                </Card>
+            )}
+
+            {tab === 'images' && (
+                <div className="tw-space-y-4">
+                    <Card className="tw-flex tw-flex-wrap tw-items-end tw-gap-3 tw-p-5">
+                        <Field label="Add photos" hint="JPEG or PNG; several at once." className="tw-min-w-[16rem] tw-flex-1">
+                            <FileInput ref={fileRef} multiple accept="image/jpeg,image/png" onChange={handleImageChange} />
+                        </Field>
+                        <Button variant="primary" onClick={handleImageUpload} className="tw-mb-5">
+                            <Upload className="tw-h-4 tw-w-4" aria-hidden /> Upload
+                        </Button>
+                    </Card>
+                    {productImages.length === 0 ? (
+                        <Card className="tw-flex tw-flex-col tw-items-center tw-gap-2 tw-py-10 tw-text-sm tw-text-slate-500">
+                            <ImageOff className="tw-h-6 tw-w-6 tw-text-slate-400" aria-hidden />
+                            No photos yet.
+                        </Card>
+                    ) : (
+                        <ul className="tw-grid tw-grid-cols-2 tw-gap-3 sm:tw-grid-cols-3 lg:tw-grid-cols-4">
+                            {productImages.map((image) => {
+                                const url = `${S3_URL}product-image/${id}/${image.imageName}`;
+                                return (
+                                    <li key={image.idProductImages} className="tw-overflow-hidden tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white">
+                                        <SafeImg
+                                            src={url}
+                                            alt={image.imageNameOriginal}
+                                            className="tw-aspect-[4/3] tw-w-full tw-object-cover"
+                                            fallback={
+                                                <span className="tw-flex tw-aspect-[4/3] tw-w-full tw-items-center tw-justify-center tw-bg-slate-50 tw-text-slate-300">
+                                                    <ImageOff className="tw-h-6 tw-w-6" aria-hidden />
+                                                </span>
+                                            }
+                                        />
+                                        <div className="tw-flex tw-items-center tw-gap-2 tw-border-t tw-border-slate-200 tw-px-2.5 tw-py-1.5">
+                                            <span className="tw-min-w-0 tw-flex-1 tw-truncate tw-text-xs tw-text-slate-600" title={image.imageNameOriginal}>{image.imageNameOriginal}</span>
+                                            {image.imageStatus && <Pill tone={image.imageStatus === 'active' ? 'green' : 'slate'} dot={false}>{words(image.imageStatus)}</Pill>}
+                                            <button
+                                                type="button"
+                                                onClick={() => window.open(url, '_blank')}
+                                                className="tw-rounded-md tw-p-1 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700"
+                                                aria-label={`Download ${image.imageNameOriginal}`}
                                             >
-                                                Download
-                                            </Button>
+                                                <Download className="tw-h-3.5 tw-w-3.5" aria-hidden />
+                                            </button>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </div>
+            )}
 
+            {tab === 'packings' && (
+                <div className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-[minmax(0,1fr)_20rem]">
+                    <TableCard>
+                        <thead>
+                            <tr>
+                                <th className={cx(TH, 'tw-w-12')}>#</th>
+                                <th className={TH}>Packing</th>
+                                <th className={TH}>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {packings.length > 0 ? (
+                                packings.map((p, index) => (
+                                    <tr key={p.idProductPackings ?? index} className={TR}>
+                                        <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{index + 1}</td>
+                                        <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{p.packingName}</td>
+                                        <td className={cx(TD, 'tw-text-slate-600')}>{p.size || '—'}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <EmptyRow colSpan={3} title="No packings yet" hint="Add one to sell this product in it." />
+                            )}
+                        </tbody>
+                    </TableCard>
+                    <Card className="tw-p-5">
+                        <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">Add a packing</h2>
+                        <div className="tw-mt-4 tw-space-y-4">
+                            <Field label={<>Packing name<Required /></>}>
+                                <Input type="text" placeholder="e.g. Sack" name="packingName" onChange={(e) => setPacking({ ...packing, packingName: e.target.value })} value={packing.packingName} />
+                            </Field>
+                            <Field label="Size">
+                                <Input type="text" placeholder="e.g. 25 kg" name="size" onChange={(e) => setPacking({ ...packing, size: e.target.value })} value={packing.size} />
+                            </Field>
+                            <Button variant="primary" className="tw-w-full" disabled={loading} onClick={handlePackingSubmit}>
+                                {loading ? <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden /> : <Plus className="tw-h-4 tw-w-4" aria-hidden />}
+                                Add packing
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {tab === 'partners' && (
+                <div className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-[minmax(0,1fr)_20rem]">
+                    <TableCard>
+                        <thead>
+                            <tr>
+                                <th className={TH}>Partner</th>
+                                <th className={TH}>Contact</th>
+                                <th className={TH}>Packing</th>
+                                <th className={cx(TH, 'tw-text-right')}>Sell rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {productPartners.length > 0 ? (
+                                productPartners.map((partner, index) => (
+                                    <tr key={partner.idProductPartners ?? index} className={TR}>
+                                        <td className={TD}>
+                                            <div className="tw-flex tw-items-center tw-gap-2.5">
+                                                <Avatar name={partner.User?.fullName || '?'} seed={partner.User?.idUsers || index} size="sm" />
+                                                <Link href={`/partners/details/${partner.User?.idUsers}`} className="tw-font-medium tw-text-slate-900 hover:tw-text-brand-700">
+                                                    {partner.User?.fullName}
+                                                </Link>
+                                            </div>
                                         </td>
-
+                                        <td className={cx(TD, 'tw-text-xs tw-text-slate-600')}>
+                                            <div className="tw-tabular-nums">{partner.User?.phoneNumber || '—'}</div>
+                                            {partner.User?.email && <div className="tw-text-slate-500">{partner.User.email}</div>}
+                                        </td>
+                                        <td className={cx(TD, 'tw-text-slate-700')}>
+                                            {partner.ProductPacking?.packingName}
+                                            {partner.ProductPacking?.size && <span className="tw-text-slate-500"> · {partner.ProductPacking.size}</span>}
+                                        </td>
+                                        <td className={cx(TD, 'tw-text-right tw-font-medium tw-tabular-nums tw-text-slate-900')}>{bdtExact(Number(partner.sellRate))}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    </Row>
-                </Tab>
-                <Tab eventKey="packing" title="Packing">
-                    <Row>
-                        <Col md={2}></Col>
-                        <Col md={8}>
-                            <Form>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Packing Name<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="Enter packing name" name="packingName" onChange={(e) => setPacking({ ...packing, packingName: e.target.value })} value={packing.packingName} />
-                                    </Col>
-                                </Form.Group>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Size</Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="Enter size" name="size" onChange={(e) => setPacking({ ...packing, size: e.target.value })} value={packing.size} />
-                                    </Col>
-                                </Form.Group>
-                            </Form>
-                        </Col>
-                        <Col md={2}></Col>
-                    </Row>
-                    <Row>
-                        <Col sm='4'></Col>
-                        <Col sm='6'>
-                            <Row className='justify-content-center'>
-                                <Button className='w-50' variant="primary" type="submit" disabled={loading} onClick={handlePackingSubmit}>
-                                    {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                    {loading ? 'Submitting...' : 'Submit'}
-                                </Button>
-                            </Row>
-                        </Col>
-                    </Row>
-                    <Row className='mt-3'>
-                        <Table bordered responsive>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Packing Name</th>
-                                    <th>Size</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {details.ProductPackings?.length > 0 ? (
-                                    details.ProductPackings.map((packing, index) => (
-                                        <tr key={index}>
-                                            <td>{index + 1}</td>
-                                            <td>{packing.packingName}</td>
-                                            <td>{packing.size}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="text-center">No packings found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </Table>
-                    </Row>
-                </Tab>
-                <Tab eventKey="partner" title="Partner">
-                    <Row>
-                        <Col md={2}></Col>
-                        <Col md={8}>
-                            <Form>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Select Partners<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Select
-                                            options={partners.map((partner) => ({ ...partner, value: partner.idUsers, label: partner.fullName }))}
-                                            isSearchable
-                                            isClearable
-                                            placeholder='Select partners'
-                                            onChange={(e) => setAssignedPartners(e as PartnerProps)}
-                                            value={assignedPartners} />
-                                    </Col>
-                                </Form.Group>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Select Packing<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Select
-                                            options={packingList.map((packing) => ({ ...packing, value: packing.idProductPackings, label: packing.packingName + ' - ' + packing.size }))}
-                                            isSearchable
-                                            isClearable
-                                            placeholder='Select packing'
-                                            onChange={(e) => setSelectedPacking(e as PackingProps)}
-                                            value={selectedPacking} />
-                                    </Col>
-                                </Form.Group>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Sell Rate<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="number" placeholder="Enter sell rate" name="sellRate" onChange={(e) => setSellRate(parseInt(e.target.value))} value={sellRate} />
-                                    </Col>
-                                </Form.Group>
-                            </Form>
-                        </Col>
-                        <Col md={2}></Col>
-                    </Row>
-                    <Row>
-                        <Col sm='4'></Col>
-                        <Col sm='6'>
-                            <Row className='justify-content-center'>
-                                <Button className='w-50' variant="primary" type="submit" disabled={loading} onClick={handlePartnerAssign}>
-                                    {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                    {loading ? 'Submitting...' : 'Submit'}
-                                </Button>
-                            </Row>
-                        </Col>
-                    </Row>
-                    <Row className='mt-3'>
-                        <Table bordered responsive>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Partner Name</th>
-                                    <th>Email</th>
-                                    <th>Phone Number</th>
-                                    <th>Packing Name</th>
-                                    <th>Size</th>
-                                    <th>Sell Rate</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {details.ProductPartners?.length > 0 ? (
-                                    details.ProductPartners.map((partner, index) => (
-                                        <tr key={index}>
-                                            <td>{index + 1}</td>
-                                            <td>{partner.User.fullName}</td>
-                                            <td>{partner.User.email}</td>
-                                            <td>{partner.User.phoneNumber}</td>
-                                            <td>{partner.ProductPacking.packingName}</td>
-                                            <td>{partner.ProductPacking.size}</td>
-                                            <td>{partner.sellRate}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={7} className="text-center">No partners found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </Table>
-                    </Row>
-                </Tab>
-            </Tabs>
-        </Container>
+                                ))
+                            ) : (
+                                <EmptyRow colSpan={4} title="No partners supply this yet" />
+                            )}
+                        </tbody>
+                    </TableCard>
+                    <Card className="tw-p-5">
+                        <h2 className="tw-text-sm tw-font-semibold tw-text-slate-900">Assign a partner</h2>
+                        <div className="tw-mt-4 tw-space-y-4">
+                            <Field label={<>Partner<Required /></>}>
+                                <ReactSelect
+                                    instanceId="product-partner"
+                                    inputId="product-partner"
+                                    options={partnerOptions}
+                                    isSearchable
+                                    isClearable
+                                    placeholder="Search partners"
+                                    styles={selectStyles<any>()}
+                                    menuPortalTarget={menuPortalTarget}
+                                    onChange={(e) => setAssignedPartners(e as PartnerProps)}
+                                    value={assignedPartners.idUsers ? (assignedPartners as any) : null}
+                                />
+                            </Field>
+                            <Field label={<>Packing<Required /></>} hint={packingList.length ? undefined : 'Add a packing first.'}>
+                                <ReactSelect
+                                    instanceId="product-packing"
+                                    inputId="product-packing"
+                                    options={packingOptions}
+                                    isSearchable
+                                    isClearable
+                                    placeholder="Choose a packing"
+                                    styles={selectStyles<any>()}
+                                    menuPortalTarget={menuPortalTarget}
+                                    onChange={(e) => setSelectedPacking(e as PackingProps)}
+                                    value={selectedPacking.idProductPackings ? (selectedPacking as any) : null}
+                                />
+                            </Field>
+                            <Field label={<>Sell rate (৳)<Required /></>}>
+                                <Input type="number" placeholder="e.g. 120" name="sellRate" onChange={(e) => setSellRate(parseInt(e.target.value))} value={sellRate ? sellRate : ''} />
+                            </Field>
+                            <Button variant="primary" className="tw-w-full" disabled={loading} onClick={handlePartnerAssign}>
+                                {loading ? <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden /> : <UserPlus className="tw-h-4 tw-w-4" aria-hidden />}
+                                Assign partner
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
     );
 }
 

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { API_URL } from '@/config/public';
 import Swal from 'sweetalert2';
-import Select from 'react-select';
 import { useRouter } from 'next/router';
 import { postRequestOptions } from "@/utils/Fetch";
+import { Loader2 } from 'lucide-react';
+import { Card } from '@/ui/primitives';
+import { Button, Field, Input, LinkButton, Required, Select, Textarea } from '@/ui/controls';
+import { PageHeader } from '@/ui/layout';
 
 interface FormDataType {
     productName: string;
@@ -34,11 +36,9 @@ function ProductCreate() {
         idUnit: '',
         productDescription: '',
     });
-
     const [productCategories, setProductCategories] = useState<ProductCategoryType[]>([]);
     const [units, setUnits] = useState<UnitType[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
-
 
     useEffect(() => {
         fetchProductCategory();
@@ -89,34 +89,32 @@ function ProductCreate() {
         }
     };
 
-    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-
         setFormData({
             ...formData,
             [name]: value
         });
     }
 
-    const handleProductCategoryChange = (e: any) => {
+    /* The pickers used to hand over the numeric id; kept, so the payload is unchanged. */
+    const handleProductCategoryChange = (value: string) => {
         setFormData({
             ...formData,
-            idProductCategories: e ? e.value : ''
+            idProductCategories: (value ? Number(value) : '') as any
         });
     }
 
-    const handleUnitChange = (e: any) => {
+    const handleUnitChange = (value: string) => {
         setFormData({
             ...formData,
-            idUnit: e ? e.value : ''
+            idUnit: (value ? Number(value) : '') as any
         });
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-
         Swal.fire({
             title: 'Are you sure?',
             text: "You want to create this product!",
@@ -128,7 +126,6 @@ function ProductCreate() {
             if (result.value) {
                 try {
                     const res = await fetch(API_URL + 'api/products/create', postRequestOptions(formData));
-
                     if (res.status === 200) {
                         Swal.fire({
                             icon: 'success',
@@ -159,73 +156,52 @@ function ProductCreate() {
     };
 
     return (
-        <Container>
-            <Row>
-                <Col md={2}></Col>
-                <Col md={8}>
-                    <h4 className="text-start">Product Create</h4>
-                    <hr />
-                    <Row>
-                        <Col md={8}>
-                            <Form onSubmit={handleSubmit}>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Product Name<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control type="text" placeholder="Enter product name" name="productName" onChange={handleOnChange} value={formData.productName} />
-                                    </Col>
-                                </Form.Group>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Product Category<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Select
-                                            options={productCategories.map((category) => ({ value: category.idProductCategories, label: category.productCategoryName }))}
-                                            isSearchable
-                                            isClearable
-                                            placeholder='Select product category'
-                                            onChange={(e) => handleProductCategoryChange(e)}
-                                            value={productCategories.filter((category) => category.idProductCategories === parseInt(formData.idProductCategories)).map((category) => ({ value: category.idProductCategories, label: category.productCategoryName }))}
-                                        />
-                                    </Col>
-                                </Form.Group>
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Unit<span className='text-danger'>*</span></Form.Label>
-                                    <Col sm='8'>
-                                        <Select
-                                            options={units.map((unit) => ({ value: unit.idUnit, label: unit.unitName + ' (' + unit.unitCode + ')' }))}
-                                            isSearchable
-                                            isClearable
-                                            placeholder='Select unit'
-                                            onChange={(e) => handleUnitChange(e)}
-                                            value={units.filter((unit) => unit.idUnit === parseInt(formData.idUnit)).map((unit) => ({ value: unit.idUnit, label: unit.unitName }))}
-                                        />
-                                    </Col>
-                                </Form.Group>
-
-                                <Form.Group as={Row}>
-                                    <Form.Label column sm='4' className='mb-3'>Product Description</Form.Label>
-                                    <Col sm='8'>
-                                        <Form.Control as="textarea" placeholder="Enter product description" name="productDescription" onChange={handleOnChange} value={formData.productDescription} />
-                                    </Col>
-                                </Form.Group>
-                                <Row>
-                                    <Col sm='4'></Col>
-                                    <Col sm='8'>
-                                        <Row className='justify-content-center'>
-                                            <Button className='w-50 mt-2' variant="primary" type="submit" disabled={loading}>
-                                                {loading && <Spinner as="span" animation="grow" size="sm" role="status" aria-hidden="true" />}
-                                                {loading ? 'Submitting...' : 'Submit'}
-                                            </Button>
-                                        </Row>
-                                    </Col>
-                                </Row>
-                            </Form>
-                        </Col>
-                    </Row>
-                </Col>
-                <Col md={2}></Col>
-            </Row>
-        </Container>
-
+        <div className="ui">
+            <PageHeader
+                eyebrow="Shathi Mart"
+                title="New product"
+                description="Name it and place it in a category. Photos, packings and supplying partners are added on the product's page afterwards."
+            />
+            <Card className="tw-max-w-2xl tw-p-6">
+                <form onSubmit={handleSubmit} className="tw-space-y-4">
+                    <Field label={<>Product name<Required /></>}>
+                        <Input type="text" placeholder="e.g. Organic ginger" name="productName" onChange={handleOnChange} value={formData.productName} />
+                    </Field>
+                    <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+                        <Field label={<>Category<Required /></>}>
+                            <Select value={formData.idProductCategories || ''} onChange={(e) => handleProductCategoryChange(e.target.value)}>
+                                <option value="">{productCategories.length ? 'Choose a category' : 'Loading…'}</option>
+                                {productCategories.map((category) => (
+                                    <option key={category.idProductCategories} value={category.idProductCategories}>
+                                        {category.productCategoryName}
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
+                        <Field label={<>Unit<Required /></>}>
+                            <Select value={formData.idUnit || ''} onChange={(e) => handleUnitChange(e.target.value)}>
+                                <option value="">{units.length ? 'Choose a unit' : 'Loading…'}</option>
+                                {units.map((unit) => (
+                                    <option key={unit.idUnit} value={unit.idUnit}>
+                                        {unit.unitName} ({unit.unitCode})
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
+                    </div>
+                    <Field label="Description">
+                        <Textarea placeholder="What it is, how it is grown or made" name="productDescription" onChange={handleOnChange} value={formData.productDescription} />
+                    </Field>
+                    <div className="tw-flex tw-justify-end tw-gap-2 tw-border-t tw-border-slate-100 tw-pt-4">
+                        <LinkButton href="/products/list">Cancel</LinkButton>
+                        <Button variant="primary" type="submit" disabled={loading}>
+                            {loading && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden />}
+                            {loading ? 'Creating…' : 'Create product'}
+                        </Button>
+                    </div>
+                </form>
+            </Card>
+        </div>
     )
 }
 

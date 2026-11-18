@@ -62,6 +62,22 @@ export function projectStatus(status: string | null | undefined): { label: strin
     return known ? { label: known.label, tone: known.tone } : { label: status ? status.replace(/_/g, ' ') : '—', tone: 'slate' };
 }
 
+/** Shathi Mart orders (`product_orders.order_status`), in order. */
+export const ORDER_STATUSES: { value: string; label: string; tone: Tone }[] = [
+    { value: 'placed', label: 'Placed', tone: 'amber' },
+    { value: 'confirmed', label: 'Confirmed', tone: 'sky' },
+    { value: 'shipped', label: 'Shipped', tone: 'violet' },
+    { value: 'delivered', label: 'Delivered', tone: 'green' },
+    { value: 'paid', label: 'Paid', tone: 'green' },
+    { value: 'cancelled', label: 'Cancelled', tone: 'rose' },
+    { value: 'returned', label: 'Returned', tone: 'rose' },
+];
+
+export function orderStatus(status: string | null | undefined): { label: string; tone: Tone } {
+    const known = ORDER_STATUSES.find((s) => s.value === status);
+    return known ? { label: known.label, tone: known.tone } : { label: status ? words(status) : '—', tone: 'slate' };
+}
+
 /** "Sustainable return" from `sustainable_return`. */
 export function words(value: string | null | undefined): string {
     if (!value) return '—';
