@@ -31,8 +31,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(404).json({ success: false, message: 'User not found' })
             }
 
-            // Verify the password
-            const passwordMatch = await bcrypt.compare(password, user.password)
+            // Verify the password. An account with no password set cannot sign in
+            // (bcrypt would throw on the empty hash and surface its own message).
+            const passwordMatch = Boolean(user.password) && await bcrypt.compare(password, user.password)
 
             if (!passwordMatch) {
                 return res.status(401).json({ success: false, message: 'Invalid email or password' })
@@ -44,7 +45,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 expiresIn: '30d',
             })
 
-            return res.status(200).json({ success: true, token, user })
+            // The row was loaded with its password hash to check it; never send that back.
+            const { password: _hash, ...safeUser } = user.get({ plain: true }) as Record<string, unknown>
+            void _hash
+
+            return res.status(200).json({ success: true, token, user: safeUser })
         } catch (err: any) {
             console.error(err)
             return res.status(400).json({ success: false, message: err.message })
