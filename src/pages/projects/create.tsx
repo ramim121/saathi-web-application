@@ -4,6 +4,9 @@ import MainLayout from '@/layouts/MainLayout';
 import { AppContext } from '@/context/AppContext';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
+import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
+import { UnitsPicker, readPicked, type Picked } from '@/components/projects/UnitsPicker';
+import type { PartnerLoad, ProjectCapacity } from '@/utils/partnerCapacityShared';
 import { useRouter } from 'next/router';
 import { Check, Circle, Loader2 } from 'lucide-react';
 import { Card, Segmented, cx } from '@/ui/primitives';
@@ -118,6 +121,25 @@ function Projects() {
 	const mainImageRef = useRef<HTMLInputElement>(null);
 	const featuredImagesRef = useRef<HTMLInputElement>(null);
 	const [loading, setLoading] = useState<boolean>(false);
+	const [assignData, setAssignData] = useState<{ projects: ProjectCapacity[]; partners: { idUsers: number; fullName: string; phoneNumber: string | null; location: string | null }[]; assignments: PartnerLoad[] } | null>(null);
+	const [copyFrom, setCopyFrom] = useState('');
+	const [pickedPartners, setPickedPartners] = useState<Picked>({});
+
+	useEffect(() => {
+		fetch('/api/assignments', getRequestOptions())
+			.then((r) => r.json())
+			.then((body) => setAssignData(body?.data ?? null))
+			.catch(() => setAssignData(null));
+	}, []);
+
+	const copyPartners = (value: string) => {
+		setCopyFrom(value);
+		const next: Picked = {};
+		for (const a of assignData?.assignments ?? []) {
+			if (a.idProjects === Number(value)) next[a.idUsers] = String(a.capacity || '');
+		}
+		setPickedPartners(next);
+	};
 
 	const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -251,6 +273,11 @@ function Projects() {
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+		const chosenPartners = readPicked(pickedPartners);
+		if (chosenPartners.problem) {
+			Swal.fire({ icon: 'warning', title: chosenPartners.problem });
+			return;
+		}
 		// The summary is read from the editor; until it has loaded there is nothing to read.
 		if (!editorRef.current) {
 			Swal.fire({ icon: 'info', title: 'The summary editor is still loading', text: 'Give it a moment, then create again.' });
@@ -303,12 +330,23 @@ function Projects() {
 						body: newFormData,
 					});
 					if (res.status === 200) {
+						const idProjects = (await res.json()).data.idProjects;
+						// The project exists from here on: a failed assignment must not read as a failed create.
+						if (chosenPartners.rows.length) {
+							const assign = await fetch(API_URL + 'api/assignments', postRequestOptions({ pairs: chosenPartners.rows.map((r) => ({ idProjects, idUsers: r.id, capacity: r.units })) }));
+							if (!assign.ok) {
+								const problem = (await assign.json()).message;
+								await Swal.fire({ icon: 'warning', title: 'Project created, partners not added', html: problem });
+								router.push(`/projects/partner_assign?project=${idProjects}`);
+								return;
+							}
+						}
 						Swal.fire({
 							icon: 'success',
 							title: 'Success',
-							text: 'Projects creation successfull!',
+							text: chosenPartners.rows.length ? `Project created with ${chosenPartners.rows.length} partner(s).` : 'Project created.',
 						});
-						router.push('/projects/details/' + (await res.json()).data.idProjects);
+						router.push('/projects/details/' + idProjects);
 
 					} else {
 						Swal.fire({
@@ -413,6 +451,29 @@ function Projects() {
 								</Select>
 							</Field>
 							<PlanFacts plan={formData.investment} totalReturnMin={formData.totalReturnMin} totalReturnMax={formData.totalReturnMax} />
+						</div>
+					</FormSection>
+
+					<FormSection title="Partners" description="Optional. Copy another project's partner set, or tick partners and set how many units each can hold. Their total becomes the project's units.">
+						<Field label="Copy partners from" className="tw-max-w-md">
+							<Select value={copyFrom} onChange={(e) => copyPartners(e.target.value)}>
+								<option value="">Don&apos;t copy</option>
+								{(assignData?.projects ?? []).filter((p) => p.partners > 0).map((p) => (
+									<option key={p.idProjects} value={p.idProjects}>
+										{p.projectName} ({p.partners} partners, {p.partnerCapacity ?? 'no limit'} units)
+									</option>
+								))}
+							</Select>
+						</Field>
+						<div className="tw-mt-4">
+							<UnitsPicker
+								items={(assignData?.partners ?? []).map((p) => ({ id: p.idUsers, title: p.fullName, subtitle: [p.phoneNumber, p.location].filter(Boolean).join(' · ') }))}
+								picked={pickedPartners}
+								onChange={setPickedPartners}
+								noun="partners"
+								emptyText="No project partners registered yet."
+								maxHeight="tw-max-h-64"
+							/>
 						</div>
 					</FormSection>
 

@@ -3,6 +3,9 @@ import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
+import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
+import { UnitsPicker, readPicked, type PickItem, type Picked } from '@/components/projects/UnitsPicker';
+import { isOpenProject, type ProjectCapacity } from '@/utils/partnerCapacityShared';
 import { useRouter } from 'next/router';
 import { Check, Circle, Loader2 } from 'lucide-react';
 import { Card, cx } from '@/ui/primitives';
@@ -41,6 +44,19 @@ interface Skills {
 
 function Registration() {
     const router = useRouter();
+    const [projectOptions, setProjectOptions] = useState<PickItem[]>([]);
+    const [pickedProjects, setPickedProjects] = useState<Picked>({});
+
+    useEffect(() => {
+        fetch('/api/assignments', getRequestOptions())
+            .then((r) => r.json())
+            .then((body) => {
+                const open = ((body?.data?.projects ?? []) as ProjectCapacity[]).filter((p) => isOpenProject(p.projectStatus));
+                setProjectOptions(open.map((p) => ({ id: p.idProjects, title: p.projectName, subtitle: `${p.duration} ${p.tenure} · ${p.partners} partner(s) · ${p.left === null ? 'no limit' : `${p.left} units left`}` })));
+            })
+            .catch(() => setProjectOptions([]));
+    }, []);
+
     const [formData, setFormData] = useState<FormDataType>({
         name: '',
         phoneNumber: 0,
@@ -147,8 +163,16 @@ function Registration() {
         }
     }
 
+    const canHoldProjects = formData.partnerType === 'project' || formData.partnerType === 'both';
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        // Only project partners can hold projects; a type changed back drops the ticks.
+        const chosen = canHoldProjects ? readPicked(pickedProjects) : { rows: [], problem: null };
+        if (chosen.problem) {
+            Swal.fire({ icon: 'warning', title: chosen.problem });
+            return;
+        }
         // Set loading to true before the Swal confirmation
         setLoading(true);
 
@@ -195,12 +219,23 @@ function Registration() {
                     });
 
                     if (res.status === 200) {
+                        const idUsers = (await res.json()).data.idUsers;
+                        // The partner exists from here on: a failed assignment must not read as a failed registration.
+                        if (chosen.rows.length) {
+                            const assign = await fetch(API_URL + 'api/assignments', postRequestOptions({ pairs: chosen.rows.map((r) => ({ idProjects: r.id, idUsers, capacity: r.units })) }));
+                            if (!assign.ok) {
+                                const problem = (await assign.json()).message;
+                                await Swal.fire({ icon: 'warning', title: 'Partner registered, projects not added', html: problem });
+                                router.push(`/projects/partner_assign?partner=${idUsers}`);
+                                return;
+                            }
+                        }
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Partner successfully registered!',
+                            text: chosen.rows.length ? `Partner registered and added to ${chosen.rows.length} project(s).` : 'Partner successfully registered!',
                         });
-                        router.push('/partners/details/' + (await res.json()).data.idUsers);
+                        router.push('/partners/details/' + idUsers);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -237,7 +272,7 @@ function Registration() {
             <PageHeader
                 eyebrow="People"
                 title="Register partner"
-                description="Add a farmer or producer Shathi works with. Projects are assigned afterwards, from Assign partners."
+                description="Add a farmer or producer Shathi works with, and put them on projects in the same step."
             />
 
             <form onSubmit={handleSubmit} className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 xl:tw-grid-cols-[minmax(0,1fr)_19rem]">
@@ -275,6 +310,19 @@ function Registration() {
                                 )}
                             </div>
                         </div>
+                    </FormSection>
+
+                    <FormSection title="Projects" description="Optional. Tick the projects this partner joins and how many units they can hold on each.">
+                        {canHoldProjects ? (
+                            <UnitsPicker items={projectOptions} picked={pickedProjects} onChange={setPickedProjects} noun="projects" emptyText="No open projects." maxHeight="tw-max-h-64" />
+                        ) : (
+                            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-rounded-xl tw-bg-slate-50 tw-px-4 tw-py-3">
+                                <p className="tw-text-sm tw-text-slate-600">Only a project partner can be put on projects. This partner&apos;s type is set to {formData.partnerType === 'product' ? 'Product' : 'None'}.</p>
+                                <Button size="sm" onClick={() => setFormData({ ...formData, partnerType: formData.partnerType === 'product' ? 'both' : 'project' })}>
+                                    Make them a project partner
+                                </Button>
+                            </div>
+                        )}
                     </FormSection>
                 </div>
 

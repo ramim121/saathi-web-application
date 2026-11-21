@@ -360,7 +360,16 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
             )}
 
             {tab === 'partners' && (
-                <TableCard>
+                <TableCard
+                    toolbar={
+                        <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                            <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Partners and capacity</p>
+                            <LinkButton href={`/projects/partner_assign?project=${projectData.idProjects}`} size="sm">
+                                Manage partners
+                            </LinkButton>
+                        </div>
+                    }
+                >
                     <thead>
                         <tr>
                             <th className={TH}>Partner</th>
@@ -406,7 +415,7 @@ const Details = ({ projectDataMain }: ProjectDetailsProps) => {
                                 );
                             })
                         ) : (
-                            <EmptyRow colSpan={5} title="No partners assigned" hint="Assign partners from Assign projects." />
+                            <EmptyRow colSpan={5} title="No partners assigned" hint="Add them from Partner assignment." />
                         )}
                     </tbody>
                 </TableCard>

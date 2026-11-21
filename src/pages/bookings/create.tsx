@@ -12,6 +12,7 @@ import { Button, Field, Input, Required, Select } from "@/ui/controls";
 import { PageHeader } from "@/ui/layout";
 import { selectStyles } from "@/ui/select";
 import { bdt, bdtExact, date, plural } from "@/ui/format";
+import { fitAllocation, type PartnerLoad } from "@/utils/partnerCapacityShared";
 
 
 interface InvestorType {
@@ -36,6 +37,8 @@ interface ProjectPartnerType {
     /** Shown in the partner picker only; never sent. */
     investorConfirmedBookingCount?: number;
     investorAlreadyBookedCount?: number;
+    confirmedUnits?: number;
+    pendingUnits?: number;
 }
 
 interface ProjectCategoryType {
@@ -115,6 +118,7 @@ function Create() {
         project: ProjectDataType | null;
         projectPartners: ProjectPartnerType[] | [];
     }>({ project: null, projectPartners: [] });
+    const [splitInput, setSplitInput] = useState("");
 
     useEffect(() => {
         fetchInvestors();
@@ -197,6 +201,8 @@ function Create() {
                         },
                         investorConfirmedBookingCount: partner.investorConfirmedBookingCount,
                         investorAlreadyBookedCount: partner.investorAlreadyBookedCount,
+                        confirmedUnits: Number(partner.confirmedUnits) || 0,
+                        pendingUnits: Number(partner.pendingUnits) || 0,
                         label: `${partner.User.fullName} (${partner.partnerUnitCapacity})`,
                         value: partner.idProjectPartners
                     }))
@@ -216,6 +222,7 @@ function Create() {
 
     const handleOpenModal = () => {
         setShowModal(true);
+        setSplitInput("");
         setModalProject({ project: null, projectPartners: [] });
     };
 
@@ -362,6 +369,38 @@ function Create() {
             updated[idx] = { ...updated[idx], investedUnit: units, amountInvested: units * (modalProject.project?.unitInvestmentValue || 0) };
             return { ...prev, projectPartners: updated };
         });
+    };
+
+    /** Spreads the units across partners, least-loaded first, within their room. */
+    const splitUnits = () => {
+        const units = Number(splitInput);
+        if (!modalProject.project || !Number.isInteger(units) || units < 1) {
+            Swal.fire({ icon: "warning", title: "Enter the number of units to book." });
+            return;
+        }
+        const loads: PartnerLoad[] = projectPartners.map((p) => ({
+            idProjectPartners: p.idProjectPartners,
+            idProjects: modalProject.project!.idProjects,
+            idUsers: p.User.idUsers,
+            fullName: p.User.fullName,
+            capacity: Number(p.partnerUnitCapacity) || 0,
+            confirmed: Number(p.confirmedUnits) || 0,
+            pending: Number(p.pendingUnits) || 0,
+        }));
+        const fit = fitAllocation(loads, units);
+        if (fit.shortfall > 0) {
+            Swal.fire({ icon: "warning", title: "Not enough partner capacity", text: `The partners have room for ${units - fit.shortfall} of these ${units} units. Increase capacity in Partner assignment first.` });
+            return;
+        }
+        const value = modalProject.project.unitInvestmentValue || 0;
+        setModalProject((prev) => ({
+            ...prev,
+            projectPartners: fit.allocations.map((a) => ({
+                ...projectPartners.find((p) => p.idProjectPartners === a.idProjectPartners)!,
+                investedUnit: a.units,
+                amountInvested: a.units * value,
+            })),
+        }));
     };
 
     const removePartnerRow = (idx: number) => {
@@ -653,18 +692,28 @@ function Create() {
                             )}
 
                             <div>
-                                <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                                <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
                                     <p className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">Partners and units</p>
-                                    <Button size="sm" onClick={addPartnerRow} disabled={!modalProject.project || !projectPartners.length}>
-                                        <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add partner
-                                    </Button>
+                                    <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                        <span className="tw-block tw-w-24">
+                                            <Input type="number" min={1} placeholder="Units" value={splitInput} onChange={(e) => setSplitInput(e.target.value)} disabled={!modalProject.project || !projectPartners.length} aria-label="Units to split across partners" />
+                                        </span>
+                                        <Button size="sm" variant="primary" onClick={splitUnits} disabled={!modalProject.project || !projectPartners.length}>
+                                            Split automatically
+                                        </Button>
+                                        <Button size="sm" onClick={addPartnerRow} disabled={!modalProject.project || !projectPartners.length}>
+                                            <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add partner
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {modalProject.projectPartners && modalProject.projectPartners.length > 0 ? (
                                     <ul className="tw-mt-3 tw-space-y-2">
                                         {modalProject.projectPartners.map((pp, idx) => {
                                             const capacity = Number(pp.partnerUnitCapacity || 0);
-                                            const over = capacity > 0 && Number(pp.investedUnit) > capacity;
+                                            // Paid units are the hard limit; unpaid bookings only reserve room.
+                                            const room = capacity > 0 ? Math.max(0, capacity - Number(pp.confirmedUnits || 0)) : 0;
+                                            const over = capacity > 0 && Number(pp.investedUnit) > room;
                                             return (
                                                 <li key={idx} className="tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
                                                     <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-3 sm:tw-flex-nowrap">
@@ -677,17 +726,17 @@ function Create() {
                                                                     <option key={partner.idProjectPartners} value={partner.idProjectPartners}>
                                                                         {partner.User.fullName}
                                                                         {Number(partner.partnerUnitCapacity) > 0
-                                                                            ? ` — capacity ${partner.partnerUnitCapacity}, ${Number(partner.investorConfirmedBookingCount || 0)} confirmed`
+                                                                            ? ` — ${Math.max(0, Number(partner.partnerUnitCapacity) - Number(partner.confirmedUnits || 0) - Number(partner.pendingUnits || 0))} of ${partner.partnerUnitCapacity} left`
                                                                             : " — no capacity limit"}
                                                                     </option>
                                                                 ))}
                                                             </Select>
                                                         </Field>
-                                                        <Field label={capacity > 0 ? `Units (max ${capacity})` : "Units"} className="tw-w-32 tw-shrink-0">
+                                                        <Field label={capacity > 0 ? `Units (max ${room})` : "Units"} className="tw-w-32 tw-shrink-0">
                                                             <Input
                                                                 type="number"
                                                                 min={0}
-                                                                max={capacity > 0 ? capacity : undefined}
+                                                                max={capacity > 0 ? room : undefined}
                                                                 value={pp.investedUnit}
                                                                 onChange={(e) => setPartnerUnits(idx, e.target.value)}
                                                                 className={over ? "tw-border-amber-400" : undefined}
@@ -710,7 +759,7 @@ function Create() {
                                                     </div>
                                                     {over && (
                                                         <p className="tw-mt-2 tw-flex tw-items-center tw-gap-1.5 tw-text-xs tw-font-medium tw-text-amber-700">
-                                                            <ShieldAlert className="tw-h-3.5 tw-w-3.5" aria-hidden /> More units than this partner&apos;s capacity of {capacity}.
+                                                            <ShieldAlert className="tw-h-3.5 tw-w-3.5" aria-hidden /> This partner has room for {room} more unit{room === 1 ? "" : "s"}.
                                                         </p>
                                                     )}
                                                 </li>
