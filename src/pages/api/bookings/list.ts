@@ -1,11 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { ProjectInvestor, Project, ProjectPartnerInvestor, User, ProjectPartner, ProjectInvestmentBooking } from '@/models/__associations'
-import { Op } from 'sequelize'
+import { Op, literal } from 'sequelize'
 import Cors from 'micro-cors';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { likePattern, numberIn, searchTerm, sqlLike } from '@/utils/listSearch';
 const cors = Cors({
 	origin: '*',
 	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -28,13 +29,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 	if (userInfo.userType !== 'admin') return res.status(403).json({ success: false, message: 'Access denied' });
 
-	const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, cancelled, orderBy, orderType, page, pageSize } = req.query;
+	const { idProjectInvestmentBookings, bookingId, investorName, paymentConfirmationStatus, cancelled, bookingType, orderBy, orderType, page, pageSize } = req.query;
 
 	const whereClause: any = {};
 	if (idProjectInvestmentBookings) whereClause.idProjectInvestmentBookings = { [Op.like]: `%${idProjectInvestmentBookings}%` };
 	if (bookingId) whereClause.bookingId = { [Op.like]: `%${bookingId}%` };
 	if (paymentConfirmationStatus) whereClause.paymentConfirmationStatus = { [Op.like]: `%${paymentConfirmationStatus}%` };
 	if (cancelled) whereClause.cancelled = { [Op.like]: `%${cancelled}%` };
+	if (bookingType === 'fresh' || bookingType === 'reinvestment') whereClause.bookingType = bookingType;
+
+	// One box searches the booking ref, the internal number, the investor's
+	// name, phone and email, and the projects in the booking.
+	const term = searchTerm(req.query.q);
+	if (term) {
+		const n = numberIn(term);
+		const like = sqlLike(term);
+		whereClause[Op.and] = [{
+			[Op.or]: [
+				{ bookingId: { [Op.like]: likePattern(term.replace(/^#/, '')) } },
+				...(n ? [{ idProjectInvestmentBookings: n }] : []),
+				{ idUsers: { [Op.in]: literal(`(SELECT u.id_users FROM users AS u WHERE u.full_name LIKE ${like} OR u.phone_number LIKE ${like} OR u.email LIKE ${like})`) } },
+				{ idProjectInvestmentBookings: { [Op.in]: literal(`(SELECT pi.id_project_investment_bookings FROM project_investors AS pi JOIN projects AS p ON p.id_projects = pi.id_projects WHERE p.project_name LIKE ${like})`) } },
+			],
+		}];
+	}
 
 
 	const limit = parseInt(pageSize as string) || 10;

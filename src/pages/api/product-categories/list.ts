@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 
 export default async function handler(
     req: NextApiRequest,
@@ -36,8 +37,12 @@ export default async function handler(
         }
 
         if (status) {
-            whereClause = { ...whereClause, status: { [Op.like]: `%${status}%` } };
+            whereClause = { ...whereClause, status: { [Op.eq]: status } /* exact: "active" is part of "inactive" */ };
         }
+
+        // One box (q): the category name or code, or the category number.
+        const term = searchTerm(req.query.q);
+        if (term) (whereClause as any)[Op.and] = [searchWhere(term, ['productCategoryName', 'productCategoryId'], 'idProductCategories')];
 
         const limit = pageSize ? parseInt(pageSize as string) : 10;
         const offset = page ? (parseInt(page as string) - 1) * limit : 0;

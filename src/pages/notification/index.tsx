@@ -7,10 +7,11 @@ import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { AppContext } from '@/context/AppContext';
 import { getRequestOptions } from '@/utils/Fetch';
-import { BellRing, ChevronRight, Loader2, Mail, MessageSquare, Send, Smartphone, X, type LucideIcon } from 'lucide-react';
+import { BellRing, ChevronRight, Loader2, Mail, MessageSquare, Send, Smartphone, type LucideIcon } from 'lucide-react';
 import { Card, Pill, Segmented, cx } from '@/ui/primitives';
 import { Button, Field, FileInput, Input, Required, Select, Textarea } from '@/ui/controls';
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from '@/ui/table';
 import { SummaryEditor } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
@@ -33,36 +34,29 @@ interface ListProps {
     sendViaEmail: string,
     sendViaPush: string,
     formattedSendOn: string,
+    smsBody?: string | null,
+    emailSubject?: string | null,
+    pushNotificationTitle?: string | null,
     User: {
         fullName: string
     },
 }
 
-interface FilterProps {
-    idManualNotifications: string,
-    sendViaSms: string,
-    sendViaEmail: string,
-    sendViaPush: string,
-    sendOn: string,
-    createdBy: string,
-    orderBy: string,
-    orderType: string,
-    page: number,
-    pageSize: number
-}
-
-const INITIAL_FILTER: FilterProps = {
-    idManualNotifications: '',
+const DEFAULTS = {
+    q: '',
     sendViaSms: '',
     sendViaEmail: '',
     sendViaPush: '',
     sendOn: '',
     createdBy: '',
     orderBy: 'idManualNotifications',
-    orderType: 'DESC',
+    orderType: 'DESC' as 'ASC' | 'DESC',
     page: 1,
-    pageSize: 10
+    pageSize: 10,
 };
+
+/** A line to recognise a sent notification by: its push title, email subject or SMS text. */
+const messageOf = (n: ListProps) => n.pushNotificationTitle || n.emailSubject || n.smsBody || '';
 
 /** One delivery channel: a yes/no switch, and its fields when switched on. */
 function Channel({ icon: Icon, title, on, onToggle, children }: { icon: LucideIcon; title: string; on: boolean; onToggle: (on: boolean) => void; children: React.ReactNode }) {
@@ -167,7 +161,7 @@ function ManualNotification() {
                             title: 'Success',
                             text: 'Manual notification created successfully!',
                         });
-                        fetchManualNotificationList();
+                        setReloadKey((k) => k + 1);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -190,61 +184,47 @@ function ManualNotification() {
         });
     };
 
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [manualNotificationList, setManualNotificationList] = useState<ListProps[]>([]);
-    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
-
-    const fetchManualNotificationList = async () => {
-        const query = new URLSearchParams(filter as any).toString();
-        try {
-            const res = await fetch(`/api/manual-notification/list?${query}`, getRequestOptions());
-            const data = await res.json();
-            if (res.status === 200) {
-                setManualNotificationList(data.data);
-                setTotal(data.total);
-                setTotalPages(data.totalPages);
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message,
-                });
-            }
-        } catch (err: any) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: err.message,
-            });
-        }
-    }
+    const [reloadKey, setReloadKey] = useState<number>(0);
 
     useEffect(() => {
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
+        let stale = false;
+        const fetchManualNotificationList = async () => {
+            try {
+                const res = await fetch(`/api/manual-notification/list?${list.query}`, getRequestOptions());
+                const data = await res.json();
+                if (stale) return;
+                if (res.status === 200) {
+                    setManualNotificationList(data.data);
+                    setTotal(Number(data.total) || 0);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                }
+            } catch (err: any) {
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+            }
+        }
         fetchManualNotificationList();
-    }, [filter]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+        return () => {
+            stale = true;
+        };
+    }, [list.query, list.ready, reloadKey]);
 
     const channels = [formData.sendViaSms === 'yes' && 'SMS', formData.sendViaEmail === 'yes' && 'email', formData.sendViaPush === 'yes' && 'push'].filter(Boolean) as string[];
     const recipients = formData.targetUserIds.split(',').map((s) => s.trim()).filter(Boolean);
-    const anyFilter = Boolean(filter.idManualNotifications || filter.sendViaSms || filter.sendViaEmail || filter.sendViaPush || filter.sendOn || filter.createdBy);
+    const chips = filterChips(state, list.defaults, {
+        sendViaSms: (v) => (v === 'yes' ? 'By SMS' : 'Not by SMS'),
+        sendViaEmail: (v) => (v === 'yes' ? 'By email' : 'Not by email'),
+        sendViaPush: (v) => (v === 'yes' ? 'By push' : 'Not by push'),
+        sendOn: 'Sent on',
+        createdBy: 'Sent by',
+    }, update);
+    const anyFilter = chips.length > 0 || state.q !== '';
 
     return (
         <div className="ui">
@@ -326,44 +306,44 @@ function ManualNotification() {
                 toolbar={
                     <div className="tw-flex tw-flex-col tw-gap-3">
                         <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Sent before</p>
-                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 md:tw-grid-cols-3 xl:tw-grid-cols-[0.6fr_1fr_1fr_1fr_1.2fr_1.4fr_auto]">
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idManualNotifications" onChange={handleInputOnChange} value={filter.idManualNotifications} />
-                            </Field>
-                            {(['sendViaSms', 'sendViaEmail', 'sendViaPush'] as const).map((key) => (
-                                <Field key={key} label={key === 'sendViaSms' ? 'SMS' : key === 'sendViaEmail' ? 'Email' : 'Push'}>
-                                    <Select name={key} onChange={handleInputOnChange} value={filter[key]}>
-                                        <option value="">Any</option>
-                                        <option value="yes">Yes</option>
-                                        <option value="no">No</option>
-                                    </Select>
-                                </Field>
-                            ))}
-                            <Field label="Sent on">
-                                <Input placeholder="e.g. 2026-11" name="sendOn" onChange={handleInputOnChange} value={filter.sendOn} />
-                            </Field>
-                            <Field label="Sent by">
-                                <Input placeholder="Name" name="createdBy" onChange={handleInputOnChange} value={filter.createdBy} />
-                            </Field>
-                            <div className="tw-flex tw-items-end">
-                                {anyFilter && (
-                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                        <ListToolbar
+                            search={state.q}
+                            onSearch={(q) => update({ q }, { typing: true })}
+                            placeholder="Words in the SMS, subject or push, or #"
+                            chips={chips}
+                            onReset={() => list.reset()}
+                            filters={
+                                <>
+                                    {(['sendViaSms', 'sendViaEmail', 'sendViaPush'] as const).map((key) => (
+                                        <Field key={key} label={key === 'sendViaSms' ? 'SMS' : key === 'sendViaEmail' ? 'Email' : 'Push'}>
+                                            <Select {...list.bind(key)}>
+                                                <option value="">Any</option>
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </Select>
+                                        </Field>
+                                    ))}
+                                    <Field label="Sent on">
+                                        <Input placeholder="e.g. 2026-11" {...list.bind('sendOn')} />
+                                    </Field>
+                                    <Field label="Sent by">
+                                        <Input placeholder="Name" {...list.bind('createdBy')} />
+                                    </Field>
+                                </>
+                            }
+                        />
                     </div>
                 }
-                footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} sent · page ${filter.page} of ${pages}` : undefined} />}
+                footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="notifications" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
             >
                 <thead>
                     <tr>
-                        <th className={cx(TH, 'tw-w-16')}>#</th>
+                        <SortTH label="#" field="idManualNotifications" sort={state} onSort={list.sortBy} className="tw-w-16" />
+                        <th className={cx(TH, 'tw-min-w-[14rem]')}>Message</th>
                         <th className={TH}>SMS</th>
                         <th className={TH}>Email</th>
                         <th className={TH}>Push</th>
-                        <th className={TH}>Sent on</th>
+                        <SortTH label="Sent on" field="sendOn" sort={state} onSort={list.sortBy} />
                         <th className={TH}>Sent by</th>
                         <th className={cx(TH, 'tw-text-right')}>
                             <span className="tw-sr-only">Open</span>
@@ -374,6 +354,15 @@ function ManualNotification() {
                     {manualNotificationList.length > 0 ? manualNotificationList.map((notification) => (
                         <tr key={notification.idManualNotifications} className={TR}>
                             <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{notification.idManualNotifications}</td>
+                            <td className={TD}>
+                                {messageOf(notification) ? (
+                                    <span className="tw-line-clamp-2 tw-max-w-md tw-text-slate-700" title={messageOf(notification)}>
+                                        {messageOf(notification)}
+                                    </span>
+                                ) : (
+                                    <span className="tw-text-slate-300">—</span>
+                                )}
+                            </td>
                             <td className={TD}>{yesNo(notification.sendViaSms)}</td>
                             <td className={TD}>{yesNo(notification.sendViaEmail)}</td>
                             <td className={TD}>{yesNo(notification.sendViaPush)}</td>
@@ -390,7 +379,7 @@ function ManualNotification() {
                             </td>
                         </tr>
                     )) : (
-                        <EmptyRow colSpan={7} title="Nothing sent yet" hint={anyFilter ? 'Try fewer filters.' : undefined} />
+                        <EmptyRow colSpan={8} title={anyFilter ? 'No notifications match' : 'Nothing sent yet'} hint={anyFilter ? 'Try other words or fewer filters.' : undefined} />
                     )}
                 </tbody>
             </TableCard>

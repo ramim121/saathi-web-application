@@ -5,10 +5,11 @@ import { getRequestOptions } from '@/utils/Fetch';
 import Swal from 'sweetalert2';
 import { getCookie } from '@/utils/GetCookie';
 import { S3_URL } from '@/config/public';
-import { ImageOff, Loader2, Pencil, Plus, Tags, X } from 'lucide-react';
+import { ImageOff, Loader2, Pencil, Plus, Tags } from 'lucide-react';
 import { Card, Pill, SafeImg, Segmented, cx } from '@/ui/primitives';
-import { Button, Field, FileInput, Input, Required, SearchInput, Select } from '@/ui/controls';
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Button, Field, FileInput, Input, Required } from '@/ui/controls';
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
 interface FormDataType {
@@ -19,41 +20,28 @@ interface FormDataType {
     status: 'active' | 'inactive';
 }
 
-interface FilterProps {
-    idProductCategories: string;
-    productCategoryName: string;
-    productCategoryId: string;
-    status: string;
-    orderBy: string;
-    orderType: string;
-    page: number;
-    pageSize: number;
-}
-
 const EMPTY_FORM: FormDataType = {
     productCategoryName: '',
     categoryImage: '',
     status: 'active',
 };
 
-const INITIAL_FILTER: FilterProps = {
-    idProductCategories: '',
-    productCategoryName: '',
-    productCategoryId: '',
+const DEFAULTS = {
+    q: '',
     status: '',
     orderBy: 'idProductCategories',
-    orderType: 'DESC',
+    orderType: 'DESC' as 'ASC' | 'DESC',
     page: 1,
-    pageSize: 10
+    pageSize: 10,
 };
 
 function Category() {
     const [formData, setFormData] = useState<FormDataType>(EMPTY_FORM);
-    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [productCategoryList, setProductCategoryList] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,51 +67,29 @@ function Category() {
     }
 
     useEffect(() => {
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
+        let stale = false;
         const fetchProductCategoryList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/product-categories/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/product-categories/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
+                if (stale) return;
                 if (res.status === 200) {
                     setProductCategoryList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchProductCategoryList();
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+        return () => {
+            stale = true;
+        };
+    }, [list.query, list.ready, reloadKey]);
 
     const handleEditChange = (product: FormDataType) => () => {
         setFormData({
@@ -187,7 +153,7 @@ function Category() {
                         if (fileInputRef.current) {
                             fileInputRef.current.value = '';  // Clear file input
                         }
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -211,7 +177,7 @@ function Category() {
     }
 
     const editing = Boolean(formData.idProductCategories);
-    const anyFilter = Boolean(filter.idProductCategories || filter.productCategoryName || filter.productCategoryId || filter.status);
+    const anyFilter = state.status !== '' || state.q !== '';
 
     return (
         <div className="ui">
@@ -220,36 +186,32 @@ function Category() {
             <div className="tw-grid tw-grid-cols-1 tw-items-start tw-gap-6 lg:tw-grid-cols-[minmax(0,1fr)_22rem]">
                 <TableCard
                     toolbar={
-                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 md:tw-grid-cols-[2fr_1fr_1fr_auto]">
-                            <Field label="Name" className="tw-col-span-2 md:tw-col-span-1">
-                                <SearchInput placeholder="Search categories" name="productCategoryName" onChange={handleInputOnChange} value={filter.productCategoryName} />
-                            </Field>
-                            <Field label="Code">
-                                <Input placeholder="Any" name="productCategoryId" onChange={handleInputOnChange} value={filter.productCategoryId} />
-                            </Field>
-                            <Field label="Status">
-                                <Select name="status" onChange={handleInputOnChange} value={filter.status}>
-                                    <option value="">All</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </Select>
-                            </Field>
-                            <div className="tw-col-span-2 tw-flex tw-items-end md:tw-col-span-1">
-                                {anyFilter && (
-                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                        <ListToolbar
+                            search={state.q}
+                            onSearch={(q) => update({ q }, { typing: true })}
+                            placeholder="Category name, code or #"
+                            onReset={() => list.reset()}
+                            left={
+                                <Segmented
+                                    label="Status"
+                                    value={state.status}
+                                    onChange={(status) => update({ status })}
+                                    options={[
+                                        { value: '', label: 'All' },
+                                        { value: 'active', label: 'Active' },
+                                        { value: 'inactive', label: 'Inactive' },
+                                    ]}
+                                />
+                            }
+                        />
                     }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} categories · page ${filter.page} of ${pages}` : undefined} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="categories" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={TH}>Category</th>
-                            <th className={TH}>Code</th>
-                            <th className={TH}>Status</th>
+                            <SortTH label="Category" field="productCategoryName" sort={state} onSort={list.sortBy} />
+                            <SortTH label="Code" field="productCategoryId" sort={state} onSort={list.sortBy} />
+                            <SortTH label="Status" field="status" sort={state} onSort={list.sortBy} />
                             <th className={cx(TH, 'tw-text-right')}>
                                 <span className="tw-sr-only">Edit</span>
                             </th>
@@ -286,7 +248,7 @@ function Category() {
                                 </td>
                             </tr>
                         )) : (
-                            <EmptyRow colSpan={4} title="No categories match" />
+                            <EmptyRow colSpan={4} title="No categories match" hint={anyFilter ? 'Try a different search or status.' : undefined} />
                         )}
                     </tbody>
                 </TableCard>

@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -74,6 +75,12 @@ export default async function handler(
 
 		if (investorUnitCapacity) {
 			whereClause = { ...whereClause, investorUnitCapacity: { [Op.like]: `%${investorUnitCapacity}%` } };
+		}
+
+		// One box: project name or location, or the project number.
+		const term = searchTerm(req.query.q);
+		if (term) {
+			(whereClause as any)[Op.and] = [searchWhere(term, ['projectName', 'location'], 'idProjects')];
 		}
 
 		const limit = pageSize ? parseInt(pageSize as string) : 10;

@@ -6,8 +6,9 @@ import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 import { Handshake, Pencil, Trash2 } from 'lucide-react';
 import { SafeImg, cx } from '@/ui/primitives';
-import { Button, Field, FileInput, Input, Required, SearchInput } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Button, Field, FileInput, Input, Required } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
@@ -19,14 +20,13 @@ interface PartnershipFormData {
     priority: number | null;
 }
 
-interface FilterProps {
-    idPartnerships: string;
-    name: string;
-    orderBy: string;
-    orderType: string;
-    page: number;
-    pageSize: number;
-}
+const DEFAULTS = {
+    q: '',
+    orderBy: 'idPartnerships',
+    orderType: 'DESC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 const EMPTY_FORM: PartnershipFormData = {
     idPartnerships: undefined,
@@ -55,76 +55,45 @@ function LogoTile({ image, name, size }: { image: string | File; name: string; s
 function PartnershipPage() {
     const [formData, setFormData] = useState<PartnershipFormData>(EMPTY_FORM);
 
-    const [filter, setFilter] = useState<FilterProps>({
-        idPartnerships: '',
-        name: '',
-        orderBy: 'idPartnerships',
-        orderType: 'DESC',
-        page: 1,
-        pageSize: 10
-    });
-
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [partnershipList, setPartnershipList] = useState<PartnershipFormData[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchPartnershipList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/partnerships/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/partnerships/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
+                    // A delete can empty the last page: go to the new last page.
+                    if (data.data.length === 0 && list.settled.page > 1 && Number(data.total) > 0) {
+                        update({ page: Math.ceil(Number(data.total) / list.settled.pageSize) });
+                        return;
+                    }
                     setPartnershipList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchPartnershipList();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [list.query, list.ready, reloadKey]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -182,7 +151,7 @@ function PartnershipPage() {
                             title: 'Success',
                             text: data.message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
@@ -254,7 +223,7 @@ function PartnershipPage() {
                             title: 'Success',
                             text: data.message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -279,22 +248,13 @@ function PartnershipPage() {
             description="Organisations Shathi works with, shown as logos in the app in priority order."
             list={
                 <TableCard
-                    toolbar={
-                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
-                            <Field label="Name">
-                                <SearchInput placeholder="Search partnerships" name="name" onChange={handleInputOnChange} value={filter.name} />
-                            </Field>
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idPartnerships" onChange={handleInputOnChange} value={filter.idPartnerships} />
-                            </Field>
-                        </div>
-                    }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} partnerships · page ${filter.page} of ${pages}` : undefined} />}
+                    toolbar={<ListToolbar search={state.q} onSearch={(q) => update({ q }, { typing: true })} placeholder="Search names (English or বাংলা) or #" onReset={() => list.reset()} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="partnerships" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={TH}>Partnership</th>
-                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <SortTH label="Partnership" field="name" sort={state} onSort={list.sortBy} />
+                            <SortTH label="Priority" field="priority" sort={state} onSort={list.sortBy} align="right" />
                             <th className={cx(TH, 'tw-text-right')}>
                                 <span className="tw-sr-only">Actions</span>
                             </th>
@@ -338,7 +298,7 @@ function PartnershipPage() {
                                 </td>
                             </tr>
                         )) : (
-                            <EmptyRow colSpan={3} title="No partnerships match" hint={filter.name || filter.idPartnerships ? 'Try a different search.' : undefined} />
+                            <EmptyRow colSpan={3} title="No partnerships match" hint={state.q ? 'Try a different search.' : undefined} />
                         )}
                     </tbody>
                 </TableCard>

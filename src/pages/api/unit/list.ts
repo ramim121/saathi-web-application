@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 
 export default async function handler(
     req: NextApiRequest,
@@ -34,6 +35,10 @@ export default async function handler(
         if (unitCode) {
             whereClause = { ...whereClause, unitCode: { [Op.like]: `%${unitCode}%` } };
         }
+
+        // One box (q): the unit name or code, or the number.
+        const term = searchTerm(req.query.q);
+        if (term) (whereClause as any)[Op.and] = [searchWhere(term, ['unitName', 'unitCode'], 'idUnit')];
 
         const limit = pageSize ? parseInt(pageSize as string) : 10;
         const offset = page ? (parseInt(page as string) - 1) * limit : 0;

@@ -7,8 +7,9 @@ import { getRequestOptions } from '@/utils/Fetch';
 import { S3_URL } from '@/config/public';
 import { ImageOff, Pencil, Trash2 } from 'lucide-react';
 import { Pill, SafeImg, Segmented, cx } from '@/ui/primitives';
-import { Button, Field, FileInput, Input, Required, SearchInput, Select } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Button, Field, FileInput, Input, Required } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
@@ -23,17 +24,14 @@ interface FormDataType {
     statValueBn: string
 }
 
-interface FilterProps {
-    idAppStatPanel: string
-    statLabel: string
-    statValue: string
-    statType: string
-    priority: number | null
-    orderBy: string
-    orderType: string
-    page: number
-    pageSize: number
-}
+const DEFAULTS = {
+    q: '',
+    statType: '',
+    orderBy: 'idAppStatPanel',
+    orderType: 'DESC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 const EMPTY_FORM: FormDataType = {
     idAppStatPanel: undefined,
@@ -47,78 +45,45 @@ const EMPTY_FORM: FormDataType = {
 
 function StatPanel() {
     const [formData, setFormData] = useState<FormDataType>(EMPTY_FORM);
-    const [filter, setFilter] = useState<FilterProps>({
-        idAppStatPanel: '',
-        statLabel: '',
-        statValue: '',
-        statType: '',
-        priority: null,
-        orderBy: 'idAppStatPanel',
-        orderType: 'DESC',
-        page: 1,
-        pageSize: 10
-    });
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [statPanelList, setStatPanelList] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchAppStatPanelList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/stat-panels/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/stat-panels/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
+                    // A delete can empty the last page: go to the new last page.
+                    if (data.data.length === 0 && list.settled.page > 1 && Number(data.total) > 0) {
+                        update({ page: Math.ceil(Number(data.total) / list.settled.pageSize) });
+                        return;
+                    }
                     setStatPanelList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchAppStatPanelList();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [list.query, list.ready, reloadKey]);
 
     const handleStatTypeChange = (statType: string) => {
         setFormData({ ...formData, statType, statValue: '' });
@@ -194,7 +159,7 @@ function StatPanel() {
                             title: 'Success',
                             text: (await res.json()).message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
@@ -268,7 +233,7 @@ function StatPanel() {
                             title: 'Success',
                             text: data.message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -287,7 +252,7 @@ function StatPanel() {
         });
     };
 
-    const anyFilter = Boolean(filter.idAppStatPanel || filter.statLabel || filter.statValue || filter.statType);
+    const anyFilter = state.statType !== '' || state.q !== '';
 
     return (
         <SetupShell
@@ -296,35 +261,34 @@ function StatPanel() {
             list={
                 <TableCard
                     toolbar={
-                        <div className="tw-grid tw-grid-cols-3 tw-gap-3 md:tw-grid-cols-[1.4fr_1.2fr_1fr_0.7fr]">
-                            <Field label="Label" className="tw-col-span-3 md:tw-col-span-1">
-                                <SearchInput placeholder="Search labels" name="statLabel" onChange={handleInputOnChange} value={filter.statLabel} />
-                            </Field>
-                            <Field label="Value">
-                                <Input placeholder="Any" name="statValue" onChange={handleInputOnChange} value={filter.statValue} />
-                            </Field>
-                            <Field label="Type">
-                                <Select name="statType" onChange={handleInputOnChange} value={filter.statType}>
-                                    <option value="">All</option>
-                                    <option value="text">Text</option>
-                                    <option value="number">Number</option>
-                                    <option value="image">Image</option>
-                                </Select>
-                            </Field>
-                            {/* No priority filter: /api/stat-panels/list ignores that parameter. */}
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idAppStatPanel" onChange={handleInputOnChange} value={filter.idAppStatPanel} />
-                            </Field>
-                        </div>
+                        <ListToolbar
+                            search={state.q}
+                            onSearch={(q) => update({ q }, { typing: true })}
+                            placeholder="Label or value (English or বাংলা), or #"
+                            onReset={() => list.reset()}
+                            left={
+                                <Segmented
+                                    label="Type"
+                                    value={state.statType}
+                                    onChange={(statType) => update({ statType })}
+                                    options={[
+                                        { value: '', label: 'All' },
+                                        { value: 'text', label: 'Text' },
+                                        { value: 'number', label: 'Number' },
+                                        { value: 'image', label: 'Image' },
+                                    ]}
+                                />
+                            }
+                        />
                     }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} stats · page ${filter.page} of ${pages}` : undefined} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="stats" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={TH}>Label</th>
+                            <SortTH label="Label" field="statLabel" sort={state} onSort={list.sortBy} />
                             <th className={TH}>Value</th>
-                            <th className={TH}>Type</th>
-                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <SortTH label="Type" field="statType" sort={state} onSort={list.sortBy} />
+                            <SortTH label="Priority" field="priority" sort={state} onSort={list.sortBy} align="right" />
                             <th className={cx(TH, 'tw-text-right')}>
                                 <span className="tw-sr-only">Actions</span>
                             </th>

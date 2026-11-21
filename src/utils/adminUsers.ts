@@ -14,6 +14,8 @@ import { USERS_PAGE_SIZE } from '@/utils/adminUsersShared';
 export { USERS_PAGE_SIZE };
 
 export type UserFilters = {
+    /** Name, phone, email, or the user number. */
+    q?: string;
     name?: string;
     phoneEmail?: string;
     userType?: string;
@@ -43,6 +45,17 @@ const contains = (s: string) => `%${s.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 function filterWhere(f: UserFilters): WhereOptions {
     const and: WhereOptions[] = [];
+    if (f.q) {
+        const n = Number(f.q.replace(/^#/, ''));
+        and.push({
+            [Op.or]: [
+                { fullName: { [Op.like]: contains(f.q) } },
+                { phoneNumber: { [Op.like]: contains(f.q) } },
+                { email: { [Op.like]: contains(f.q) } },
+                ...(Number.isInteger(n) && n > 0 ? [{ idUsers: n }] : []),
+            ],
+        });
+    }
     if (f.name) and.push({ fullName: { [Op.like]: contains(f.name) } });
     if (f.phoneEmail) and.push({ [Op.or]: [{ phoneNumber: { [Op.like]: contains(f.phoneEmail) } }, { email: { [Op.like]: contains(f.phoneEmail) } }] });
     if (f.userType) and.push({ userType: { [Op.like]: contains(f.userType) } });
@@ -65,6 +78,7 @@ export function readUserFilters(query: Record<string, string | string[] | undefi
         return (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
     };
     return {
+        q: one('q')?.slice(0, 100),
         name: one('name'),
         phoneEmail: one('phoneEmail'),
         userType: one('userType'),
@@ -77,7 +91,12 @@ export function readUserFilters(query: Record<string, string | string[] | undefi
     };
 }
 
-export async function listUsers(filters: UserFilters, page = 1, pageSize = USERS_PAGE_SIZE) {
+/** Columns the table can sort by. */
+const SORTABLE = ['idUsers', 'fullName', 'age', 'createdAt', 'status', 'userType'];
+
+export async function listUsers(filters: UserFilters, page = 1, pageSize = USERS_PAGE_SIZE, sort?: { orderBy?: unknown; orderType?: unknown }) {
+    const orderBy = typeof sort?.orderBy === 'string' && SORTABLE.includes(sort.orderBy) ? sort.orderBy : 'idUsers';
+    const orderType = String(sort?.orderType).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const size = Math.min(Math.max(1, Math.floor(pageSize) || USERS_PAGE_SIZE), 100);
     const current = Math.max(1, Math.floor(page) || 1);
     const { rows, count } = await User.findAndCountAll({
@@ -87,7 +106,8 @@ export async function listUsers(filters: UserFilters, page = 1, pageSize = USERS
             [literal('(SELECT COUNT(*) FROM `user_banks` AS `ub` WHERE `ub`.`id_users` = `User`.`id_users`)'), 'bankCount'],
         ],
         where: filterWhere(filters),
-        order: [['idUsers', 'DESC']],
+        // Ties (same name, same age…) keep a stable order across pages.
+        order: orderBy === 'idUsers' ? [['idUsers', orderType]] : [[orderBy, orderType], ['idUsers', 'DESC']],
         limit: size,
         offset: (current - 1) * size,
     });

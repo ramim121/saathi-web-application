@@ -4,10 +4,11 @@ import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/public';
-import { ChevronRight, Pencil, SlidersHorizontal, UserPlus, X } from "lucide-react";
+import { ChevronRight, Pencil, UserPlus } from "lucide-react";
 import { Avatar, Pill, SafeImg, cx } from "@/ui/primitives";
-import { Button, Field, Input, LinkButton, SearchInput, Select } from "@/ui/controls";
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { Field, Input, LinkButton, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 import { date } from "@/ui/format";
 import { words } from "@/ui/status";
 
@@ -42,106 +43,78 @@ interface ListProps {
 	}
 }
 
-interface FilterProps {
-	fullName: string,
-	phoneNumber: string,
-	age: string,
-	location: string,
-	role: string,
-	joiningDate: string,
-	skills: string,
-	idUsers: string,
-	disability: string,
-	partnerType: string,
-	gender: string,
-	orderBy: string,
-	orderType: string,
-	page: number,
-	pageSize: number
-}
-
-const INITIAL_FILTER: FilterProps = {
-	fullName: '',
-	phoneNumber: '',
+const DEFAULTS = {
+	q: '',
+	partnerType: '',
+	gender: '',
+	disability: '',
 	age: '',
 	location: '',
 	role: '',
 	joiningDate: '',
 	skills: '',
-	idUsers: '',
-	disability: '',
-	partnerType: '',
-	gender: '',
 	orderBy: 'idUsers',
-	orderType: 'DESC',
+	orderType: 'DESC' as 'ASC' | 'DESC',
 	page: 1,
-	pageSize: 10
-
+	pageSize: 25,
 };
-
-const MORE_FILTERS: (keyof FilterProps)[] = ['idUsers', 'age', 'location', 'role', 'joiningDate', 'skills', 'disability'];
 
 const TYPE_TONE: Record<string, 'green' | 'sky' | 'violet' | 'slate'> = { project: 'green', product: 'sky', both: 'violet', none: 'slate' };
 
+/**
+ * Partners: one search box (name, phone, location, role, skills or partner
+ * number), filters with chips, sortable columns, rows per page; the view is
+ * kept in the URL.
+ */
 function List() {
+	const list = useListState(DEFAULTS);
+	const { state, update } = list;
 	const [partnersList, setPartnersList] = useState<ListProps[]>([]);
-	const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
 	const [total, setTotal] = useState<number>(0);
-	const [totalPages, setTotalPages] = useState<number>(1);
 	const [loading, setLoading] = useState<boolean>(true);
-	const [showMore, setShowMore] = useState<boolean>(false);
 
 	useEffect(() => {
+		if (!list.ready) return;
+		let live = true;
 		const fetchPartnersList = async () => {
-			const query = new URLSearchParams(filter as any).toString();
 			setLoading(true);
 			try {
-				const res = await fetch(`/api/partners/list?${query}`, getRequestOptions());
+				const res = await fetch(`/api/partners/list?${list.query}`, getRequestOptions());
 				const data = await res.json();
+				if (!live) return;
 				if (res.status === 200) {
 					setPartnersList(data.data);
-					setTotal(data.total);
-					setTotalPages(data.totalPages);
+					setTotal(Number(data.total) || 0);
 				} else {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: data.message,
-					});
+					Swal.fire({ icon: 'error', title: 'Error', text: data.message });
 				}
 			} catch (err: any) {
-				Swal.fire({
-					icon: 'error',
-					title: 'Error',
-					text: err.message,
-				});
+				if (live) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
 			} finally {
-				setLoading(false);
+				if (live) setLoading(false);
 			}
 		}
 		fetchPartnersList();
-	}, [filter]);
+		return () => {
+			live = false;
+		};
+	}, [list.query, list.ready]);
 
-	// A changed filter starts again from page 1.
-	const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-		const { name, value } = e.target;
-		setFilter({
-			...filter,
-			[name]: value,
-			page: 1
-		});
-	}
-
-	const pages = Math.max(1, totalPages || 1);
-	const handlePageChange = (page: number) => {
-		setFilter({
-			...filter,
-			page: Math.min(Math.max(1, page), pages)
-		})
-	}
-
-	const moreActive = MORE_FILTERS.filter((key) => filter[key] !== '').length;
-	const anyFilter = moreActive > 0 || Boolean(filter.fullName || filter.phoneNumber || filter.partnerType || filter.gender);
+	const text = (key: keyof typeof DEFAULTS) => ({
+		value: state[key] as string,
+		onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => update({ [key]: e.target.value } as Partial<typeof DEFAULTS>, { typing: e.target.tagName === 'INPUT' }),
+	});
+	const chips = filterChips(state, list.defaults, {
+		partnerType: (v) => `Type: ${words(v)}`,
+		gender: 'Gender',
+		disability: (v) => (v === 'yes' ? 'With a disability' : 'No disability'),
+		age: 'Age',
+		location: 'Location',
+		role: 'Role',
+		joiningDate: 'Joined',
+		skills: 'Skill',
+	}, update);
+	const anyFilter = chips.length > 0 || state.q !== '';
 
 	return (
 		<div className="ui">
@@ -158,87 +131,68 @@ function List() {
 
 			<TableCard
 				toolbar={
-					<div className="tw-flex tw-flex-col tw-gap-3">
-						<div className="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-[1.6fr_1.4fr_1fr_1fr_auto]">
-							<Field label="Name" className="tw-col-span-2 lg:tw-col-span-1">
-								<SearchInput placeholder="Search by name" name="fullName" onChange={handleInputOnChange} value={filter.fullName} />
-							</Field>
-							<Field label="Phone" className="tw-col-span-2 lg:tw-col-span-1">
-								<SearchInput placeholder="Any part of the number" name="phoneNumber" onChange={handleInputOnChange} value={filter.phoneNumber} />
-							</Field>
-							<Field label="Type">
-								<Select name="partnerType" onChange={handleInputOnChange} value={filter.partnerType}>
-									<option value="">All</option>
-									<option value="project">Project</option>
-									<option value="product">Product</option>
-									<option value="both">Both</option>
-									<option value="none">None</option>
-								</Select>
-							</Field>
-							<Field label="Gender">
-								<Select name="gender" onChange={handleInputOnChange} value={filter.gender}>
-									<option value="">All</option>
-									<option value="Female">Female</option>
-									<option value="Male">Male</option>
-									<option value="Other">Other</option>
-								</Select>
-							</Field>
-							<div className="tw-col-span-2 tw-flex tw-items-end tw-gap-2 lg:tw-col-span-1">
-								<Button onClick={() => setShowMore(!showMore)} aria-expanded={showMore}>
-									<SlidersHorizontal className="tw-h-4 tw-w-4" aria-hidden />
-									More filters
-									{moreActive > 0 && <span className="tw-rounded-full tw-bg-brand-700 tw-px-1.5 tw-text-[11px] tw-text-white">{moreActive}</span>}
-								</Button>
-								{anyFilter && (
-									<Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-										<X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-									</Button>
-								)}
-							</div>
-						</div>
-						{showMore && (
-							<div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-rounded-xl tw-bg-slate-50 tw-p-3 md:tw-grid-cols-4 xl:tw-grid-cols-7">
-								<Field label="Partner #">
-									<Input type="number" placeholder="e.g. 140" name="idUsers" onChange={handleInputOnChange} value={filter.idUsers} />
+					<ListToolbar
+						search={state.q}
+						onSearch={(q) => update({ q }, { typing: true })}
+						placeholder="Name, phone, location, role, skill or #"
+						chips={chips}
+						onReset={() => list.reset()}
+						filters={
+							<>
+								<Field label="Type">
+									<Select {...text('partnerType')}>
+										<option value="">All</option>
+										<option value="project">Project</option>
+										<option value="product">Product</option>
+										<option value="both">Both</option>
+										<option value="none">None</option>
+									</Select>
 								</Field>
-								<Field label="Age">
-									<Input placeholder="e.g. 35" name="age" onChange={handleInputOnChange} value={filter.age} />
-								</Field>
-								<Field label="Location">
-									<Input placeholder="Any part" name="location" onChange={handleInputOnChange} value={filter.location} />
-								</Field>
-								<Field label="Role">
-									<Input placeholder="e.g. farmer" name="role" onChange={handleInputOnChange} value={filter.role} />
-								</Field>
-								<Field label="Joined">
-									<Input placeholder="e.g. 2025-07" name="joiningDate" onChange={handleInputOnChange} value={filter.joiningDate} />
-								</Field>
-								<Field label="Skill">
-									<Input placeholder="e.g. cattle" name="skills" onChange={handleInputOnChange} value={filter.skills} />
+								<Field label="Gender">
+									<Select {...text('gender')}>
+										<option value="">All</option>
+										<option value="Female">Female</option>
+										<option value="Male">Male</option>
+										<option value="Other">Other</option>
+									</Select>
 								</Field>
 								<Field label="Disability">
-									<Select name="disability" onChange={handleInputOnChange} value={filter.disability}>
+									<Select {...text('disability')}>
 										<option value="">All</option>
 										<option value="yes">Yes</option>
 										<option value="no">No</option>
 									</Select>
 								</Field>
-							</div>
-						)}
-						<p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? 'Loading…' : `${Number(total || 0).toLocaleString('en-IN')} partners`}</p>
-					</div>
+								<Field label="Age">
+									<Input placeholder="e.g. 35" {...text('age')} />
+								</Field>
+								<Field label="Location">
+									<Input placeholder="Any part" {...text('location')} />
+								</Field>
+								<Field label="Role">
+									<Input placeholder="e.g. farmer" {...text('role')} />
+								</Field>
+								<Field label="Joined">
+									<Input placeholder="e.g. 2025-07" {...text('joiningDate')} />
+								</Field>
+								<Field label="Skill">
+									<Input placeholder="e.g. cattle" {...text('skills')} />
+								</Field>
+							</>
+						}
+					/>
 				}
-				footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${pages}` : undefined} />}
+				footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} loading={loading} noun="partners" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
 			>
 				<thead>
 					<tr>
-						<th className={cx(TH, 'tw-min-w-[15rem]')}>Partner</th>
+						<SortTH label="Partner" field="fullName" sort={state} onSort={list.sortBy} className="tw-min-w-[15rem]" />
 						<th className={TH}>Phone</th>
-						<th className={TH}>Location</th>
-						<th className={TH}>Type</th>
+						<SortTH label="Location" field="location" sort={state} onSort={list.sortBy} />
+						<SortTH label="Type" field="partnerType" sort={state} onSort={list.sortBy} />
 						<th className={cx(TH, 'tw-min-w-[12rem]')}>Household</th>
 						<th className={cx(TH, 'tw-min-w-[13rem]')}>Projects</th>
-						<th className={TH}>Joined</th>
+						<SortTH label="Joined" field="joiningDate" sort={state} onSort={list.sortBy} />
 						<th className={cx(TH, 'tw-text-right')}>
 							<span className="tw-sr-only">Actions</span>
 						</th>
@@ -325,7 +279,7 @@ function List() {
 							</tr>
 						);
 					}) : (
-						<EmptyRow colSpan={8} title={loading ? 'Loading partners…' : 'No partners match'} hint={!loading && anyFilter ? 'Try fewer filters.' : undefined} />
+						<EmptyRow colSpan={8} title={loading ? 'Loading partners…' : 'No partners match'} hint={!loading && anyFilter ? 'Try other words or fewer filters.' : undefined} />
 					)}
 				</tbody>
 			</TableCard>

@@ -5,8 +5,9 @@ import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import { Pencil } from 'lucide-react';
 import { cx } from '@/ui/primitives';
-import { Button, Field, Input, Required, SearchInput } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Button, Field, Input, Required } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
 interface FormDataType {
@@ -15,15 +16,13 @@ interface FormDataType {
     unitCode: string
 }
 
-interface FilterProps {
-    idUnit: string
-    unitName: string
-    unitCode: string
-    orderBy: string
-    orderType: string
-    page: number
-    pageSize: number
-}
+const DEFAULTS = {
+    q: '',
+    orderBy: 'idUnit',
+    orderType: 'ASC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 function Unit() {
     const [idUnit, setIdUnit] = useState<number>(0);
@@ -31,74 +30,37 @@ function Unit() {
         unitName: '',
         unitCode: ''
     });
-    const [filter, setFilter] = useState<FilterProps>({
-        idUnit: '',
-        unitName: '',
-        unitCode: '',
-        orderBy: 'idUnit',
-        orderType: 'ASC',
-        page: 1,
-        pageSize: 10
-    });
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [unitList, setUnitList] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchUnitList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/unit/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/unit/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
                     setUnitList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchUnitList();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+    }, [list.query, list.ready, reloadKey]);
 
     const handleEditChange = (unit: FormDataType) => () => {
         setIdUnit(unit.idUnit ?? 0);
@@ -134,7 +96,7 @@ function Unit() {
                             title: 'Success',
                             text: (await res.json()).message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setIdUnit(0);
                         setFormData({
                             unitName: '',
@@ -168,26 +130,14 @@ function Unit() {
             description="Units the Mart sells products in: kilograms, litres, pieces."
             list={
                 <TableCard
-                    toolbar={
-                        <div className="tw-grid tw-grid-cols-[1fr_8rem_6rem] tw-gap-3">
-                            <Field label="Unit">
-                                <SearchInput placeholder="Search units" name="unitName" onChange={handleInputOnChange} value={filter.unitName} />
-                            </Field>
-                            <Field label="Code">
-                                <Input placeholder="e.g. kg" name="unitCode" onChange={handleInputOnChange} value={filter.unitCode} />
-                            </Field>
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idUnit" onChange={handleInputOnChange} value={filter.idUnit} />
-                            </Field>
-                        </div>
-                    }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} units · page ${filter.page} of ${pages}` : undefined} />}
+                    toolbar={<ListToolbar search={state.q} onSearch={(q) => update({ q }, { typing: true })} placeholder="Unit name, code or #" onReset={() => list.reset()} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="units" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={cx(TH, 'tw-w-20')}>#</th>
-                            <th className={TH}>Unit</th>
-                            <th className={TH}>Code</th>
+                            <SortTH label="#" field="idUnit" sort={state} onSort={list.sortBy} className="tw-w-20" />
+                            <SortTH label="Unit" field="unitName" sort={state} onSort={list.sortBy} />
+                            <SortTH label="Code" field="unitCode" sort={state} onSort={list.sortBy} />
                             <th className={cx(TH, 'tw-text-right')}>
                                 <span className="tw-sr-only">Edit</span>
                             </th>
@@ -206,7 +156,7 @@ function Unit() {
                                 </td>
                             </tr>
                         )) : (
-                            <EmptyRow colSpan={4} title="No units match" />
+                            <EmptyRow colSpan={4} title="No units match" hint={state.q ? 'Try a different search.' : undefined} />
                         )}
                     </tbody>
                 </TableCard>

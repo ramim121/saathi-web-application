@@ -6,8 +6,9 @@ import { getCookie } from '@/utils/GetCookie';
 import { getRequestOptions } from '@/utils/Fetch';
 import { Pencil, Star, Trash2, User } from 'lucide-react';
 import { Avatar, SafeImg, cx } from '@/ui/primitives';
-import { Button, Field, FileInput, Input, Required, SearchInput, Select, Textarea } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Button, Field, FileInput, Input, Required, Select, Textarea } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
@@ -22,17 +23,15 @@ interface FormDataType {
     priority: number | null;
 }
 
-interface FilterProps {
-    idInvestorTestimonials: string;
-    name: string;
-    rating: string;
-    testimonial: string;
-    priority: string;
-    orderBy: string;
-    orderType: string;
-    page: number;
-    pageSize: number;
-}
+const DEFAULTS = {
+    q: '',
+    rating: '',
+    priority: '',
+    orderBy: 'idInvestorTestimonials',
+    orderType: 'DESC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 const EMPTY_FORM: FormDataType = {
     idInvestorTestimonials: undefined,
@@ -94,79 +93,45 @@ function StarInput({ value, onChange }: { value: unknown; onChange: (rating: num
 function InvestorTestimonialSetup() {
     const [formData, setFormData] = useState<FormDataType>(EMPTY_FORM);
 
-    const [filter, setFilter] = useState<FilterProps>({
-        idInvestorTestimonials: '',
-        name: '',
-        rating: '',
-        testimonial: '',
-        priority: '',
-        orderBy: 'idInvestorTestimonials',
-        orderType: 'DESC',
-        page: 1,
-        pageSize: 10
-    });
-
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [testimonialList, setTestimonialList] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchInvestorTestimonials = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/investor-testimonials/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/investor-testimonials/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
+                    // A delete can empty the last page: go to the new last page.
+                    if (data.data.length === 0 && list.settled.page > 1 && Number(data.total) > 0) {
+                        update({ page: Math.ceil(Number(data.total) / list.settled.pageSize) });
+                        return;
+                    }
                     setTestimonialList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         };
         fetchInvestorTestimonials();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    };
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        });
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [list.query, list.ready, reloadKey]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -229,7 +194,7 @@ function InvestorTestimonialSetup() {
                             title: 'Success',
                             text: data.message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setFormData(EMPTY_FORM);
                         setIsEditing(false);
                         if (fileInputRef.current) {
@@ -304,7 +269,7 @@ function InvestorTestimonialSetup() {
                             title: 'Success',
                             text: data.message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -323,7 +288,11 @@ function InvestorTestimonialSetup() {
         });
     };
 
-    const anyFilter = Boolean(filter.idInvestorTestimonials || filter.name || filter.rating || filter.testimonial || filter.priority);
+    const chips = filterChips(state, list.defaults, {
+        rating: (v) => `${v} star${v === '1' ? '' : 's'}`,
+        priority: 'Priority',
+    }, update);
+    const anyFilter = chips.length > 0 || state.q !== '';
 
     return (
         <SetupShell
@@ -332,36 +301,36 @@ function InvestorTestimonialSetup() {
             list={
                 <TableCard
                     toolbar={
-                        <div className="tw-grid tw-grid-cols-3 tw-gap-3 md:tw-grid-cols-[1.1fr_1.3fr_0.8fr_0.7fr_0.6fr]">
-                            <Field label="Name" className="tw-col-span-3 md:tw-col-span-1">
-                                <SearchInput placeholder="Search names" name="name" onChange={handleInputOnChange} value={filter.name} />
-                            </Field>
-                            <Field label="Testimonial" className="tw-col-span-3 md:tw-col-span-1">
-                                <SearchInput placeholder="Search the quote" name="testimonial" onChange={handleInputOnChange} value={filter.testimonial} />
-                            </Field>
-                            <Field label="Rating">
-                                <Select name="rating" onChange={handleInputOnChange} value={filter.rating}>
-                                    <option value="">All</option>
-                                    {[5, 4, 3, 2, 1].map((n) => (
-                                        <option key={n} value={n}>{n} star{n > 1 ? 's' : ''}</option>
-                                    ))}
-                                </Select>
-                            </Field>
-                            <Field label="Priority">
-                                <Input type="number" placeholder="Any" name="priority" onChange={handleInputOnChange} value={filter.priority} />
-                            </Field>
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idInvestorTestimonials" onChange={handleInputOnChange} value={filter.idInvestorTestimonials} />
-                            </Field>
-                        </div>
+                        <ListToolbar
+                            search={state.q}
+                            onSearch={(q) => update({ q }, { typing: true })}
+                            placeholder="Name or quote (English or বাংলা), or #"
+                            chips={chips}
+                            onReset={() => list.reset()}
+                            filters={
+                                <>
+                                    <Field label="Rating">
+                                        <Select {...list.bind('rating')}>
+                                            <option value="">All</option>
+                                            {[5, 4, 3, 2, 1].map((n) => (
+                                                <option key={n} value={n}>{n} star{n > 1 ? 's' : ''}</option>
+                                            ))}
+                                        </Select>
+                                    </Field>
+                                    <Field label="Priority">
+                                        <Input type="number" placeholder="Any" {...list.bind('priority')} />
+                                    </Field>
+                                </>
+                            }
+                        />
                     }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} testimonials · page ${filter.page} of ${pages}` : undefined} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="testimonials" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={TH}>Investor</th>
+                            <SortTH label="Investor" field="name" sort={state} onSort={list.sortBy} />
                             <th className={TH}>Testimonial</th>
-                            <th className={cx(TH, 'tw-text-right')}>Priority</th>
+                            <SortTH label="Priority" field="priority" sort={state} onSort={list.sortBy} align="right" />
                             <th className={cx(TH, 'tw-text-right')}>
                                 <span className="tw-sr-only">Actions</span>
                             </th>

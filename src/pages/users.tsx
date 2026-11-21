@@ -12,10 +12,11 @@ import { requireAdminPage, redirectToLogin } from "@/utils/pageAuth";
 // from the browser bundle; the page size comes from a browser-safe module.
 import { listUsers } from "@/utils/adminUsers";
 import { USERS_PAGE_SIZE } from "@/utils/adminUsersShared";
-import { Check, Landmark, Loader2, RotateCcw, X } from "lucide-react";
+import { Check, Landmark, Loader2, X } from "lucide-react";
 import { Avatar, Pill, Skeleton, cx } from "@/ui/primitives";
-import { Button, Field, Input, SearchInput, Select } from "@/ui/controls";
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { Button, Field, Input, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 import { capitalise, dhakaDmy } from "@/ui/status";
 import { date } from "@/ui/format";
 
@@ -32,7 +33,11 @@ import { date } from "@/ui/format";
  * - since 2026-11-18 the table loads one page at a time (api/admin/users) with
  *   the same filters, applied by the database, and the dialogs load the one
  *   user they show. The page used to carry every user with every column:
- *   600 kB of page data at ~600 users.
+ *   600 kB of page data at ~600 users;
+ * - since 2026-11-19 one search box (name, phone, email or user number)
+ *   replaces the separate name and phone/email boxes, the other filters sit
+ *   behind Filters with a chip for each one applied, columns sort, the rows
+ *   per page can change, and the list state is kept in the URL.
  */
 
 type Row = UserType & { bankCount?: number };
@@ -42,17 +47,22 @@ interface UserListProps {
     initial: UsersPage;
 }
 
-const EMPTY_FILTERS = {
-    name: "",
-    phoneEmail: "",
+const DEFAULTS = {
+    q: "",
     userType: "",
+    status: "",
     age: "",
     joining: "",
-    status: "",
     nid: "",
     email: "",
     phone: "",
+    orderBy: "idUsers",
+    orderType: "DESC" as "ASC" | "DESC",
+    page: 1,
+    pageSize: USERS_PAGE_SIZE,
 };
+const DEFAULT_QUERY = new URLSearchParams(Object.entries(DEFAULTS).map(([k, v]) => [k, String(v)])).toString();
+const VERIFIED = (what: string) => (v: string) => `${what} ${v === "yes" ? "verified" : "not verified"}`;
 
 /**
  * The three verification states as compact ticks. Green means verified, grey
@@ -105,9 +115,8 @@ function Verified({ ok }: { ok: boolean }) {
 const UserList: NextPage<UserListProps> = ({ initial }) => {
     const [rows, setRows] = useState<Row[]>(initial.data);
     const [total, setTotal] = useState(initial.total);
-    const [totalPages, setTotalPages] = useState(initial.totalPages);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [reloadKey, setReloadKey] = useState(0);
     const [listLoading, setListLoading] = useState(false);
     const [details, setDetails] = useState<Record<number, UserType>>({});
@@ -117,25 +126,21 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
     const [bankModalUser, setBankModalUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // The first page arrives with the HTML; after that every change fetches.
-    // Typing waits 250 ms; paging goes at once. An answer to an older request
-    // is dropped when a newer one has been sent.
-    const firstLoad = useRef(true);
-    const lastFilterKey = useRef(JSON.stringify(EMPTY_FILTERS));
+    // The first page arrives with the HTML; after that every change fetches
+    // (typing waits 300 ms, in useListState). An answer to an older request is
+    // dropped when a newer one has been sent.
+    const servedFirst = useRef(true);
     useEffect(() => {
-        if (firstLoad.current) {
-            firstLoad.current = false;
-            return;
+        if (!list.ready) return;
+        if (servedFirst.current) {
+            servedFirst.current = false;
+            if (list.query === DEFAULT_QUERY) return;
         }
-        const filterKey = JSON.stringify(filters);
-        const delay = filterKey === lastFilterKey.current ? 0 : 250;
-        lastFilterKey.current = filterKey;
         let stale = false;
-        const timer = setTimeout(async () => {
+        (async () => {
             setListLoading(true);
             try {
-                const query = new URLSearchParams({ ...filters, page: String(currentPage), pageSize: String(USERS_PAGE_SIZE) }).toString();
-                const res = await fetch(`/api/admin/users?${query}`, getRequestOptions());
+                const res = await fetch(`/api/admin/users?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (!res.ok) {
@@ -143,24 +148,23 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
                     return;
                 }
                 // A verification can drop the last row of the last page out of the filter.
-                if (data.data.length === 0 && currentPage > 1 && data.total > 0) {
-                    setCurrentPage(Math.max(1, data.totalPages));
+                if (data.data.length === 0 && list.settled.page > 1 && data.total > 0) {
+                    update({ page: Math.max(1, data.totalPages) });
                     return;
                 }
                 setRows(data.data);
                 setTotal(data.total);
-                setTotalPages(data.totalPages);
             } catch (error) {
                 if (!stale) Swal.fire("Error", "Could not load users", "error");
             } finally {
                 if (!stale) setListLoading(false);
             }
-        }, delay);
+        })();
         return () => {
             stale = true;
-            clearTimeout(timer);
         };
-    }, [filters, currentPage, reloadKey]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [list.query, list.ready, reloadKey]);
 
     /** One user's full record, fetched once and kept for both dialogs. */
     const ensureDetails = async (idUsers: number): Promise<UserType | null> => {
@@ -207,16 +211,20 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
         }
     };
 
-    const handlePageChange = (pageNumber: number) => {
-        setCurrentPage(Math.min(Math.max(1, pageNumber), Math.max(1, totalPages)));
-    };
-
-    // A changed filter starts again from page 1.
-    const set = (key: keyof typeof EMPTY_FILTERS) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFilters({ ...filters, [key]: e.target.value });
-        setCurrentPage(1);
-    };
-    const filtered = Object.values(filters).some(Boolean);
+    const field = (key: keyof typeof DEFAULTS) => ({
+        value: state[key] as string,
+        onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => update({ [key]: e.target.value } as Partial<typeof DEFAULTS>, { typing: e.target.tagName === "INPUT" }),
+    });
+    const chips = filterChips(state, list.defaults, {
+        userType: (v) => `Type: ${capitalise(v)}`,
+        status: (v) => `Status: ${capitalise(v)}`,
+        age: "Age",
+        joining: "Joined",
+        nid: VERIFIED("NID"),
+        email: VERIFIED("Email"),
+        phone: VERIFIED("Phone"),
+    }, update);
+    const filtered = chips.length > 0 || state.q.trim() !== "";
 
     const openDetails = (user: Row) => {
         setSelectedUser(details[user.idUsers] ? { ...user, ...details[user.idUsers] } : user);
@@ -232,7 +240,6 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
 
     const selectedLoaded = Boolean(selectedUser && details[selectedUser.idUsers]);
     const bankDetails = bankModalUser ? details[bankModalUser.idUsers] : undefined;
-    const first = total ? (currentPage - 1) * USERS_PAGE_SIZE + 1 : 0;
 
     return (
         <div className="ui">
@@ -248,95 +255,74 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
                 }
             />
 
-            <div className="tw-mb-4 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-card">
-                <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 lg:tw-grid-cols-4">
-                    <Field label="Name">
-                        <SearchInput placeholder="Search by name" value={filters.name} onChange={set("name")} />
-                    </Field>
-                    <Field label="Phone or email">
-                        <SearchInput placeholder="Search by phone or email" value={filters.phoneEmail} onChange={set("phoneEmail")} />
-                    </Field>
-                    <Field label="User type">
-                        <Select value={filters.userType} onChange={set("userType")}>
-                            <option value="">All</option>
-                            <option value="admin">Admin</option>
-                            <option value="investor">Investor</option>
-                            <option value="partner">Partner</option>
-                        </Select>
-                    </Field>
-                    <Field label="Status">
-                        <Select value={filters.status} onChange={set("status")}>
-                            <option value="">All</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="deleted">Deleted</option>
-                        </Select>
-                    </Field>
-                    <Field label="Age">
-                        <Input type="text" inputMode="numeric" placeholder="e.g. 32" value={filters.age} onChange={set("age")} />
-                    </Field>
-                    <Field label="Joining date" hint="d/m/yyyy, or part of it">
-                        <Input type="text" placeholder="e.g. 12/8/2026" value={filters.joining} onChange={set("joining")} />
-                    </Field>
-                    <div className="tw-grid tw-grid-cols-3 tw-gap-3 lg:tw-col-span-2">
-                        <Field label="NID">
-                            <Select value={filters.nid} onChange={set("nid")}>
-                                <option value="">All</option>
-                                <option value="yes">Verified</option>
-                                <option value="no">Not verified</option>
-                            </Select>
-                        </Field>
-                        <Field label="Email">
-                            <Select value={filters.email} onChange={set("email")}>
-                                <option value="">All</option>
-                                <option value="yes">Verified</option>
-                                <option value="no">Not verified</option>
-                            </Select>
-                        </Field>
-                        <Field label="Phone">
-                            <Select value={filters.phone} onChange={set("phone")}>
-                                <option value="">All</option>
-                                <option value="yes">Verified</option>
-                                <option value="no">Not verified</option>
-                            </Select>
-                        </Field>
-                    </div>
-                </div>
-                {filtered && (
-                    <div className="tw-mt-3 tw-flex tw-justify-end">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                                setFilters(EMPTY_FILTERS);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <RotateCcw className="tw-h-3.5 tw-w-3.5" aria-hidden /> Clear filters
-                        </Button>
-                    </div>
-                )}
-            </div>
-
             <TableCard
-                footer={
-                    <Pager
-                        page={currentPage}
-                        totalPages={totalPages}
-                        onChange={handlePageChange}
-                        summary={total ? `Showing ${first}–${Math.min(currentPage * USERS_PAGE_SIZE, total)} of ${total.toLocaleString("en-IN")}` : "No users"}
+                toolbar={
+                    <ListToolbar
+                        search={state.q}
+                        onSearch={(q) => update({ q }, { typing: true })}
+                        placeholder="Name, phone, email or user #"
+                        chips={chips}
+                        onReset={() => list.reset()}
+                        filters={
+                            <>
+                                <Field label="User type">
+                                    <Select {...field("userType")}>
+                                        <option value="">All</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="investor">Investor</option>
+                                        <option value="partner">Partner</option>
+                                    </Select>
+                                </Field>
+                                <Field label="Status">
+                                    <Select {...field("status")}>
+                                        <option value="">All</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="deleted">Deleted</option>
+                                    </Select>
+                                </Field>
+                                <Field label="Age">
+                                    <Input type="text" inputMode="numeric" placeholder="e.g. 32" {...field("age")} />
+                                </Field>
+                                <Field label="Joining date" hint="d/m/yyyy, or part of it">
+                                    <Input type="text" placeholder="e.g. 12/8/2026" {...field("joining")} />
+                                </Field>
+                                <Field label="NID">
+                                    <Select {...field("nid")}>
+                                        <option value="">All</option>
+                                        <option value="yes">Verified</option>
+                                        <option value="no">Not verified</option>
+                                    </Select>
+                                </Field>
+                                <Field label="Email">
+                                    <Select {...field("email")}>
+                                        <option value="">All</option>
+                                        <option value="yes">Verified</option>
+                                        <option value="no">Not verified</option>
+                                    </Select>
+                                </Field>
+                                <Field label="Phone">
+                                    <Select {...field("phone")}>
+                                        <option value="">All</option>
+                                        <option value="yes">Verified</option>
+                                        <option value="no">Not verified</option>
+                                    </Select>
+                                </Field>
+                            </>
+                        }
                     />
                 }
+                footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} loading={listLoading} noun="users" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
             >
                 <thead>
                     <tr>
-                        <th className={cx(TH, "tw-w-16")}>#</th>
-                        <th className={TH}>User</th>
+                        <SortTH label="#" field="idUsers" sort={state} onSort={list.sortBy} className="tw-w-16" />
+                        <SortTH label="User" field="fullName" sort={state} onSort={list.sortBy} />
                         <th className={TH}>Contact</th>
-                        <th className={TH}>Age</th>
-                        <th className={TH}>Joined</th>
+                        <SortTH label="Age" field="age" sort={state} onSort={list.sortBy} />
+                        <SortTH label="Joined" field="createdAt" sort={state} onSort={list.sortBy} />
                         <th className={TH}>Disability</th>
-                        <th className={TH}>Status</th>
+                        <SortTH label="Status" field="status" sort={state} onSort={list.sortBy} />
                         <th className={TH}>Verified</th>
                         <th className={TH}>Bank</th>
                     </tr>
