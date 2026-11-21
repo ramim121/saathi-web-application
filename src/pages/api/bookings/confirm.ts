@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectInvestmentBooking, User, ProjectInvestor, Project, ProjectPartnerInvestor, ProjectPartner } from '@/models/__associations';
+import { ProjectInvestmentBooking, User, ProjectInvestor, Project } from '@/models/__associations';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -8,6 +8,7 @@ import { generateNotification } from '@/notifications';
 import sequelize from '@/config/db';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { Op } from 'sequelize';
+import { CapacityError, lockProjects, settleLinePartners, type PartnerMove } from '@/utils/partnerCapacity';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -83,6 +84,8 @@ export default async function handler(
         }
 
         const { bookingId, paymentMethod, paymentDate, paymentAmount, transactionId, collectionDate, collectionLocation, idUserBanks } = req.body;
+        // Set when the admin accepted moving units off a partner who is full.
+        const rebalance = req.body.rebalance === true;
 
         const options = {
             abortEarly: false,
@@ -99,6 +102,7 @@ export default async function handler(
         }
 
         const transaction = await sequelize.transaction();
+        let committed = false;
 
         try {
             const booking = await ProjectInvestmentBooking.findOne({
@@ -106,6 +110,7 @@ export default async function handler(
                     bookingId,
                 },
                 transaction,
+                lock: transaction.LOCK.UPDATE,
             });
 
             if (!booking) {
@@ -126,6 +131,16 @@ export default async function handler(
                     success: false,
                     message: `This is a reinvestment: enter the whole booking amount, BDT ${reinvested.toLocaleString('en-IN')} carried over plus the top-up received, not the top-up alone.`,
                 });
+            }
+
+            // Two admins pressing confirm, or a cancelled booking, must not pass.
+            if ((booking as any).cancelled === 'yes') {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'This booking is cancelled.' });
+            }
+            if (booking.paymentConfirmationStatus === 'confirmed') {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'This booking is already confirmed.' });
             }
 
             const investor = await User.findOne({
@@ -155,14 +170,19 @@ export default async function handler(
                 where: { idProjectInvestmentBookings: booking.idProjectInvestmentBookings! },
                 transaction,
             });
+            await lockProjects(projectInvestor.map((line) => Number(line.idProjects)), transaction);
+            const moves: PartnerMove[] = [];
 
             for (const investor of projectInvestor) {
+                // Only lines still waiting: one already cancelled stays cancelled.
+                if (investor.investmentStatus !== 'booked') continue;
 
                 const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
                     where: {
                         idProjects: investor.idProjects,
                         investmentStatus: 'confirmed'
-                    }
+                    },
+                    transaction,
                 });
 
                 const projectInfo = await Project.findOne({
@@ -170,6 +190,7 @@ export default async function handler(
                         idProjects: investor.idProjects,
                     },
                     attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName'],
+                    transaction,
                 });
 
                 if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
@@ -206,7 +227,8 @@ export default async function handler(
                         idProjectInvestors: {
                             [Op.not]: investor.idProjectInvestors
                         },
-                    }
+                    },
+                    transaction,
                 });
 
                 // The old condition skipped the check entirely when the
@@ -229,68 +251,55 @@ export default async function handler(
                     }
                 }
 
-                const projectPartnerInvestor = await ProjectPartnerInvestor.findAll({
-                    where: {
-                        idProjectInvestors: investor.idProjectInvestors,
-                    },
+                const moved = await settleLinePartners(
+                    { idProjectInvestors: investor.idProjectInvestors!, idProjects: Number(investor.idProjects), unitPurchased: Number(investor.unitPurchased) },
+                    projectInfo?.projectName ?? 'This project',
+                    rebalance,
                     transaction,
-                });
-
-                for (const partner of projectPartnerInvestor) {
-
-                    const partnerInfo = await ProjectPartner.findOne({
-                        where: {
-                            idProjectPartners: partner.idProjectPartners,
-                        },
-                        attributes: ['partnerUnitCapacity'],
-                    });
-
-                    const alreadyInvested = await ProjectPartnerInvestor.sum('investedUnit', {
-                        where: {
-                            idProjectPartners: partner.idProjectPartners,
-                            idProjectPartnerInvestors: {
-                                [Op.not]: partner.idProjectPartnerInvestors
-                            },
-                            idProjectInvestors: {
-                                [Op.in]: sequelize.literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed')`)
-                            }
-                        }
-                    });
-
-                    if (partnerInfo && partnerInfo.partnerUnitCapacity !== 0) {
-                        if (Number(alreadyInvested) + Number(partner.investedUnit) > partnerInfo.partnerUnitCapacity) {
-                            await transaction.rollback();
-                            return res.status(400).json({ success: false, message: 'Partner unit capacity excedded' });
-                        }
-                    }
-                }
-
+                );
+                if (moved) moves.push(...moved);
 
                 investor.investmentStatus = 'confirmed';
                 await investor.save({ transaction });
 
             }
 
-            await generateNotification('booking_active', {
-                fullName: investor?.fullName,
-                bookingId: booking.bookingId,
-            }, investor!);
-
-            const bookingStatus = await BookingStatusEntry('confirmed', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+            const bookingStatus = await BookingStatusEntry(
+                'confirmed',
+                booking.idProjectInvestmentBookings!,
+                userInfo.idUsers,
+                moves.length ? moves.map((m) => `${m.units} unit(s) moved from ${m.from} to ${m.to}`).join('; ').slice(0, 250) : '',
+                transaction,
+            );
             if (!bookingStatus) {
-                await transaction.rollback();
                 throw new Error('Error updating booking status');
             }
 
             await transaction.commit();
+            committed = true;
+
+            // After the commit, so an investor is never told about a booking that rolled back.
+            try {
+                await generateNotification('booking_active', {
+                    fullName: investor?.fullName,
+                    bookingId: booking.bookingId,
+                }, investor!);
+            } catch (notifyError) {
+                console.error('Booking confirmed, but its notification failed:', (notifyError as Error).message);
+            }
 
             return res.status(200).json({
                 success: true,
                 data: booking,
                 message: 'Booking confirmed successfully',
+                moves,
             });
         } catch (err) {
+            if (committed) return res.status(200).json({ success: true, message: 'Booking confirmed successfully' });
             await transaction.rollback();
+            if (err instanceof CapacityError) {
+                return res.status(err.status).json({ success: false, code: err.code, message: err.message, details: err.details });
+            }
             return res.status(400).json({ success: false, message: (err as Error).message });
         }
     } else {

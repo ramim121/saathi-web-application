@@ -39,14 +39,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'confirmed'
                             )`),
                             'investorCount'
+                        ],
+                        [
+                            sequelize.literal(`(
+                                SELECT COALESCE(SUM(ppi.invested_unit), 0)
+                                FROM project_partner_investors AS ppi
+                                JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'confirmed'
+                            )`),
+                            'confirmedUnits'
                         ]
                     ]
                 },
                 having: sequelize.literal(`
-                    (partnerUnitCapacity = 0 OR investorCount < partnerUnitCapacity)
+                    (partnerUnitCapacity = 0 OR confirmedUnits < partnerUnitCapacity)
                 `),
                 order: [
-                    [sequelize.literal('investorCount'), 'ASC'],
+                    [sequelize.literal('confirmedUnits'), 'ASC'],
                     ['idProjectPartners', 'ASC']
                 ]
             });

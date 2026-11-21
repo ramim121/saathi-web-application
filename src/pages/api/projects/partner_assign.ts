@@ -1,81 +1,30 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectPartner, Project } from '@/models/__associations';
 import Joi from 'joi';
-import sequelize from '@/config/db';
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '@/config/constants';
-import JWTPayload from '@/types/JWTPayload';
+import { requireAdmin, withCors } from '@/utils/auth';
+import { assignPartners, CapacityError } from '@/utils/partnerCapacity';
 
+/** Kept for existing callers. The rules live in utils/partnerCapacity. */
 const schema = Joi.object({
-    partner: Joi.number().required().messages({
-        "any.required": "Partner is required",
-        "number.base": "Partner must be selected",
-    }),
-    project: Joi.number().required().messages({
-        "any.required": "Project is required",
-        "number.base": "Project must be selected",
-    }),
-    partnerUnitCapacity: Joi.number().greater(0).required().messages({
-        "any.required": "Partner unit capacity is required",
-        "number.base": "Partner unit capacity must be a number",
-        "number.greater": "Partner unit capacity must be greater than 0",
+    partner: Joi.number().integer().positive().required().messages({ 'any.required': 'Partner is required', 'number.base': 'Partner must be selected' }),
+    project: Joi.number().integer().positive().required().messages({ 'any.required': 'Project is required', 'number.base': 'Project must be selected' }),
+    partnerUnitCapacity: Joi.number().integer().min(1).required().messages({
+        'any.required': 'Partner unit capacity is required',
+        'number.base': 'Partner unit capacity must be a number',
+        'number.min': 'Partner unit capacity must be greater than 0',
     }),
 }).unknown();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-        let tokenData = req.headers.authorization;
-        let token = tokenData?.split(' ')[1];
-
-        if (!token || jwt.verify(token, JWT_SECRET) === null) { res.status(401).json({ success: false, message: 'Invalid token' }); return; }
-
-        let userInfo = jwt.decode(token) as JWTPayload;
-        if (userInfo.userType !== 'admin') { res.status(403).json({ success: false, message: 'Access denied' }); return; }
-
-        const { partner, project, partnerUnitCapacity } = req.body
-
-        const options = {
-            abortEarly: false,
-        };
-        const { error } = schema.validate({ partner, project, partnerUnitCapacity }, options);
-        if (error) {
-            let errorMessage: string[] = [];
-
-            error.details.forEach((e) => {
-                errorMessage.push(e.message);
-            });
-            return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
-        }
-        const transaction = await sequelize.transaction();
-        try {
-            const projectPartner = await ProjectPartner.create({
-                idProjects: project,
-                idUsers: partner,
-                partnerUnitCapacity: partnerUnitCapacity
-            }, { transaction });
-
-            const projectDetails = await Project.findOne({
-                where: { idProjects: project }
-            });
-            if (!projectDetails) {
-                await transaction.rollback();
-                return res.status(404).json({ success: false, message: 'Project not found' });
-            }
-
-            const updatedTotalUnits = projectDetails.totalAvailableUnits + partnerUnitCapacity;
-
-            const updateUnits = await Project.update(
-                { totalAvailableUnits: updatedTotalUnits }, // Fields to update
-                { where: { idProjects: project }, transaction } // Conditions and transaction
-            );
-
-            await transaction.commit();
-            return res.status(200).json({ success: true, message: 'Partner assigned successfully', data: projectPartner })
-        } catch (error) {
-            await transaction.rollback();
-            return res.status(400).json({ success: false, message: (error as Error).message })
-        }
-    } else {
-        res.status(405).json({ success: false, message: 'Method not allowed' })
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+    const { error, value } = schema.validate(req.body, { abortEarly: false });
+    if (error) return res.status(400).json({ success: false, message: error.details.map((e) => e.message).join('. <br>') });
+    try {
+        const data = await assignPartners([{ idProjects: value.project, idUsers: value.partner, capacity: value.partnerUnitCapacity }]);
+        if (!data.created) return res.status(400).json({ success: false, message: 'This partner is already on this project.' });
+        return res.status(200).json({ success: true, message: 'Partner assigned successfully', data });
+    } catch (err) {
+        return res.status(err instanceof CapacityError ? err.status : 400).json({ success: false, message: (err as Error).message });
     }
 }
+
+export default withCors(requireAdmin(handler));

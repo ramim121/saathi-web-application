@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import { CapacityError, planBooking } from '@/utils/partnerCapacity';
 
 const cors = Cors({
     origin: '*',
@@ -32,9 +33,11 @@ const schema = Joi.object({
                 "any.required": "Project must be selected",
                 "number.base": "Project must be selected",
             }),
-            unitPurchased: Joi.number().required().messages({
+            unitPurchased: Joi.number().integer().min(1).max(100000).required().messages({
                 "any.required": "Unit purchased is required",
                 "number.base": "Unit purchased can not be empty",
+                "number.integer": "Units must be a whole number",
+                "number.min": "Units must be at least 1",
             }),
             projectPartners: Joi.array().items(
                 Joi.object({
@@ -47,17 +50,18 @@ const schema = Joi.object({
                         "number.base": "Amount invested can not be empty",
                         "number.min": "Amount invested can not be less than 0",
                     }),
-                    investedUnit: Joi.number().min(1).required().messages({
+                    investedUnit: Joi.number().integer().min(1).required().messages({
                         "any.required": "Invested units is required",
                         "number.base": "Invested units can not be empty",
                         "number.min": "Invested units can not be less than 0",
                     }),
                 }).unknown()
-            ).required().messages({
+            ).min(1).required().messages({
+                "array.min": "Project partner must be selected",
                 "any.required": "Project partner must be selected",
             }),
         }).unknown()
-    ).required(),
+    ).min(1).required().messages({ "array.min": "Select at least one project" }),
 }).unknown();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -102,25 +106,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         const transaction = await sequelize.transaction();
+        let committed = false;
+        let projectInvestmentBooking: any = null;
 
         try {
 
-            const maximumBookingId = await ProjectInvestmentBooking.max('bookingId');
+            // Limits and partners are settled first, under a lock on the projects.
+            const planned = await planBooking(projects, investorVerification.idUsers!, transaction, { strict: true });
+
+            const maximumBookingId = await ProjectInvestmentBooking.max('bookingId', { transaction });
             const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
-            const projectInvestmentBooking = await ProjectInvestmentBooking.create({
+            projectInvestmentBooking = await ProjectInvestmentBooking.create({
                 idUsers: investorVerification.idUsers,
                 bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
             }, { transaction });
 
             const projectForNotifications = [];
-            for (const project of projects) {
+            for (const [lineIndex, project] of projects.entries()) {
                 const projectInfo = await Project.findOne({
                     where: {
                         idProjects: project.idProjects,
                     },
                     attributes: ['totalAvailableUnits', 'investorUnitCapacity', 'projectName', 'duration', 'tenure', 'unitInvestmentValue', 'projectType'],
+                    transaction,
                 });
 
                 projectForNotifications.push({
@@ -140,8 +150,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     idProjectInvestmentBookings: projectInvestmentBooking.idProjectInvestmentBookings
                 }, { transaction });
 
-                for (const partner of project.projectPartners) {
-                    const projectPartnerInvestor = await ProjectPartnerInvestor.create({
+                for (const partner of planned[lineIndex].allocations) {
+                    await ProjectPartnerInvestor.create({
                         idProjectInvestors: projectInvestor.idProjectInvestors,
                         idProjectPartners: partner.idProjectPartners,
                         amountInvested: partner.amountInvested,
@@ -162,11 +172,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const bookingStatus = await BookingStatusEntry('placed', projectInvestmentBooking.idProjectInvestmentBookings!, investorVerification.idUsers!, '', transaction);
             if (!bookingStatus) {
-                await transaction.rollback();
                 throw new Error('Error in booking placed');
             }
 
             await transaction.commit();
+            committed = true;
 
             let currentDate = new Date();
             await generateNotification('booking_placed', {
@@ -178,8 +188,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
         } catch (err) {
+            // The booking exists once committed: a failed notification must not report it as failed.
+            if (committed) {
+                console.error('Booking placed, but its notification failed:', (err as Error).message);
+                return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking });
+            }
             await transaction.rollback();
-            return res.status(400).json({ success: false, message: (err as Error).message })
+            const status = err instanceof CapacityError ? err.status : 400;
+            return res.status(status).json({ success: false, code: err instanceof CapacityError ? err.code : undefined, message: (err as Error).message })
         }
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })

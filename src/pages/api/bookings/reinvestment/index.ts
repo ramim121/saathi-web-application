@@ -8,6 +8,7 @@ import ProjectInvestorStatusEntry from '@/utils/ProjectInvestorStatusEntry';
 import { generateNotification } from '@/notifications';
 import { addTerm, planReinvestment, REINVEST_MODES, type ReinvestMode } from '@/utils/reinvestment';
 import { balanceOf, capacityProblem, loadReinvestSource, nextBookingRef } from '@/utils/reinvestmentServer';
+import { lockProjects } from '@/utils/partnerCapacity';
 
 /**
  * POST: reinvest a matured investment line into a new booking on the
@@ -71,6 +72,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             mode: input.mode, capital: source.capital, profit: input.profitAmount, balance, useBalance: input.useBalance, unitValue, units: input.units,
         });
         if (plan.problem) throw Object.assign(new Error(plan.problem), { status: 400 });
+        await lockProjects([input.idProjects], transaction);
         const capacity = await capacityProblem({ idProjects: input.idProjects, idProjectPartners: input.idProjectPartners, idUsers, units: input.units, leavingLine: input.idProjectInvestors }, transaction);
         if (capacity) throw Object.assign(new Error(capacity), { status: 400 });
 
