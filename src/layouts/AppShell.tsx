@@ -212,11 +212,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
                         </Link>
                     </header>
 
-                    <main id="main-content" className="tw-mx-auto tw-w-full tw-max-w-[1440px] tw-px-4 tw-py-6 sm:tw-px-6 lg:tw-px-8 print:tw-p-0">
+                    {/* Full width: the admin is a work tool on wide screens, so content uses the whole window. */}
+                    <main id="main-content" className="tw-w-full tw-px-4 tw-py-6 sm:tw-px-6 lg:tw-px-8 print:tw-p-0">
                         {children}
                     </main>
 
-                    <footer className="ui tw-mx-auto tw-max-w-[1440px] tw-px-4 tw-pb-8 tw-pt-2 tw-text-xs tw-text-slate-400 sm:tw-px-6 lg:tw-px-8 print:tw-hidden">
+                    <footer className="ui tw-px-4 tw-pb-8 tw-pt-2 tw-text-xs tw-text-slate-400 sm:tw-px-6 lg:tw-px-8 print:tw-hidden">
                         Shathi admin · DigiGram Ventures · Support: Ramim S. Hossain, 01966662633, ramim121@gmail.com
                     </footer>
                 </div>
