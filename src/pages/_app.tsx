@@ -22,11 +22,13 @@ import '../styles/ui.css';
 import type { AppProps } from 'next/app';
 import type { ReactElement, ReactNode } from 'react';
 import { inter } from '@/ui/font';
+import { useAutoHideScrollbars } from '@/ui/scrollbars';
 
 type WithLayout = AppProps['Component'] & { getLayout?: (page: ReactElement) => ReactNode };
 
 export default function App({ Component, pageProps }: AppProps) {
 	const getLayout = (Component as WithLayout).getLayout ?? ((page: ReactElement) => page);
+	useAutoHideScrollbars();
 	return (
 		<>
 			{/*

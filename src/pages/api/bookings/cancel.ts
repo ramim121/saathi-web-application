@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import { undoReinvestment } from '@/utils/reinvestmentServer';
 import Cors from 'micro-cors';
 
 
@@ -83,6 +84,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 investor.investmentStatus = 'cancelled';
                 await investor.save({ transaction });
             }
+
+            // A reinvestment's money came from a matured investment: give it back
+            // to that investment (and reverse its balance entries) rather than
+            // leaving it closed as "reinvested" into a booking that no longer exists.
+            await undoReinvestment(booking as any, userInfo.idUsers, transaction);
 
             if (booking.idProjectInvestmentBookings === undefined) {
                 await transaction.rollback();

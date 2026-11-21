@@ -8,7 +8,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
     try {
-        const result = await listUsers(readUserFilters(req.query), Number(req.query.page) || 1, Number(req.query.pageSize) || USERS_PAGE_SIZE);
+        const result = await listUsers(readUserFilters(req.query), Number(req.query.page) || 1, Number(req.query.pageSize) || USERS_PAGE_SIZE, {
+            orderBy: req.query.orderBy,
+            orderType: req.query.orderType,
+        });
         return res.status(200).json({ success: true, ...result });
     } catch (error) {
         return res.status(400).json({ success: false, message: (error as Error).message });

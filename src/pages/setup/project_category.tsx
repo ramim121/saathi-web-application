@@ -7,8 +7,9 @@ import { getRequestOptions } from '@/utils/Fetch';
 import { S3_URL } from '@/config/public';
 import { Layers3 } from 'lucide-react';
 import { SafeImg, cx } from '@/ui/primitives';
-import { Field, FileInput, Input, Required, SearchInput } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Field, FileInput, Input, Required } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 import { LocalPreview } from '@/components/projects/ProjectFormParts';
 
@@ -19,14 +20,13 @@ interface FormDataType {
     categoryImage: File | null
 }
 
-interface FilterProps {
-    idProjectCategories: string
-    categoryName: string
-    orderBy: string
-    orderType: string
-    page: number
-    pageSize: number
-}
+const DEFAULTS = {
+    q: '',
+    orderBy: 'idProjectCategories',
+    orderType: 'ASC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 function ProjectCategory() {
     const [formData, setFormData] = useState<FormDataType>({
@@ -34,74 +34,38 @@ function ProjectCategory() {
         categoryNameBn: '',
         categoryImage: null
     });
-    const [filter, setFilter] = useState<FilterProps>({
-        idProjectCategories: '',
-        categoryName: '',
-        orderBy: 'idProjectCategories',
-        orderType: 'ASC',
-        page: 1,
-        pageSize: 10
-    });
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [projectCategories, setProjectCategories] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchProjectCategoryList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/project-categories/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/project-categories/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
                     setProjectCategories(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchProjectCategoryList();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+    }, [list.query, list.ready, reloadKey]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -152,7 +116,7 @@ function ProjectCategory() {
                             title: 'Success',
                             text: (await res.json()).message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setFormData({
                             categoryName: '',
                             categoryNameBn: '',
@@ -189,22 +153,13 @@ function ProjectCategory() {
             description="How projects are grouped in the app and on the website."
             list={
                 <TableCard
-                    toolbar={
-                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
-                            <Field label="Category">
-                                <SearchInput placeholder="Search categories" name="categoryName" onChange={handleInputOnChange} value={filter.categoryName} />
-                            </Field>
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idProjectCategories" onChange={handleInputOnChange} value={filter.idProjectCategories} />
-                            </Field>
-                        </div>
-                    }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} categories · page ${filter.page} of ${pages}` : undefined} />}
+                    toolbar={<ListToolbar search={state.q} onSearch={(q) => update({ q }, { typing: true })} placeholder="Search categories (English or বাংলা) or #" onReset={() => list.reset()} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="categories" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={cx(TH, 'tw-w-20')}>#</th>
-                            <th className={TH}>Category</th>
+                            <SortTH label="#" field="idProjectCategories" sort={state} onSort={list.sortBy} className="tw-w-20" />
+                            <SortTH label="Category" field="categoryName" sort={state} onSort={list.sortBy} />
                         </tr>
                     </thead>
                     <tbody>
@@ -235,7 +190,7 @@ function ProjectCategory() {
                                 </td>
                             </tr>
                         )) : (
-                            <EmptyRow colSpan={2} title="No categories match" />
+                            <EmptyRow colSpan={2} title="No categories match" hint={state.q ? 'Try a different search.' : undefined} />
                         )}
                     </tbody>
                 </TableCard>

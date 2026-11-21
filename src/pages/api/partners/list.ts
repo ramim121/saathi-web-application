@@ -6,6 +6,7 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import sequelize from '@/config/db';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -51,6 +52,12 @@ export default async function handler(
 
 		if (disability) {
 			whereClause = { ...whereClause, disability: { [Op.like]: `%${disability}%` } };
+		}
+
+		// One box: name, phone, location, role, skills, or the partner number.
+		const term = searchTerm(req.query.q);
+		if (term) {
+			(whereClause as any)[Op.and] = [searchWhere(term, ['fullName', 'phoneNumber', 'location', 'role', 'skills'], 'idUsers')];
 		}
 
 		if (partnerType) {

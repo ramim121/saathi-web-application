@@ -149,3 +149,23 @@
         background: #fff !important;
     }
 }
+
+/*
+ * Auto-hiding scrollbars, part one (the hook is src/ui/scrollbars.ts).
+ *
+ * Every scrollbar is thin and invisible until its area is hovered or scrolled.
+ * The page's own scrollbar (taken from <html>) shows only while scrolling,
+ * because the pointer is always "over" the page. Standard properties only:
+ * Chrome 121+ and Firefox honour them (Chrome then ignores ::-webkit-scrollbar),
+ * and Safari's overlay scrollbars already hide themselves.
+ */
+html,
+html * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+html *:hover,
+html [data-scrolling],
+html[data-scrolling] {
+    scrollbar-color: rgb(148 163 184 / 0.7) transparent;
+}

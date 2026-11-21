@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { API_URL } from '@/config/public';
 import MainLayout from '@/layouts/MainLayout';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { Card, Pill, Segmented, Skeleton, cx } from '@/ui/primitives';
 import { Field, Input, Required, Select } from '@/ui/controls';
 import { EmptyRow, TableCard, TD, TH, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, filterChips, useClientRows, useListState } from '@/ui/table';
 import { returnRange, words } from '@/ui/status';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
@@ -21,6 +22,18 @@ interface FormDataType {
     planName?: string,
 }
 
+// The endpoint returns every plan (a short list), so the table searches,
+// filters, sorts and pages them here. No sort keeps the endpoint's order.
+const DEFAULTS = {
+    q: '',
+    investmentType: '',
+    returnType: '',
+    orderBy: '',
+    orderType: 'ASC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
+
 function Investment() {
     const [formData, setFormData] = useState<FormDataType>({
         nameOfThePlan: '',
@@ -35,6 +48,28 @@ function Investment() {
     const [reload, setReload] = useState<boolean>(true);
     const [loading, setLoading] = useState<boolean>(false);
     const [loaded, setLoaded] = useState<boolean>(false);
+
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
+    const byFilters = useCallback(
+        (plan: FormDataType) => (!state.investmentType || plan.investmentType === state.investmentType) && (!state.returnType || plan.returnType === state.returnType),
+        [state.investmentType, state.returnType],
+    );
+    const { total, pageRows } = useClientRows(investmentList, state, {
+        text: (plan) => `${plan.planName ?? ''} ${words(plan.investmentType)} ${plan.duration} ${plan.tenure}`,
+        sort: {
+            planName: (plan) => plan.planName ?? '',
+            investmentType: (plan) => plan.investmentType,
+            minimumReturn: (plan) => Number(plan.minimumReturn),
+            // Years count as twelve months, so terms compare across units.
+            duration: (plan) => Number(plan.duration) * (plan.tenure === 'years' ? 12 : 1),
+        },
+        filter: byFilters,
+    });
+    const chips = filterChips(state, list.defaults, {
+        investmentType: (v) => words(v),
+        returnType: (v) => `${words(v)} return`,
+    }, update);
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -158,20 +193,49 @@ function Investment() {
                         ))}
                     </Card>
                 ) : (
-                    <TableCard>
+                    <TableCard
+                        toolbar={
+                            <ListToolbar
+                                search={state.q}
+                                onSearch={(q) => update({ q })}
+                                placeholder="Search plans"
+                                chips={chips}
+                                onReset={() => list.reset()}
+                                filters={
+                                    <>
+                                        <Field label="Type">
+                                            <Select {...list.bind('investmentType')}>
+                                                <option value="">All</option>
+                                                <option value="sustainable_return">Sustainable return</option>
+                                                <option value="fast_return">Fast return</option>
+                                            </Select>
+                                        </Field>
+                                        <Field label="Return">
+                                            <Select {...list.bind('returnType')}>
+                                                <option value="">All</option>
+                                                <option value="variable">Variable</option>
+                                                <option value="fixed">Fixed</option>
+                                            </Select>
+                                        </Field>
+                                    </>
+                                }
+                            />
+                        }
+                        footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="plans" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
+                    >
                         <thead>
                             <tr>
                                 <th className={cx(TH, 'tw-w-12')}>#</th>
-                                <th className={TH}>Plan</th>
-                                <th className={TH}>Type</th>
-                                <th className={TH}>Return</th>
-                                <th className={TH}>Term</th>
+                                <SortTH label="Plan" field="planName" sort={state} onSort={list.sortBy} />
+                                <SortTH label="Type" field="investmentType" sort={state} onSort={list.sortBy} />
+                                <SortTH label="Return" field="minimumReturn" sort={state} onSort={list.sortBy} />
+                                <SortTH label="Term" field="duration" sort={state} onSort={list.sortBy} />
                             </tr>
                         </thead>
                         <tbody>
-                            {investmentList.length > 0 ? investmentList.map((investment, index) => (
+                            {pageRows.length > 0 ? pageRows.map((investment, index) => (
                                 <tr key={investment.idInvestmentSetup ?? index} className={TR}>
-                                    <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{index + 1}</td>
+                                    <td className={cx(TD, 'tw-tabular-nums tw-text-slate-400')}>{(state.page - 1) * state.pageSize + index + 1}</td>
                                     <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{investment.planName}</td>
                                     <td className={cx(TD, 'tw-text-slate-600')}>{words(investment.investmentType)}</td>
                                     <td className={cx(TD, 'tw-whitespace-nowrap')}>
@@ -181,7 +245,7 @@ function Investment() {
                                     <td className={cx(TD, 'tw-whitespace-nowrap tw-text-slate-600')}>{investment.duration} {investment.tenure}</td>
                                 </tr>
                             )) : (
-                                <EmptyRow colSpan={5} title="No plans yet" />
+                                <EmptyRow colSpan={5} title={investmentList.length === 0 ? 'No plans yet' : 'No plans match'} hint={investmentList.length > 0 ? 'Try other words or fewer filters.' : undefined} />
                             )}
                         </tbody>
                     </TableCard>

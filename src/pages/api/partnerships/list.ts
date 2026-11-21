@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 
 export default async function handler(
     req: NextApiRequest,
@@ -33,6 +34,10 @@ export default async function handler(
         if (name) {
             whereClause.name = { [Op.like]: `%${name}%` };
         }
+
+        // One box (q): the name (English or Bangla), or the number.
+        const term = searchTerm(req.query.q);
+        if (term) (whereClause as any)[Op.and] = [searchWhere(term, ['name', 'nameBn'], 'idPartnerships')];
 
         const limit = pageSize ? parseInt(pageSize as string) : 10;
         const offset = page ? (parseInt(page as string) - 1) * limit : 0;

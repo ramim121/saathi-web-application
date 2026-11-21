@@ -4,8 +4,9 @@ import Swal from 'sweetalert2';
 import { API_URL } from '@/config/public';
 import { getRequestOptions, postRequestOptions } from '@/utils/Fetch';
 import { cx } from '@/ui/primitives';
-import { Field, Input, Required, SearchInput } from '@/ui/controls';
-import { EmptyRow, Pager, TableCard, TD, TH, TR } from '@/ui/layout';
+import { Field, Input, Required } from '@/ui/controls';
+import { EmptyRow, TableCard, TD, TR } from '@/ui/layout';
+import { ListFooter, ListToolbar, SortTH, useListState } from '@/ui/table';
 import { SetupFormCard, SetupShell } from '@/components/setup/SetupShell';
 
 interface FormDataType {
@@ -13,86 +14,49 @@ interface FormDataType {
     skillName: string
 }
 
-interface FilterProps {
-    idSkills: string
-    skillName: string
-    orderBy: string
-    orderType: string
-    page: number
-    pageSize: number
-}
+const DEFAULTS = {
+    q: '',
+    orderBy: 'idSkills',
+    orderType: 'ASC' as 'ASC' | 'DESC',
+    page: 1,
+    pageSize: 10,
+};
 
 function Skill() {
     const [formData, setFormData] = useState<FormDataType>({
         skillName: '',
     });
-    const [filter, setFilter] = useState<FilterProps>({
-        idSkills: '',
-        skillName: '',
-        orderBy: 'idSkills',
-        orderType: 'ASC',
-        page: 1,
-        pageSize: 10
-    });
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [skillList, setSkillList] = useState<FormDataType[]>([]);
-    const [reload, setReload] = useState<boolean>(true);
+    const [reloadKey, setReloadKey] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        // A filter fires a request per keystroke; ignore answers a newer request replaced.
+        if (!list.ready) return;
+        // Ignore answers a newer request replaced.
         let stale = false;
         const fetchSkillList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             try {
-                const res = await fetch(`/api/skills/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/skills/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
                 if (stale) return;
                 if (res.status === 200) {
                     setSkillList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
-                    setReload(false);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                if (stale) return;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (!stale) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             }
         }
         fetchSkillList();
         return () => {
             stale = true;
         };
-    }, [filter, reload]);
-
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
+    }, [list.query, list.ready, reloadKey]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -114,7 +78,7 @@ function Skill() {
                             title: 'Success',
                             text: (await res.json()).message,
                         });
-                        setReload(true);
+                        setReloadKey((k) => k + 1);
                         setFormData({
                             skillName: '',
                         });
@@ -146,22 +110,13 @@ function Skill() {
             description="The skills partners can be tagged with when they are registered."
             list={
                 <TableCard
-                    toolbar={
-                        <div className="tw-grid tw-grid-cols-[1fr_6rem] tw-gap-3">
-                            <Field label="Skill">
-                                <SearchInput placeholder="Search skills" name="skillName" onChange={handleInputOnChange} value={filter.skillName} />
-                            </Field>
-                            <Field label="#">
-                                <Input type="number" placeholder="ID" name="idSkills" onChange={handleInputOnChange} value={filter.idSkills} />
-                            </Field>
-                        </div>
-                    }
-                    footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `${total} skills · page ${filter.page} of ${pages}` : undefined} />}
+                    toolbar={<ListToolbar search={state.q} onSearch={(q) => update({ q }, { typing: true })} placeholder="Search skills or #" onReset={() => list.reset()} />}
+                    footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} noun="skills" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
                 >
                     <thead>
                         <tr>
-                            <th className={cx(TH, 'tw-w-20')}>#</th>
-                            <th className={TH}>Skill</th>
+                            <SortTH label="#" field="idSkills" sort={state} onSort={list.sortBy} className="tw-w-20" />
+                            <SortTH label="Skill" field="skillName" sort={state} onSort={list.sortBy} />
                         </tr>
                     </thead>
                     <tbody>
@@ -171,7 +126,7 @@ function Skill() {
                                 <td className={cx(TD, 'tw-font-medium tw-text-slate-900')}>{skill.skillName}</td>
                             </tr>
                         )) : (
-                            <EmptyRow colSpan={2} title="No skills match" />
+                            <EmptyRow colSpan={2} title="No skills match" hint={state.q ? 'Try a different search.' : undefined} />
                         )}
                     </tbody>
                 </TableCard>

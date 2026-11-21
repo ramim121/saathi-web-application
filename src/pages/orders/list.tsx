@@ -3,10 +3,11 @@ import Link from "next/link";
 import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Pill, cx } from "@/ui/primitives";
-import { Button, Field, Input, SearchInput, Select } from "@/ui/controls";
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { Field, Input, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 import { bdtExact, date } from "@/ui/format";
 import { ORDER_STATUSES, orderStatus } from "@/ui/status";
 
@@ -24,91 +25,64 @@ interface ListProps {
     orderDate: string
 }
 
-interface FilterProps {
-    idProductOrders: string,
-    orderId: string,
-    buyer: string,
-    area: string,
-    orderAmount: string,
-    orderDate: string,
-    status: string,
-    orderBy: string,
-    orderType: string,
-    page: number,
-    pageSize: number
-}
-
-const INITIAL_FILTER: FilterProps = {
-    idProductOrders: '',
-    orderId: '',
-    buyer: '',
+const DEFAULTS = {
+    q: '',
+    status: '',
     area: '',
     orderAmount: '',
     orderDate: '',
-    status: '',
-    orderBy: 'idProductOrders',
-    orderType: 'DESC',
+    orderBy: 'createdAt',
+    orderType: 'DESC' as 'ASC' | 'DESC',
     page: 1,
-    pageSize: 10
+    pageSize: 25,
 };
 
+/**
+ * Orders: one search box (order ID, buyer's name, phone or email, or the order
+ * number), filters with chips, sortable columns, rows per page; the view is
+ * kept in the URL.
+ */
 function List() {
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [orderList, setOrderList] = useState<ListProps[]>([]);
-    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        if (!list.ready) return;
+        let live = true;
         const fetchOrderList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             setLoading(true);
             try {
-                const res = await fetch(`/api/orders?${query}`, getRequestOptions());
+                const res = await fetch(`/api/orders?${list.query}`, getRequestOptions());
                 const data = await res.json();
+                if (!live) return;
                 if (res.status === 200) {
                     setOrderList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (live) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             } finally {
-                setLoading(false);
+                if (live) setLoading(false);
             }
         }
         fetchOrderList();
-    }, [filter]);
+        return () => {
+            live = false;
+        };
+    }, [list.query, list.ready]);
 
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
-
-    const anyFilter = Boolean(filter.idProductOrders || filter.orderId || filter.buyer || filter.area || filter.orderAmount || filter.orderDate || filter.status);
+    const chips = filterChips(state, list.defaults, {
+        status: (v) => `Status: ${orderStatus(v).label}`,
+        area: 'Area',
+        orderAmount: 'Amount',
+        orderDate: 'Date',
+    }, update);
+    const anyFilter = chips.length > 0 || state.q !== '';
 
     return (
         <div className="ui">
@@ -116,53 +90,46 @@ function List() {
 
             <TableCard
                 toolbar={
-                    <div className="tw-flex tw-flex-col tw-gap-3">
-                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 md:tw-grid-cols-4 xl:tw-grid-cols-[1.2fr_1.6fr_1.2fr_1fr_1fr_1fr_auto]">
-                            <Field label="Order ID">
-                                <SearchInput placeholder="e.g. ORD-…" name="orderId" onChange={handleInputOnChange} value={filter.orderId} />
-                            </Field>
-                            <Field label="Buyer">
-                                <Input placeholder="Name, phone or email" name="buyer" onChange={handleInputOnChange} value={filter.buyer} />
-                            </Field>
-                            <Field label="Area">
-                                <Input placeholder="District or thana" name="area" onChange={handleInputOnChange} value={filter.area} />
-                            </Field>
-                            <Field label="Status">
-                                <Select name="status" onChange={handleInputOnChange} value={filter.status}>
-                                    <option value="">All</option>
-                                    {ORDER_STATUSES.map((s) => (
-                                        <option key={s.value} value={s.value}>
-                                            {s.label}
-                                        </option>
-                                    ))}
-                                </Select>
-                            </Field>
-                            <Field label="Amount">
-                                <Input placeholder="e.g. 1500" name="orderAmount" onChange={handleInputOnChange} value={filter.orderAmount} />
-                            </Field>
-                            <Field label="Date">
-                                <Input placeholder="e.g. 2026-11" name="orderDate" onChange={handleInputOnChange} value={filter.orderDate} />
-                            </Field>
-                            <div className="tw-col-span-2 tw-flex tw-items-end md:tw-col-span-4 xl:tw-col-span-1">
-                                {anyFilter && (
-                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                        <p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? 'Loading…' : `${Number(total || 0).toLocaleString('en-IN')} orders`}</p>
-                    </div>
+                    <ListToolbar
+                        search={state.q}
+                        onSearch={(q) => update({ q }, { typing: true })}
+                        placeholder="Order ID, buyer name, phone or email"
+                        chips={chips}
+                        onReset={() => list.reset()}
+                        filters={
+                            <>
+                                <Field label="Status">
+                                    <Select {...list.bind('status')}>
+                                        <option value="">All</option>
+                                        {ORDER_STATUSES.map((s) => (
+                                            <option key={s.value} value={s.value}>
+                                                {s.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Field>
+                                <Field label="Area">
+                                    <Input placeholder="District or thana" {...list.bind('area')} />
+                                </Field>
+                                <Field label="Amount">
+                                    <Input placeholder="e.g. 1500" {...list.bind('orderAmount')} />
+                                </Field>
+                                <Field label="Date" hint="A day or a month">
+                                    <Input placeholder="e.g. 2026-11" {...list.bind('orderDate')} />
+                                </Field>
+                            </>
+                        }
+                    />
                 }
-                footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${pages}` : undefined} />}
+                footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} loading={loading} noun="orders" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
             >
                 <thead>
                     <tr>
-                        <th className={TH}>Order</th>
-                        <th className={cx(TH, 'tw-min-w-[14rem]')}>Buyer</th>
+                        <SortTH label="Order" field="createdAt" sort={state} onSort={list.sortBy} />
+                        <SortTH label="Buyer" field="buyerName" sort={state} onSort={list.sortBy} className="tw-min-w-[14rem]" />
                         <th className={TH}>Area</th>
-                        <th className={cx(TH, 'tw-text-right')}>Amount</th>
-                        <th className={TH}>Status</th>
+                        <SortTH label="Amount" field="orderAmount" sort={state} onSort={list.sortBy} align="right" />
+                        <SortTH label="Status" field="status" sort={state} onSort={list.sortBy} />
                         <th className={cx(TH, 'tw-text-right')}>
                             <span className="tw-sr-only">Open</span>
                         </th>

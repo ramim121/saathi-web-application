@@ -1,5 +1,6 @@
 import AppOtp from "./AppOtp";
 import EmailVerification from "./EmailVerification";
+import InvestorBalanceEntry from "./InvestorBalanceEntry";
 import User from "./User";
 import ProjectCategory from "./ProjectCategory";
 import Project from "./Project";
@@ -157,7 +158,11 @@ ProductOrderItem.belongsTo(ProductPartner, { foreignKey: 'idProductPartners' });
 ProductOrderStatus.belongsTo(ProductOrder, { foreignKey: 'idProductOrders' });
 ProductOrderStatus.belongsTo(User, { foreignKey: 'idUsers' });
 
+InvestorBalanceEntry.belongsTo(User, { foreignKey: 'idUsers' });
+InvestorBalanceEntry.belongsTo(User, { as: 'CreatedBy', foreignKey: 'createdBy' });
+
 export {
+	InvestorBalanceEntry,
 	User,
 	ProjectCategory,
 	Project,

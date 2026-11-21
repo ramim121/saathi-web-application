@@ -3,10 +3,11 @@ import Link from "next/link";
 import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
-import { ChevronRight, Package, Plus, Tags, X } from "lucide-react";
+import { ChevronRight, Package, Plus, Tags } from "lucide-react";
 import { cx } from "@/ui/primitives";
-import { Button, Field, Input, LinkButton, SearchInput } from "@/ui/controls";
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { Field, Input, LinkButton } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 
 interface ListProps {
     idProducts: number,
@@ -24,87 +25,57 @@ interface ListProps {
     }
 }
 
-interface FilterProps {
-    idProducts: string,
-    productName: string,
-    productCategory: string,
-    unit: string,
-    productDescription: string,
-    orderBy: string,
-    orderType: string,
-    page: number,
-    pageSize: number
-}
-
-const INITIAL_FILTER: FilterProps = {
-    idProducts: '',
-    productName: '',
+const DEFAULTS = {
+    q: '',
     productCategory: '',
     unit: '',
-    productDescription: '',
     orderBy: 'idProducts',
-    orderType: 'DESC',
+    orderType: 'DESC' as 'ASC' | 'DESC',
     page: 1,
-    pageSize: 10
+    pageSize: 25,
 };
 
+/**
+ * Products: one search box (name, description or product number), category and
+ * unit filters with chips, sortable names, rows per page; the view is kept in
+ * the URL.
+ */
 function List() {
+    const list = useListState(DEFAULTS);
+    const { state, update } = list;
     const [productList, setProductList] = useState<ListProps[]>([]);
-    const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
     const [total, setTotal] = useState<number>(0);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        if (!list.ready) return;
+        let live = true;
         const fetchProductList = async () => {
-            const query = new URLSearchParams(filter as any).toString();
             setLoading(true);
             try {
-                const res = await fetch(`/api/products/list?${query}`, getRequestOptions());
+                const res = await fetch(`/api/products/list?${list.query}`, getRequestOptions());
                 const data = await res.json();
+                if (!live) return;
                 if (res.status === 200) {
                     setProductList(data.data);
-                    setTotal(data.total);
-                    setTotalPages(data.totalPages);
+                    setTotal(Number(data.total) || 0);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                 }
             } catch (err: any) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message,
-                });
+                if (live) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
             } finally {
-                setLoading(false);
+                if (live) setLoading(false);
             }
         }
         fetchProductList();
-    }, [filter]);
+        return () => {
+            live = false;
+        };
+    }, [list.query, list.ready]);
 
-    // A changed filter starts again from page 1.
-    const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilter({
-            ...filter,
-            [name]: value,
-            page: 1
-        });
-    }
-
-    const pages = Math.max(1, totalPages || 1);
-    const handlePageChange = (page: number) => {
-        setFilter({
-            ...filter,
-            page: Math.min(Math.max(1, page), pages)
-        })
-    }
-
-    const anyFilter = Boolean(filter.idProducts || filter.productName || filter.productCategory || filter.unit || filter.productDescription);
+    const chips = filterChips(state, list.defaults, { productCategory: 'Category', unit: 'Unit' }, update);
+    const anyFilter = chips.length > 0 || state.q !== '';
 
     return (
         <div className="ui">
@@ -126,39 +97,29 @@ function List() {
 
             <TableCard
                 toolbar={
-                    <div className="tw-flex tw-flex-col tw-gap-3">
-                        <div className="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-[2fr_1.2fr_1fr_1.4fr_0.7fr_auto]">
-                            <Field label="Product" className="tw-col-span-2 lg:tw-col-span-1">
-                                <SearchInput placeholder="Search by name" name="productName" value={filter.productName} onChange={handleInputOnChange} />
-                            </Field>
-                            <Field label="Category">
-                                <Input placeholder="Any" name="productCategory" value={filter.productCategory} onChange={handleInputOnChange} />
-                            </Field>
-                            <Field label="Unit">
-                                <Input placeholder="Any" name="unit" value={filter.unit} onChange={handleInputOnChange} />
-                            </Field>
-                            <Field label="Description">
-                                <Input placeholder="Any words" name="productDescription" value={filter.productDescription} onChange={handleInputOnChange} />
-                            </Field>
-                            <Field label="#">
-                                <Input placeholder="ID" name="idProducts" value={filter.idProducts} onChange={handleInputOnChange} />
-                            </Field>
-                            <div className="tw-flex tw-items-end">
-                                {anyFilter && (
-                                    <Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-                                        <X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                        <p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? 'Loading…' : `${Number(total || 0).toLocaleString('en-IN')} products`}</p>
-                    </div>
+                    <ListToolbar
+                        search={state.q}
+                        onSearch={(q) => update({ q }, { typing: true })}
+                        placeholder="Product name, description or #"
+                        chips={chips}
+                        onReset={() => list.reset()}
+                        filters={
+                            <>
+                                <Field label="Category">
+                                    <Input placeholder="Any part of the name" {...list.bind('productCategory')} />
+                                </Field>
+                                <Field label="Unit">
+                                    <Input placeholder="e.g. kg" {...list.bind('unit')} />
+                                </Field>
+                            </>
+                        }
+                    />
                 }
-                footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${pages}` : undefined} />}
+                footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} loading={loading} noun="products" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
             >
                 <thead>
                     <tr>
-                        <th className={cx(TH, 'tw-min-w-[16rem]')}>Product</th>
+                        <SortTH label="Product" field="productName" sort={state} onSort={list.sortBy} className="tw-min-w-[16rem]" />
                         <th className={TH}>Category</th>
                         <th className={TH}>Unit</th>
                         <th className={cx(TH, 'tw-text-right')}>

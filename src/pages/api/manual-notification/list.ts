@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
+import { searchTerm, searchWhere } from '@/utils/listSearch';
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
@@ -49,6 +50,10 @@ export default async function handler(
 
 
 
+        // One box (q): the SMS text, email subject, push title or push text, or the number.
+        const term = searchTerm(req.query.q);
+        if (term) (whereClause as any)[Op.and] = [searchWhere(term, ['smsBody', 'emailSubject', 'pushNotificationTitle', 'pushNotificationBody'], 'idManualNotifications')];
+
         const limit = pageSize ? parseInt(pageSize as string) : 10;
         const offset = page ? (parseInt(page as string) - 1) * limit : 0;
         try {
@@ -60,6 +65,10 @@ export default async function handler(
                     'sendViaPush',
                     'sendOn',
                     'createdBy',
+                    // What was sent, for the list's Message column (not the email body: HTML, and long).
+                    'smsBody',
+                    'emailSubject',
+                    'pushNotificationTitle',
                     [fn('DATE_FORMAT', col('send_on'), '%Y-%m-%d %H:%i:%s'), 'formattedSendOn'],
                 ],
                 include: [{

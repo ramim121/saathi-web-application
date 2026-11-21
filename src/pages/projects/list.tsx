@@ -4,10 +4,11 @@ import MainLayout from "@/layouts/MainLayout";
 import { getRequestOptions } from "@/utils/Fetch";
 import Swal from "sweetalert2";
 import { S3_URL } from '@/config/public';
-import { ChevronRight, FolderKanban, Pencil, Plus, SlidersHorizontal, X } from "lucide-react";
+import { ChevronRight, FolderKanban, Pencil, Plus } from "lucide-react";
 import { Pill, SafeImg, cx } from "@/ui/primitives";
-import { Button, Field, Input, LinkButton, SearchInput, Select } from "@/ui/controls";
-import { EmptyRow, PageHeader, Pager, TableCard, TD, TH, TR } from "@/ui/layout";
+import { Field, Input, LinkButton, Select } from "@/ui/controls";
+import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
+import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 import { bdtExact } from "@/ui/format";
 import { PROJECT_STATUSES, projectStatus, returnRange, words } from "@/ui/status";
 
@@ -43,49 +44,21 @@ interface ListProps {
 	}
 }
 
-interface FilterProps {
-	idProjects: string,
-	projectName: string,
-	returnRangeMin: string,
-	returnRangeMax: string,
-	investmentType: string,
-	duration: string,
-	unitInvestmentValue: string,
-	projectStatus: string,
-	partnersName: string,
-	createdBy: string,
-	categoryName: string,
-	totalAvailableUnits: string,
-	investorUnitCapacity: string,
-	orderBy: string,
-	orderType: string,
-	page: number,
-	pageSize: number
-}
-
-const INITIAL_FILTER: FilterProps = {
-	idProjects: '',
-	projectName: '',
-	returnRangeMin: '',
-	returnRangeMax: '',
-	investmentType: '',
-	duration: '',
-	unitInvestmentValue: '',
-	projectStatus: '',
-	partnersName: '',
-	createdBy: '',
+const DEFAULTS = {
+	q: '',
 	categoryName: '',
+	investmentType: '',
+	projectStatus: '',
+	unitInvestmentValue: '',
+	returnRangeMin: '',
+	duration: '',
 	totalAvailableUnits: '',
 	investorUnitCapacity: '',
 	orderBy: 'idProjects',
-	orderType: 'DESC',
+	orderType: 'DESC' as 'ASC' | 'DESC',
 	page: 1,
-	pageSize: 10
-
+	pageSize: 25,
 };
-
-/** Filters that live behind "More filters": rarely used, and they crowded the header row. */
-const MORE_FILTERS: (keyof FilterProps)[] = ['idProjects', 'unitInvestmentValue', 'returnRangeMin', 'duration', 'totalAvailableUnits', 'investorUnitCapacity'];
 
 /** The project's main image, or a placeholder when there is none or it fails to load. */
 function Thumb({ project }: { project: ListProps }) {
@@ -134,65 +107,54 @@ function UnitsCell({ project }: { project: ListProps }) {
 }
 
 function List() {
+	const list = useListState(DEFAULTS);
+	const { state, update } = list;
 	const [projectsList, setProjectsList] = useState<ListProps[]>([]);
-	const [filter, setFilter] = useState<FilterProps>(INITIAL_FILTER);
 	const [total, setTotal] = useState<number>(0);
-	const [totalPages, setTotalPages] = useState<number>(1);
 	const [loading, setLoading] = useState<boolean>(true);
-	const [showMore, setShowMore] = useState<boolean>(false);
 
 	useEffect(() => {
+		if (!list.ready) return;
+		let live = true;
 		const fetchProjectsList = async () => {
-			const query = new URLSearchParams(filter as any).toString();
 			setLoading(true);
 			try {
-				const res = await fetch(`/api/projects/list?${query}`, getRequestOptions());
+				const res = await fetch(`/api/projects/list?${list.query}`, getRequestOptions());
 				const data = await res.json();
+				if (!live) return;
 				if (res.status === 200) {
 					setProjectsList(data.data);
-					setTotal(data.total);
-					setTotalPages(data.totalPages);
+					setTotal(Number(data.total) || 0);
 				} else {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: data.message,
-					});
+					Swal.fire({ icon: 'error', title: 'Error', text: data.message });
 				}
 			} catch (err: any) {
-
-				Swal.fire({
-					icon: 'error',
-					title: 'Error',
-					text: err.message,
-				});
+				if (live) Swal.fire({ icon: 'error', title: 'Error', text: err.message });
 			} finally {
-				setLoading(false);
+				if (live) setLoading(false);
 			}
 		}
 		fetchProjectsList();
-	}, [filter]);
+		return () => {
+			live = false;
+		};
+	}, [list.query, list.ready]);
 
-	// A changed filter starts again from page 1: page 5 of a narrower result may not exist.
-	const handleInputOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-		const { name, value } = e.target;
-		setFilter({
-			...filter,
-			[name]: value,
-			page: 1
-		});
-	}
-
-	const pages = Math.max(1, totalPages || 1);
-	const handlePageChange = (page: number) => {
-		setFilter({
-			...filter,
-			page: Math.min(Math.max(1, page), pages)
-		})
-	}
-
-	const moreActive = MORE_FILTERS.filter((key) => filter[key] !== '').length;
-	const anyFilter = moreActive > 0 || Boolean(filter.projectName || filter.categoryName || filter.investmentType || filter.projectStatus);
+	const field = (key: keyof typeof DEFAULTS) => ({
+		value: state[key] as string,
+		onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => update({ [key]: e.target.value } as Partial<typeof DEFAULTS>, { typing: e.target.tagName === 'INPUT' }),
+	});
+	const chips = filterChips(state, list.defaults, {
+		categoryName: 'Category',
+		investmentType: (v) => `Type: ${words(v)}`,
+		projectStatus: (v) => `Status: ${projectStatus(v).label}`,
+		unitInvestmentValue: 'Unit price',
+		returnRangeMin: (v) => `Return from ${v}%`,
+		duration: 'Duration',
+		totalAvailableUnits: 'Total units',
+		investorUnitCapacity: 'Investor cap',
+	}, update);
+	const anyFilter = chips.length > 0 || state.q !== '';
 
 	return (
 		<div className="ui">
@@ -209,79 +171,63 @@ function List() {
 
 			<TableCard
 				toolbar={
-					<div className="tw-flex tw-flex-col tw-gap-3">
-						<div className="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-[2fr_1.3fr_1.3fr_1.3fr_auto]">
-							<Field label="Project" className="tw-col-span-2 lg:tw-col-span-1">
-								<SearchInput placeholder="Search by name" name="projectName" onChange={handleInputOnChange} value={filter.projectName} />
-							</Field>
-							<Field label="Category">
-								<Input placeholder="Any" name="categoryName" onChange={handleInputOnChange} value={filter.categoryName} />
-							</Field>
-							<Field label="Type">
-								<Select name="investmentType" onChange={handleInputOnChange} value={filter.investmentType}>
-									<option value="">All</option>
-									<option value="sustainable_return">Sustainable return</option>
-									<option value="fast_return">Fast return</option>
-								</Select>
-							</Field>
-							<Field label="Status">
-								<Select name="projectStatus" onChange={handleInputOnChange} value={filter.projectStatus}>
-									<option value="">All</option>
-									{PROJECT_STATUSES.map((s) => (
-										<option key={s.value} value={s.value}>
-											{s.label}
-										</option>
-									))}
-								</Select>
-							</Field>
-							<div className="tw-col-span-2 tw-flex tw-items-end tw-gap-2 lg:tw-col-span-1">
-								<Button onClick={() => setShowMore(!showMore)} aria-expanded={showMore}>
-									<SlidersHorizontal className="tw-h-4 tw-w-4" aria-hidden />
-									More filters
-									{moreActive > 0 && <span className="tw-rounded-full tw-bg-brand-700 tw-px-1.5 tw-text-[11px] tw-text-white">{moreActive}</span>}
-								</Button>
-								{anyFilter && (
-									<Button variant="ghost" onClick={() => setFilter({ ...INITIAL_FILTER, pageSize: filter.pageSize })}>
-										<X className="tw-h-4 tw-w-4" aria-hidden /> Clear
-									</Button>
-								)}
-							</div>
-						</div>
-						{showMore && (
-							<div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-rounded-xl tw-bg-slate-50 tw-p-3 md:tw-grid-cols-3 xl:tw-grid-cols-6">
-								<Field label="Project #">
-									<Input type="number" placeholder="e.g. 20" name="idProjects" onChange={handleInputOnChange} value={filter.idProjects} />
+					<ListToolbar
+						search={state.q}
+						onSearch={(q) => update({ q }, { typing: true })}
+						placeholder="Project name, location or #"
+						chips={chips}
+						onReset={() => list.reset()}
+						filters={
+							<>
+								<Field label="Status">
+									<Select {...field('projectStatus')}>
+										<option value="">All</option>
+										{PROJECT_STATUSES.map((st) => (
+											<option key={st.value} value={st.value}>
+												{st.label}
+											</option>
+										))}
+									</Select>
+								</Field>
+								<Field label="Type">
+									<Select {...field('investmentType')}>
+										<option value="">All</option>
+										<option value="sustainable_return">Sustainable return</option>
+										<option value="fast_return">Fast return</option>
+									</Select>
+								</Field>
+								<Field label="Category">
+									<Input placeholder="Any" {...field('categoryName')} />
 								</Field>
 								<Field label="Unit price">
-									<Input placeholder="e.g. 25000" name="unitInvestmentValue" onChange={handleInputOnChange} value={filter.unitInvestmentValue} />
+									<Input placeholder="e.g. 25000" {...field('unitInvestmentValue')} />
 								</Field>
 								<Field label="Return from (%)">
-									<Input placeholder="e.g. 13" name="returnRangeMin" onChange={handleInputOnChange} value={filter.returnRangeMin} />
+									<Input placeholder="e.g. 13" {...field('returnRangeMin')} />
 								</Field>
 								<Field label="Duration">
-									<Input placeholder="e.g. 4" name="duration" onChange={handleInputOnChange} value={filter.duration} />
+									<Input placeholder="e.g. 4" {...field('duration')} />
 								</Field>
 								<Field label="Total units">
-									<Input placeholder="e.g. 100" name="totalAvailableUnits" onChange={handleInputOnChange} value={filter.totalAvailableUnits} />
+									<Input placeholder="e.g. 100" {...field('totalAvailableUnits')} />
 								</Field>
 								<Field label="Investor cap">
-									<Input placeholder="e.g. 10" name="investorUnitCapacity" onChange={handleInputOnChange} value={filter.investorUnitCapacity} />
+									<Input placeholder="e.g. 10" {...field('investorUnitCapacity')} />
 								</Field>
-							</div>
-						)}
-						<p className="tw-text-xs tw-tabular-nums tw-text-slate-500">{loading ? 'Loading…' : `${Number(total || 0).toLocaleString('en-IN')} projects`}</p>
-					</div>
+							</>
+						}
+					/>
 				}
-				footer={<Pager page={filter.page} totalPages={pages} onChange={handlePageChange} summary={total ? `Page ${filter.page} of ${pages}` : undefined} />}
+				footer={<ListFooter page={state.page} pageSize={state.pageSize} total={total} loading={loading} noun="projects" onPage={(page) => update({ page })} onPageSize={(pageSize) => update({ pageSize })} />}
 			>
 				<thead>
 					<tr>
-						<th className={cx(TH, 'tw-min-w-[17rem]')}>Project</th>
-						<th className={cx(TH, 'tw-text-right')}>Unit price</th>
-						<th className={TH}>Return &amp; term</th>
-						<th className={TH}>Units</th>
-						<th className={cx(TH, 'tw-text-right')}>Per investor</th>
-						<th className={TH}>Status</th>
+						<SortTH label="Project" field="projectName" sort={state} onSort={list.sortBy} className="tw-min-w-[17rem]" />
+						<SortTH label="Unit price" field="unitInvestmentValue" sort={state} onSort={list.sortBy} align="right" />
+						<SortTH label="Return & term" field="returnRangeMax" sort={state} onSort={list.sortBy} />
+						<SortTH label="Units" field="totalAvailableUnits" sort={state} onSort={list.sortBy} />
+						<SortTH label="Per investor" field="investorUnitCapacity" sort={state} onSort={list.sortBy} align="right" />
+						<SortTH label="Status" field="projectStatus" sort={state} onSort={list.sortBy} />
 						<th className={cx(TH, 'tw-text-right')}>
 							<span className="tw-sr-only">Actions</span>
 						</th>

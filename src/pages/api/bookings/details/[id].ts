@@ -112,6 +112,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
 
             const resultMain = result?.get({ plain: true });
 
+            // A reinvestment: which booking its money came from (additive field;
+            // the admin page links to it, other callers can ignore it).
+            let reinvestmentSource: { idProjectInvestmentBookings: number | null; bookingId: string | null; projectName: string | null } | null = null;
+            if (resultMain?.idSourceProjectInvestors) {
+                const sourceLine: any = await ProjectInvestor.findByPk(resultMain.idSourceProjectInvestors, {
+                    attributes: ['idProjectInvestors', 'idProjectInvestmentBookings'],
+                    include: [
+                        { model: ProjectInvestmentBooking, attributes: ['bookingId'] },
+                        { model: Project, attributes: ['projectName'] },
+                    ],
+                });
+                if (sourceLine) {
+                    reinvestmentSource = {
+                        idProjectInvestmentBookings: sourceLine.idProjectInvestmentBookings ?? null,
+                        bookingId: sourceLine.ProjectInvestmentBooking?.bookingId ?? null,
+                        projectName: sourceLine.Project?.projectName ?? null,
+                    };
+                }
+            }
+
             const bookingHistory = await ProjectInvestmentBookingStatus.findAll({
                 where: {
                     idProjectInvestmentBookings: req.query.id
@@ -156,6 +176,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             return res.status(200).json({
                 success: true, data: {
                     ...resultMain,
+                    reinvestmentSource,
                     ProjectInvestors:
                         resultMain.ProjectInvestors.map((projectInvestor: any) => {
                             const projectInvestorMain = projectInvestor;
