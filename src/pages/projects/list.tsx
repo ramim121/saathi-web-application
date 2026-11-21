@@ -7,6 +7,8 @@ import { S3_URL } from '@/config/public';
 import { ChevronRight, FolderKanban, Pencil, Plus } from "lucide-react";
 import { Pill, SafeImg, cx } from "@/ui/primitives";
 import { Field, Input, LinkButton, Select } from "@/ui/controls";
+import { CapacityBar, CapacityPill } from "@/components/projects/CapacityBar";
+import { CAPACITY_FILTERS, needsAttention, type ProjectCapacity } from "@/utils/partnerCapacityShared";
 import { EmptyRow, PageHeader, TableCard, TD, TH, TR } from "@/ui/layout";
 import { ListFooter, ListToolbar, SortTH, filterChips, useListState } from "@/ui/table";
 import { bdtExact } from "@/ui/format";
@@ -38,6 +40,7 @@ interface ListProps {
 	investorUnitCapacity: number,
 	alreadyInvested: number,
 	totalRemainingUnits: number,
+	capacity?: ProjectCapacity | null,
 	MainImage: {
 		fileName: string,
 		originalFileName: string
@@ -54,6 +57,7 @@ const DEFAULTS = {
 	duration: '',
 	totalAvailableUnits: '',
 	investorUnitCapacity: '',
+	capacity: '',
 	orderBy: 'idProjects',
 	orderType: 'DESC' as 'ASC' | 'DESC',
 	page: 1,
@@ -75,33 +79,30 @@ function Thumb({ project }: { project: ListProps }) {
 	);
 }
 
+/**
+ * Units against the real ceiling: the smaller of the project's total and what
+ * its partners can hold. Reserved (unpaid) units count, shown lighter.
+ */
 function UnitsCell({ project }: { project: ListProps }) {
-	const invested = Number(project.alreadyInvested || 0);
-	const available = Number(project.totalAvailableUnits || 0);
-	/* A project with no unit total (0) has no cap; the API then reports 0
-	   remaining, which would read as "full". */
-	if (!available) {
-		return (
-			<div className="tw-text-sm">
-				<span className="tw-font-medium tw-tabular-nums tw-text-slate-900">{invested}</span>
-				<span className="tw-text-slate-500"> invested</span>
-				<div className="tw-text-xs tw-text-slate-400">No unit cap</div>
-			</div>
-		);
-	}
-	const share = Math.min(100, Math.round((invested / available) * 100));
+	const c = project.capacity;
+	if (!c) return <span className="tw-text-slate-300">—</span>;
+	const open = c.level !== 'closed';
 	return (
-		<div className="tw-min-w-[9rem]">
+		<div className="tw-min-w-[12rem]">
 			<div className="tw-flex tw-items-baseline tw-justify-between tw-gap-2 tw-text-sm">
-				<span className="tw-tabular-nums">
-					<span className="tw-font-medium tw-text-slate-900">{invested}</span>
-					<span className="tw-text-slate-500"> / {available}</span>
+				<span className="tw-tabular-nums" title={`${c.confirmed} paid, ${c.pending} awaiting payment`}>
+					<span className="tw-font-medium tw-text-slate-900">{c.confirmed + c.pending}</span>
+					<span className="tw-text-slate-500"> / {c.limit ?? 'no limit'}</span>
 				</span>
-				<span className="tw-text-xs tw-tabular-nums tw-text-slate-500">{Number(project.totalRemainingUnits || 0)} left</span>
+				<span className="tw-text-xs tw-tabular-nums tw-text-slate-500">{c.left === null ? '' : `${c.left} left`}</span>
 			</div>
-			<div className="tw-mt-1.5 tw-h-1.5 tw-overflow-hidden tw-rounded-full tw-bg-slate-100" role="presentation">
-				<div className={cx('tw-h-full tw-rounded-full', share >= 100 ? 'tw-bg-amber-500' : 'tw-bg-brand-500')} style={{ width: `${share}%` }} />
-			</div>
+			<CapacityBar className="tw-mt-1.5" confirmed={c.confirmed} pending={c.pending} limit={c.limit} level={c.level} />
+			{open && (needsAttention(c) || c.gap > 0) && (
+				<Link href={`/projects/partner_assign?project=${c.idProjects}`} className="tw-mt-1.5 tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 tw-text-xs tw-font-medium tw-text-amber-700 hover:tw-underline">
+					{needsAttention(c) && <CapacityPill level={c.level} />}
+					{c.gap > 0 && <span>Offers {c.totalUnits}, partners hold {c.partnerCapacity}</span>}
+				</Link>
+			)}
 		</div>
 	);
 }
@@ -153,6 +154,7 @@ function List() {
 		duration: 'Duration',
 		totalAvailableUnits: 'Total units',
 		investorUnitCapacity: 'Investor cap',
+		capacity: (v) => `Capacity: ${CAPACITY_FILTERS.find((f) => f.value === v)?.label ?? v}`,
 	}, update);
 	const anyFilter = chips.length > 0 || state.q !== '';
 
@@ -179,6 +181,16 @@ function List() {
 						onReset={() => list.reset()}
 						filters={
 							<>
+								<Field label="Capacity">
+									<Select {...field('capacity')}>
+										<option value="">All</option>
+										{CAPACITY_FILTERS.map((f) => (
+											<option key={f.value} value={f.value}>
+												{f.label}
+											</option>
+										))}
+									</Select>
+								</Field>
 								<Field label="Status">
 									<Select {...field('projectStatus')}>
 										<option value="">All</option>

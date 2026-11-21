@@ -4,21 +4,19 @@ import {
     Bell,
     BookOpen,
     CalendarCheck2,
+    CalendarClock,
     Code2,
     FileText,
     FolderKanban,
-    FolderPlus,
     Handshake,
     KeyRound,
     Layers3,
     LayoutDashboard,
-    Link2,
     MessageSquareQuote,
     Network,
     Package,
     PackagePlus,
     PieChart,
-    PlusCircle,
     Ruler,
     ShieldPlus,
     ShoppingBag,
@@ -57,7 +55,8 @@ export const NAV: NavGroup[] = [
     {
         label: 'Overview',
         items: [
-            { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+            { label: 'Dashboard', href: '/', icon: LayoutDashboard, match: ['/reports/detail'] },
+            { label: 'Payables forecast', href: '/reports/payables', icon: CalendarClock },
             { label: 'Investor report', href: '/reports/investors', icon: PieChart },
             { label: 'Operations report', href: '/reports', icon: BarChart3 },
         ],
@@ -65,9 +64,8 @@ export const NAV: NavGroup[] = [
     {
         label: 'Bookings',
         items: [
-            { label: 'All bookings', href: '/bookings/list', icon: CalendarCheck2, match: ['/bookings/list', '/bookings/details'] },
+            { label: 'All bookings', href: '/bookings/list', icon: CalendarCheck2, match: ['/bookings/list', '/bookings/details', '/bookings/create'] },
             { label: 'Active bookings', href: '/bookings/active-booking', icon: Activity },
-            { label: 'New booking', href: '/bookings/create', icon: PlusCircle },
         ],
     },
     {
@@ -81,10 +79,8 @@ export const NAV: NavGroup[] = [
     {
         label: 'Projects',
         items: [
-            { label: 'All projects', href: '/projects/list', icon: FolderKanban, match: ['/projects/list', '/projects/details', '/projects/edit'] },
-            { label: 'New project', href: '/projects/create', icon: FolderPlus },
-            { label: 'Assign partners', href: '/projects/partner_assign', icon: Network },
-            { label: 'Assign projects', href: '/projects/project_assign', icon: Link2 },
+            { label: 'All projects', href: '/projects/list', icon: FolderKanban, match: ['/projects/list', '/projects/details', '/projects/edit', '/projects/create'] },
+            { label: 'Partner assignment', href: '/projects/partner_assign', icon: Network },
         ],
     },
     {
@@ -124,6 +120,7 @@ export const NAV: NavGroup[] = [
 
 export function isActive(item: NavItem, pathname: string): boolean {
     if (!item.match) return pathname === item.href;
+    if (pathname === item.href) return true;
     return item.match.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 

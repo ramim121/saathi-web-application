@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { GetServerSidePropsContext } from 'next';
 import { AlertTriangle, Download, Layers3, Users, Wallet, type LucideIcon } from 'lucide-react';
@@ -278,7 +279,10 @@ export default function ReportsPage({ reports, error }: Props) {
                         csv={`/api/reports/export?report=schedule&${qs}`}
                         footer={
                             <>
-                                Each project quotes a return <strong className="tw-font-semibold tw-text-slate-700">range</strong>, so the payable is a band rather than a single figure.
+                                Each project quotes a return <strong className="tw-font-semibold tw-text-slate-700">range</strong>, so the payable is a band rather than a single figure.{' '}
+                                <Link href="/reports/payables" className="tw-font-semibold tw-text-brand-700 hover:tw-underline">
+                                    See each payment by date
+                                </Link>
                             </>
                         }
                     >

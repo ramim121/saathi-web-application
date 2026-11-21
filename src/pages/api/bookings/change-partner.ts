@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectPartnerInvestor, ProjectPartner, } from '@/models/__associations';
+import { ProjectInvestor, ProjectPartnerInvestor, ProjectPartner } from '@/models/__associations';
+import { lockProjects } from '@/utils/partnerCapacity';
 import sequelize from '@/config/db';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -58,55 +59,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
 
-        const partnerInfo = await ProjectPartner.findOne({
-            where: {
-                idProjectPartners: idProjectPartners,
-            },
-            attributes: ['partnerUnitCapacity'],
-        });
-
-        const alreadyInvested = await ProjectPartnerInvestor.sum('investedUnit', {
-            where: {
-                idProjectPartners: idProjectPartners,
-                idProjectPartnerInvestors: {
-                    [Op.not]: idProjectPartnerInvestors
-                },
-                idProjectInvestors: {
-                    [Op.in]: sequelize.literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed')`)
-                }
-            }
-        });
-
         const transaction = await sequelize.transaction();
         try {
-
             const booking = await ProjectPartnerInvestor.findOne({
-                where: {
-                    idProjectPartnerInvestors: idProjectPartnerInvestors
-                },
-                transaction
+                where: { idProjectPartnerInvestors },
+                transaction,
             });
-
             if (!booking) {
                 await transaction.rollback();
                 return res.status(400).json({ success: false, message: 'Booking not found' });
             }
 
-            if (partnerInfo && partnerInfo.partnerUnitCapacity !== 0) {
-                if (Number(alreadyInvested) + booking.investedUnit > partnerInfo.partnerUnitCapacity) {
-                    return res.status(400).json({ success: false, message: 'Partner unit capacity excedded' });
+            const line = await ProjectInvestor.findByPk(booking.idProjectInvestors as number, {
+                attributes: ['idProjects', 'investmentStatus'],
+                transaction,
+            });
+            if (!line) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'Investment not found' });
+            }
+            await lockProjects([Number(line.idProjects)], transaction);
+
+            const partnerInfo = await ProjectPartner.findOne({
+                where: { idProjectPartners },
+                attributes: ['idProjects', 'partnerUnitCapacity'],
+                transaction,
+            });
+            // Moving units to a partner on another project mis-files the investor's money.
+            if (!partnerInfo || Number(partnerInfo.idProjects) !== Number(line.idProjects)) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: 'That partner is not on this project.' });
+            }
+
+            // Only money that is live uses capacity; history can be re-filed freely.
+            const live = ['confirmed', 'booked'].includes(String(line.investmentStatus));
+            if (live && Number(partnerInfo.partnerUnitCapacity) !== 0) {
+                const alreadyInvested = await ProjectPartnerInvestor.sum('investedUnit', {
+                    where: {
+                        idProjectPartners,
+                        idProjectPartnerInvestors: { [Op.not]: idProjectPartnerInvestors },
+                        idProjectInvestors: {
+                            [Op.in]: sequelize.literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed')`),
+                        },
+                    },
+                    transaction,
+                });
+                const room = Number(partnerInfo.partnerUnitCapacity) - (Number(alreadyInvested) || 0);
+                if (Number(booking.investedUnit) > room) {
+                    await transaction.rollback();
+                    return res.status(400).json({ success: false, message: `This partner has room for ${Math.max(0, room)} unit(s), and this allocation is ${booking.investedUnit}.` });
                 }
             }
 
-            await ProjectPartnerInvestor.update({
-                idProjectPartners: idProjectPartners
-            }, {
-                where: {
-                    idProjectPartnerInvestors: idProjectPartnerInvestors
-                },
-                transaction
-            });
-
+            await ProjectPartnerInvestor.update({ idProjectPartners }, { where: { idProjectPartnerInvestors }, transaction });
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Project partner changed successfully', data: booking })
         } catch (error) {

@@ -7,6 +7,8 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
 import { searchTerm, searchWhere } from '@/utils/listSearch';
+import { projectCapacities } from '@/utils/partnerCapacity';
+import { matchesCapacityFilter } from '@/utils/partnerCapacityShared';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -87,6 +89,15 @@ export default async function handler(
 		const offset = page ? (parseInt(page as string) - 1) * limit : 0;
 
 		try {
+			// Capacity is worked out per project, then filtered by id.
+			const capacities = await projectCapacities();
+			const capacityById = new Map(capacities.map((c) => [c.idProjects, c]));
+			const capacityFilter = typeof req.query.capacity === 'string' ? req.query.capacity : '';
+			if (capacityFilter) {
+				const ids = capacities.filter((c) => matchesCapacityFilter(c, capacityFilter)).map((c) => c.idProjects);
+				(whereClause as any)[Op.and] = [...((whereClause as any)[Op.and] ?? []), { idProjects: { [Op.in]: ids } }];
+			}
+
 			const result = await Project.findAndCountAll({
 				where: whereClause,
 				distinct: true,
@@ -162,7 +173,7 @@ export default async function handler(
 
 			return res.status(200).json({
 				success: true,
-				data: result.rows,
+				data: result.rows.map((row) => ({ ...row.toJSON(), capacity: capacityById.get(Number(row.idProjects)) ?? null })),
 				total: result.count,
 				currentPage: page ? parseInt(page as string) : 1,
 				totalPages: Math.ceil(result.count / limit)

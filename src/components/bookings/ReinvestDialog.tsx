@@ -53,7 +53,7 @@ type Options = {
     projects: ProjectOption[];
 };
 
-type Partner = { idProjectPartners: number; partnerUnitCapacity: number; investorConfirmedBookingCount?: number; User?: { fullName?: string | null } };
+type Partner = { idProjectPartners: number; partnerUnitCapacity: number; confirmedUnits?: number; pendingUnits?: number; User?: { fullName?: string | null } };
 
 type Result = {
     newBookingId: number;
@@ -415,7 +415,7 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                             {partners?.map((p) => (
                                                 <option key={p.idProjectPartners} value={p.idProjectPartners}>
                                                     {p.User?.fullName || `Partner #${p.idProjectPartners}`}
-                                                    {Number(p.partnerUnitCapacity) > 0 ? ` · ${p.investorConfirmedBookingCount ?? 0}/${p.partnerUnitCapacity} taken` : ''}
+                                                    {Number(p.partnerUnitCapacity) > 0 ? ` · ${Math.max(0, Number(p.partnerUnitCapacity) - Number(p.confirmedUnits ?? 0) - Number(p.pendingUnits ?? 0))} of ${p.partnerUnitCapacity} left` : ''}
                                                 </option>
                                             ))}
                                         </Select>

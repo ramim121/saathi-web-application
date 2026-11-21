@@ -243,7 +243,7 @@ function Details() {
                         </thead>
                         <tbody>
                             {partnerships.length === 0 ? (
-                                <EmptyRow colSpan={5} title="No open projects with room" hint="Assign this partner to a project from Assign partners." />
+                                <EmptyRow colSpan={5} title="No open projects with room" hint="Add them to a project from Partner assignment." />
                             ) : (
                                 partnerships.map((project, index) => {
                                     const bookings = (project.ProjectPartnerInvestors ?? [])

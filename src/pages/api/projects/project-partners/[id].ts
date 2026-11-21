@@ -41,6 +41,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         ],
                         [
                             sequelize.literal(`(
+                                SELECT COALESCE(SUM(ppi.invested_unit), 0)
+                                FROM project_partner_investors AS ppi
+                                JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'confirmed'
+                            )`),
+                            'confirmedUnits'
+                        ],
+                        [
+                            sequelize.literal(`(
+                                SELECT COALESCE(SUM(ppi.invested_unit), 0)
+                                FROM project_partner_investors AS ppi
+                                JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'booked'
+                            )`),
+                            'pendingUnits'
+                        ],
+                        [
+                            sequelize.literal(`(
                                 SELECT COUNT(*)
                                 FROM project_partner_investors AS ppi
                                 JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
@@ -50,11 +68,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         ]
                     ]
                 },
+                // By units. This compared the NUMBER of bookings with a capacity in
+                // units, so a partner holding one 50-unit booking of 50 still looked free.
                 having: sequelize.literal(`
-                    (partnerUnitCapacity = 0 OR investorConfirmedBookingCount < partnerUnitCapacity)
+                    (partnerUnitCapacity = 0 OR confirmedUnits < partnerUnitCapacity)
                 `),
                 order: [
-                    [sequelize.literal('investorConfirmedBookingCount'), 'ASC'],
+                    [sequelize.literal('confirmedUnits + pendingUnits'), 'ASC'],
                     ['idProjectPartners', 'ASC']
                 ]
             });

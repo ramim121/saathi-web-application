@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ProjectPartner, Project } from '@/models/__associations';
-import sequelize from '@/config/db';
+import { CapacityError, removeAssignment } from '@/utils/partnerCapacity';
 import { withCors, requireAdmin } from '@/utils/auth';
 
 /**
@@ -19,40 +18,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
         return;
     }
 
-    const transaction = await sequelize.transaction();
     try {
-        const result = await ProjectPartner.findByPk(req.query.id as string, { transaction });
-        if (!result) {
-            await transaction.rollback();
-            res.status(404).json({ success: false, message: 'Partner assignment not found' });
-            return;
-        }
-
-        const projectDetails = await Project.findOne({
-            where: { idProjects: result.idProjects },
-            transaction,
-        });
-
-        if (!projectDetails) {
-            await transaction.rollback();
-            res.status(404).json({ success: false, message: 'Project not found' });
-            return;
-        }
-
-        const updatedTotalUnits =
-            projectDetails.totalAvailableUnits - (result.partnerUnitCapacity ?? 0);
-
-        await Project.update(
-            { totalAvailableUnits: updatedTotalUnits },
-            { where: { idProjects: result.idProjects }, transaction },
-        );
-
-        await result.destroy({ transaction });
-        await transaction.commit();
-
+        await removeAssignment(Number(req.query.id));
         res.status(200).json({ success: true, message: 'Partnership Deleted Successfully' });
     } catch (error) {
-        await transaction.rollback();
+        if (error instanceof CapacityError) {
+            res.status(error.status).json({ success: false, message: error.message });
+            return;
+        }
         /*
          * project_partner_investors references this row (ON DELETE NO ACTION),
          * so a partnership that has ever carried an allocation cannot be

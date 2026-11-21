@@ -275,6 +275,8 @@ interface LiveUpdateListDataProps {
 }
 
 interface ProjectPartnersProps {
+    confirmedUnits?: number;
+    pendingUnits?: number;
     label: string;
     value: number;
     idProjectPartners: number;
@@ -677,13 +679,33 @@ function Details() {
             preConfirm: async () => {
                 try {
                     formData.bookingId = details.bookingId;
-                    const res = await fetch(API_URL + 'api/bookings/confirm', putRequestOptions(formData));
+                    let res = await fetch(API_URL + 'api/bookings/confirm', putRequestOptions(formData));
+                    let body = await res.json();
+
+                    // A partner filled up after this booking was made: offer to
+                    // move the units to partners with room, then confirm.
+                    if (res.status === 409 && body.code === 'PARTNER_CAPACITY' && body.details?.canMove) {
+                        const moves = (body.details.moves as { from: string; to: string; units: number }[])
+                            .map((m) => `${m.units} unit${m.units === 1 ? '' : 's'} from ${m.from} to ${m.to}`)
+                            .join(', ');
+                        const answer = await Swal.fire({
+                            icon: 'warning',
+                            title: 'A partner on this booking is full',
+                            text: `Move ${moves}, then confirm?`,
+                            showCancelButton: true,
+                            confirmButtonText: 'Move and confirm',
+                            cancelButtonText: 'Go back',
+                        });
+                        if (!answer.isConfirmed) return;
+                        res = await fetch(API_URL + 'api/bookings/confirm', putRequestOptions({ ...formData, rebalance: true }));
+                        body = await res.json();
+                    }
 
                     if (res.ok) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Booking confirmed successfully!',
+                            text: body.moves?.length ? 'Booking confirmed, and the units moved to partners with room.' : 'Booking confirmed successfully!',
                         });
                         setReload(true);
                         setApproverModalShow(false);
@@ -691,7 +713,7 @@ function Details() {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            html: (await res.json()).message,
+                            html: body.message,
                         });
                     }
                 } catch (error) {
@@ -1921,7 +1943,8 @@ function Details() {
                                 shownPartners.map((partner) => {
                                     const selected = changePartnerFormData.idProjectPartners === partner.value;
                                     const capacity = Number(partner.partnerUnitCapacity || 0);
-                                    const confirmedCount = Number(partner.investorConfirmedBookingCount || 0);
+                                    const confirmedUnits = Number(partner.confirmedUnits || 0);
+                                    const pendingUnits = Number(partner.pendingUnits || 0);
                                     return (
                                         <label
                                             key={partner.value}
@@ -1941,9 +1964,9 @@ function Details() {
                                             <span className="tw-min-w-0 tw-flex-1">
                                                 <span className="tw-block tw-truncate tw-text-sm tw-font-medium tw-text-slate-900">{partner.label}</span>
                                                 <span className="tw-block tw-text-xs tw-tabular-nums tw-text-slate-500">
-                                                    {capacity > 0 ? `Capacity ${capacity}` : 'No capacity limit'} · {confirmedCount} confirmed ·{' '}
-                                                    {Number(partner.investorAlreadyBookedCount || 0)} awaiting payment
-                                                    {capacity > 0 ? ` · ${capacity - confirmedCount} remaining` : ''}
+                                                    {capacity > 0 ? `Capacity ${capacity}` : 'No capacity limit'} · {confirmedUnits} paid ·{' '}
+                                                    {pendingUnits} awaiting payment
+                                                    {capacity > 0 ? ` · ${Math.max(0, capacity - confirmedUnits - pendingUnits)} left` : ''}
                                                 </span>
                                             </span>
                                             <span

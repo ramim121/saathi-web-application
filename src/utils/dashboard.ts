@@ -1,5 +1,9 @@
 import { QueryTypes } from 'sequelize';
 import sequelize from '@/config/db';
+import { loadPayables } from '@/utils/payables';
+import { projectCapacities } from '@/utils/partnerCapacity';
+import { isOpenProject, needsAttention, type ProjectCapacity } from '@/utils/partnerCapacityShared';
+import type { PayableWindowSummary } from '@/utils/payablesShared';
 
 /**
  * The numbers behind the management dashboard.
@@ -45,14 +49,6 @@ export type StatCard = {
     drill?: Drill;
 };
 
-export type PayableWindow = {
-    label: string;
-    days: number;
-    count: number;
-    profitOnly: number;
-    profitAndCapital: number;
-};
-
 export type ProjectRow = {
     idProjects: number;
     projectName: string;
@@ -68,7 +64,10 @@ export type PartnerRow = { name: string; investments: number; totalManaged: numb
 
 export type Dashboard = {
     cards: StatCard[];
-    payables: PayableWindow[];
+    payables: PayableWindowSummary[];
+    /** Owed to investors on request (reinvestment profit and remainders). */
+    heldTotal: number;
+    capacity: { openProjects: number; attention: ProjectCapacity[] };
     byProject: ProjectRow[];
     byMonth: MonthRow[];
     byType: TypeRow[];
@@ -127,16 +126,9 @@ export async function loadDashboard(): Promise<Dashboard> {
                  ON b.id_project_investment_bookings = pi.id_project_investment_bookings
          WHERE pi.investment_status IN ('confirmed', 'withdrawn', 'reinvested_capital')`, { amt: '0', rolled: '0' });
 
-    // Positions whose term has already elapsed but which are still marked
-    // confirmed — money owed back but not yet paid out.
-    const withdrawals = await one<{ amt: string; cnt: number }>(`
-        SELECT COALESCE(SUM(pi.unit_purchased * p.unit_investment_value), 0) amt, COUNT(*) cnt
-          FROM project_investors pi
-          JOIN projects p ON p.id_projects = pi.id_projects
-          LEFT JOIN project_investment_bookings b
-                 ON b.id_project_investment_bookings = pi.id_project_investment_bookings
-         WHERE pi.investment_status = 'confirmed'
-           AND ${MATURITY} <= CURDATE()`, { amt: '0', cnt: 0 });
+    // From the forecast, so this card and the page it opens cannot disagree.
+    const payablesReport = await loadPayables();
+    const overdue = payablesReport.windows.find((w) => w.key === 'overdue');
 
     const pending = await one<{ cnt: number }>(`
         SELECT COUNT(*) cnt
@@ -171,8 +163,8 @@ export async function loadDashboard(): Promise<Dashboard> {
         },
         {
             label: 'Matured, awaiting payout',
-            value: n(withdrawals.amt),
-            note: `${withdrawals.cnt} position${withdrawals.cnt === 1 ? '' : 's'} past maturity`,
+            value: overdue?.capital ?? 0,
+            note: `${overdue?.count ?? 0} position${overdue?.count === 1 ? '' : 's'} past maturity`,
             tone: 'warn',
             money: true,
             drill: 'payouts',
@@ -195,48 +187,12 @@ export async function loadDashboard(): Promise<Dashboard> {
         },
     ];
 
-    /* ---------------------------------------------------------- payables -- */
-    /*
-     * What has to be paid out, and when.
-     *
-     * Forward-looking only: anything already past maturity is overdue, not
-     * forecast, and is counted on the "Matured, awaiting payout" card instead.
-     * Without that lower bound every window returned the same set and all four
-     * rows read identically.
-     *
-     * Profit uses the project's minimum return — a forecast of cash leaving the
-     * business should be the conservative end of the range.
-     */
-    const windows: Array<{ label: string; days: number }> = [
-        { label: '15 days', days: 15 },
-        { label: '30 days', days: 30 },
-        { label: '2 months', days: 60 },
-        { label: '3 months', days: 90 },
-    ];
-
-    const payables: PayableWindow[] = [];
-    for (const w of windows) {
-        const row = await one<{ cnt: number; capital: string; profit: string }>(`
-            SELECT COUNT(*) cnt,
-                   COALESCE(SUM(pi.unit_purchased * p.unit_investment_value), 0) capital,
-                   COALESCE(SUM(pi.unit_purchased * p.unit_investment_value * p.return_range_min / 100), 0) profit
-              FROM project_investors pi
-              JOIN projects p ON p.id_projects = pi.id_projects
-              LEFT JOIN project_investment_bookings b
-                     ON b.id_project_investment_bookings = pi.id_project_investment_bookings
-             WHERE pi.investment_status = 'confirmed'
-               AND ${MATURITY} >= CURDATE()
-               AND ${MATURITY} <= DATE_ADD(CURDATE(), INTERVAL :days DAY)`,
-            { cnt: 0, capital: '0', profit: '0' }, { days: w.days });
-
-        payables.push({
-            label: w.label,
-            days: w.days,
-            count: row.cnt,
-            profitOnly: n(row.profit),
-            profitAndCapital: n(row.capital) + n(row.profit),
-        });
-    }
+    /* ---------------------------------------------------------- capacity -- */
+    const severity: Record<string, number> = { full: 0, no_partners: 1, critical: 2, nearing: 3 };
+    const open = (await projectCapacities()).filter((c) => isOpenProject(c.projectStatus));
+    const attention = open
+        .filter((c) => needsAttention(c) || c.gap > 0)
+        .sort((a, b) => (severity[a.level] ?? 9) - (severity[b.level] ?? 9) || b.usedPercent - a.usedPercent);
 
     /* ------------------------------------------------------- breakdowns -- */
 
@@ -316,7 +272,9 @@ export async function loadDashboard(): Promise<Dashboard> {
 
     return {
         cards,
-        payables,
+        payables: payablesReport.windows,
+        heldTotal: payablesReport.heldTotal,
+        capacity: { openProjects: open.length, attention },
         byProject,
         byMonth,
         byType,

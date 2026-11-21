@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, Banknote, CalendarClock, Clock3, Hourglass, TrendingUp, Users, Wallet, type LucideIcon } from 'lucide-react';
 import type { Dashboard, StatCard, Drill } from '@/utils/dashboard';
-import type { DashboardDetail } from '@/utils/dashboardDetail';
-import { DrillSet } from './DrillSets';
+import { CapacityBar, CapacityPill } from '@/components/projects/CapacityBar';
 import { bdt } from '@/ui/format';
 import { dhakaStamp } from '@/ui/status';
 import { cx } from '@/ui/primitives';
@@ -58,7 +57,15 @@ function prettyType(value: string | null): string {
         .join(' ');
 }
 
-function StatTile({ card, onOpen }: { card: StatCard; onOpen: (d: Drill) => void }) {
+/** Where each tile's rows live, as a full page. */
+const DRILL_HREF: Record<Drill, string> = {
+    positions: '/reports/detail/positions',
+    payouts: '/reports/payables?window=overdue',
+    pending: '/reports/detail/pending',
+    investors: '/reports/detail/investors',
+};
+
+function StatTile({ card }: { card: StatCard }) {
     // A tile with a breakdown is a real button (keyboard and screen readers get
     // it for free); one without stays inert instead of looking clickable.
     const drill = card.drill;
@@ -78,25 +85,24 @@ function StatTile({ card, onOpen }: { card: StatCard; onOpen: (d: Drill) => void
             <div className="tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">{card.note}</div>
             {drill && (
                 <span className="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-text-brand-700 tw-opacity-0 tw-transition group-hover:tw-opacity-100 group-focus-visible:tw-opacity-100 [@media(hover:none)]:tw-opacity-100">
-                    View breakdown <ArrowRight className="tw-h-3 tw-w-3" aria-hidden />
+                    See the details <ArrowRight className="tw-h-3 tw-w-3" aria-hidden />
                 </span>
             )}
         </>
     );
     const base = 'tw-h-full tw-w-full tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-text-left tw-shadow-card';
     return drill ? (
-        <button
-            type="button"
-            onClick={() => onOpen(drill)}
-            aria-label={`${card.label} — view breakdown`}
+        <Link
+            href={DRILL_HREF[drill]}
+            aria-label={`${card.label}: see the details`}
             className={cx(
                 base,
-                'tw-group tw-ring-1 tw-ring-transparent tw-transition hover:-tw-translate-y-px hover:tw-shadow-pop focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500',
+                'tw-group tw-block tw-ring-1 tw-ring-transparent tw-transition hover:-tw-translate-y-px hover:tw-shadow-pop focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-500',
                 tone.ring,
             )}
         >
             {body}
-        </button>
+        </Link>
     ) : (
         <div className={base}>{body}</div>
     );
@@ -156,12 +162,25 @@ const td = 'tw-px-5 tw-py-2.5';
 const tdR = `${td} tw-text-right tw-tabular-nums`;
 const tr = 'tw-border-t tw-border-slate-100 hover:tw-bg-slate-50/60';
 
+/** A low figure with its high end underneath, so a range fits a narrow column. */
+function Band({ min, max, strong }: { min: number; max: number; strong?: boolean }) {
+    return (
+        <>
+            <span className={strong ? 'tw-font-semibold tw-text-slate-900' : undefined}>{bdt(min)}</span>
+            {Math.abs(max - min) >= 0.5 && <span className="tw-block tw-text-xs tw-font-normal tw-text-slate-500">up to {bdt(max)}</span>}
+        </>
+    );
+}
+
 function Empty({ children }: { children: React.ReactNode }) {
     return <p className="tw-px-5 tw-pb-5 tw-text-sm tw-text-slate-500">{children}</p>;
 }
 
-export function DashboardView({ data, detail }: { data: Dashboard; detail: DashboardDetail }) {
-    const [drill, setDrill] = useState<Drill | null>(null);
+export function DashboardView({ data }: { data: Dashboard }) {
+    const scheduled = data.payables.filter((p) => p.count > 0);
+    const dueSoon = data.payables.filter((p) => ['ready', 'overdue', 'd15', 'd30'].includes(p.key));
+    const dueSoonMin = dueSoon.reduce((sum, p) => sum + p.minTotal, 0);
+    const dueSoonMax = dueSoon.reduce((sum, p) => sum + p.maxTotal, 0);
 
     const maxProject = Math.max(0, ...data.byProject.map((r) => r.totalRaised));
     const maxMonth = Math.max(0, ...data.byMonth.map((r) => r.totalRaised));
@@ -173,7 +192,7 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
             <PageHeader
                 eyebrow="Overview"
                 title="Dashboard"
-                description="Amounts are units × unit value. Cancelled positions are excluded throughout. Every figure opens the rows it counts."
+                description="Amounts are units × unit value. Cancelled positions are excluded throughout. Open any figure for its full detail."
                 actions={
                     <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-text-slate-500 tw-ring-1 tw-ring-slate-200">
                         <Clock3 className="tw-h-3.5 tw-w-3.5" aria-hidden />
@@ -184,7 +203,7 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
 
             <div className="tw-grid tw-grid-cols-1 tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-5">
                 {data.cards.map((card) => (
-                    <StatTile key={card.label} card={card} onOpen={setDrill} />
+                    <StatTile key={card.label} card={card} />
                 ))}
             </div>
 
@@ -192,38 +211,42 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                 <div className="tw-flex tw-flex-col tw-gap-6 xl:tw-col-span-7">
                     <Panel
                         title="Payables forecast"
-                        subtitle="Positions maturing ahead. Anything already overdue is on the card above."
+                        subtitle={scheduled.length ? `${bdt(dueSoonMin)}${Math.abs(dueSoonMax - dueSoonMin) >= 0.5 ? ` to ${bdt(dueSoonMax)}` : ''} due within 30 days, including anything overdue` : undefined}
+                        action={{ href: '/reports/payables', label: 'Full forecast' }}
                         footnote={
-                            data.payables.some((p) => p.count > 0) ? (
+                            data.heldTotal > 0 ? (
                                 <>
-                                    Profit uses each project&apos;s <strong>minimum</strong> return. Windows are cumulative, so the 3-month row includes the
-                                    15-day one.
+                                    A further <strong>{bdt(data.heldTotal)}</strong> is held for investors from reinvestments and is owed on request.
                                 </>
                             ) : undefined
                         }
                     >
-                        {data.payables.every((p) => p.count === 0) ? (
-                            <Empty>
-                                Nothing matures in the next three months. Positions already past maturity are on the <strong>Matured, awaiting payout</strong> card.
-                            </Empty>
+                        {scheduled.length === 0 ? (
+                            <Empty>Nothing is scheduled to be paid.</Empty>
                         ) : (
                             <div className="tw-overflow-x-auto">
                                 <table className="tw-w-full tw-text-sm">
                                     <thead>
                                         <tr>
-                                            <th className={th}>Window</th>
-                                            <th className={thR}>Positions</th>
-                                            <th className={thR}>Profit only</th>
-                                            <th className={thR}>Profit + capital</th>
+                                            <th className={th}>When</th>
+                                            <th className={thR}>Payments</th>
+                                            <th className={thR}>Capital</th>
+                                            <th className={thR}>Profit</th>
+                                            <th className={thR}>Total payable</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data.payables.map((row) => (
-                                            <tr key={row.label} className={tr}>
-                                                <td className={cx(td, 'tw-font-medium tw-text-slate-800')}>{row.label}</td>
+                                        {scheduled.map((row) => (
+                                            <tr key={row.key} className={tr}>
+                                                <td className={cx(td, 'tw-whitespace-nowrap tw-font-medium')}>
+                                                    <Link href={`/reports/payables?window=${row.key}`} className={cx('hover:tw-underline', row.key === 'overdue' ? 'tw-text-rose-700' : 'tw-text-slate-800')}>
+                                                        {row.label}
+                                                    </Link>
+                                                </td>
                                                 <td className={tdR}>{row.count}</td>
-                                                <td className={tdR}>{bdt(row.profitOnly)}</td>
-                                                <td className={cx(tdR, 'tw-font-semibold tw-text-slate-900')}>{bdt(row.profitAndCapital)}</td>
+                                                <td className={tdR}>{bdt(row.capital)}</td>
+                                                <td className={cx(tdR, 'tw-whitespace-nowrap')}><Band min={row.minProfit} max={row.maxProfit} /></td>
+                                                <td className={cx(tdR, 'tw-whitespace-nowrap')}><Band min={row.minTotal} max={row.maxTotal} strong /></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -305,6 +328,34 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                 </div>
 
                 <div className="tw-flex tw-flex-col tw-gap-6 xl:tw-col-span-5">
+                    <Panel
+                        title="Capacity watch"
+                        subtitle={`${data.capacity.attention.length} of ${data.capacity.openProjects} open projects need attention`}
+                        action={{ href: '/projects/list?capacity=attention', label: 'See all' }}
+                    >
+                        {data.capacity.attention.length === 0 ? (
+                            <Empty>Every open project has partner capacity to spare.</Empty>
+                        ) : (
+                            <ul className="tw-divide-y tw-divide-slate-100 tw-border-t tw-border-slate-100">
+                                {data.capacity.attention.slice(0, 6).map((c) => (
+                                    <li key={c.idProjects}>
+                                        <Link href={`/projects/partner_assign?project=${c.idProjects}`} className="tw-block tw-px-5 tw-py-2.5 hover:tw-bg-slate-50/60">
+                                            <span className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+                                                <span className="tw-min-w-0 tw-truncate tw-text-sm tw-font-medium tw-text-slate-800">{c.projectName}</span>
+                                                {c.level !== 'ok' && <CapacityPill level={c.level} />}
+                                            </span>
+                                            <CapacityBar className="tw-mt-1.5" confirmed={c.confirmed} pending={c.pending} limit={c.limit} level={c.level} />
+                                            <span className="tw-mt-1 tw-block tw-text-xs tw-tabular-nums tw-text-slate-500">
+                                                {c.left === null ? 'No limit' : `${c.left} of ${c.limit} units left`}
+                                                {c.gap > 0 ? ` · offers ${c.totalUnits}, partners hold ${c.partnerCapacity}` : ''}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </Panel>
+
                     <Panel title="Monthly trend" subtitle="Last six months, by payment date">
                         {data.byMonth.length === 0 ? (
                             <Empty>No investments recorded in the last six months.</Empty>
@@ -369,7 +420,6 @@ export function DashboardView({ data, detail }: { data: Dashboard; detail: Dashb
                 </div>
             </div>
 
-            <DrillSet which={drill} detail={detail} onClose={() => setDrill(null)} />
         </>
     );
 }
