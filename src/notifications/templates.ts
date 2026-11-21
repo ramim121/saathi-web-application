@@ -44,7 +44,9 @@ export type TemplateName =
     | 'booking_cancelled'
     | 'project_maturity_2_weeks'
     | 'project_maturity_1_week'
-    | 'account_delete_otp';
+    | 'account_delete_otp'
+    | 'reinvestment_topup_due'
+    | 'reinvestment_confirmed';
 
 export type TemplateData = {
     fullName?: string | null;
@@ -58,7 +60,14 @@ export type TemplateData = {
         tenure?: string;
     }>;
     projectName?: string;
-    maturityDate?: string;
+    maturityDate?: string | null;
+    /** Reinvestment figures as numbers (the SMS/push text gets pre-formatted copies). */
+    investmentAmount?: number;
+    reinvestedAmount?: number;
+    topUpAmount?: number;
+    payoutAmount?: number | null;
+    keptAmount?: number | null;
+    startDate?: string | null;
     suggestedProjects?: Array<{
         projectName?: string;
         categoryName?: string;
@@ -586,6 +595,106 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 bn
                     ? 'আপনি এটি না চেয়ে থাকলে কোডটি ব্যবহার করবেন না এবং আমাদের জানান। কোড ছাড়া কোনো অ্যাকাউন্ট মোছা হয় না।'
                     : 'If you did not ask for this, do not use the code and tell us. No account is deleted without it.',
+            ],
+        );
+    },
+
+    /* ---------------------------------------------------------------------- */
+    reinvestment_topup_due(d, l) {
+        const bn = l === 'bn';
+        const ref = d.bookingId ?? '';
+        const topUp = money(d.topUpAmount, l);
+        return build(
+            l,
+            bn ? `পুনর্বিনিয়োগ ${ref}: ${topUp} টপ-আপ পরিশোধ বাকি` : `Reinvestment ${ref}: top-up of ${topUp} due`,
+            bn ? 'টপ-আপ পরিশোধ করে অ্যাপে রসিদ জমা দিন।' : 'Pay the top-up and upload the receipt in the app.',
+            [
+                heading(bn ? 'আপনার পুনর্বিনিয়োগ প্রায় প্রস্তুত' : 'Your reinvestment is almost ready'),
+                paragraph(greeting(d.fullName, l)),
+                paragraph(
+                    bn
+                        ? `আপনার মেয়াদপূর্ণ বিনিয়োগটি <strong>${escapeHtml(String(d.projectName ?? ''))}</strong> প্রকল্পে বুকিং <strong>${escapeHtml(ref)}</strong> হিসেবে পুনর্বিনিয়োগ করা হচ্ছে।`
+                        : `Your matured investment is being reinvested in <strong>${escapeHtml(String(d.projectName ?? ''))}</strong> as booking <strong>${escapeHtml(ref)}</strong>.`,
+                ),
+                detailRows([
+                    [bn ? 'নতুন বিনিয়োগ' : 'New investment', money(d.investmentAmount, l)],
+                    [bn ? 'মেয়াদপূর্ণ বিনিয়োগ থেকে' : 'Carried over from your matured investment', money(d.reinvestedAmount, l)],
+                    [bn ? 'আপনার পরিশোধ্য টপ-আপ' : 'Top-up for you to pay', topUp],
+                ]),
+                paragraph(
+                    bn
+                        ? 'টপ-আপটি পরিশোধ করে অ্যাপে "আমার বিনিয়োগ" অংশে রসিদ জমা দিন। পরিশোধ নিশ্চিত হলে বিনিয়োগ শুরু হবে।'
+                        : 'Please pay the top-up and upload the receipt in the app, under "My investments". The investment starts when we confirm the payment.',
+                ),
+                button(bn ? 'রসিদ জমা দিন' : 'Upload the receipt', url('/account')),
+                note(
+                    bn
+                        ? 'শুধু টপ-আপটুকু পরিশোধ করতে হবে: বাকিটা আপনার মেয়াদপূর্ণ বিনিয়োগ থেকেই আসছে। অ্যাপে মোট বিনিয়োগের অঙ্ক দেখালেও পরিশোধ্য শুধু টপ-আপ।'
+                        : 'Only the top-up is due: the rest comes from your matured investment. The app may show the whole investment amount, but only the top-up is to be paid.',
+                ),
+            ],
+            [
+                greetingText(d.fullName, l),
+                '',
+                bn
+                    ? `আপনার মেয়াদপূর্ণ বিনিয়োগটি বুকিং ${ref} হিসেবে পুনর্বিনিয়োগ করা হচ্ছে।`
+                    : `Your matured investment is being reinvested as booking ${ref} in ${d.projectName ?? ''}.`,
+                '',
+                `  ${bn ? 'নতুন বিনিয়োগ' : 'New investment'}: ${money(d.investmentAmount, l)}`,
+                `  ${bn ? 'মেয়াদপূর্ণ বিনিয়োগ থেকে' : 'Carried over'}: ${money(d.reinvestedAmount, l)}`,
+                `  ${bn ? 'পরিশোধ্য টপ-আপ' : 'Top-up to pay'}: ${topUp}`,
+                '',
+                bn
+                    ? 'টপ-আপ পরিশোধ করে অ্যাপে রসিদ জমা দিন। পরিশোধ নিশ্চিত হলে বিনিয়োগ শুরু হবে।'
+                    : 'Pay the top-up and upload the receipt in the app. The investment starts when we confirm the payment.',
+                '',
+                url('/account'),
+            ],
+        );
+    },
+
+    /* ---------------------------------------------------------------------- */
+    reinvestment_confirmed(d, l) {
+        const bn = l === 'bn';
+        const ref = d.bookingId ?? '';
+        const rows: [string, string][] = [
+            [bn ? 'বুকিং' : 'Booking', ref],
+            [bn ? 'প্রকল্প' : 'Project', String(d.projectName ?? '')],
+            [bn ? 'বিনিয়োগ' : 'Investment', money(d.investmentAmount, l)],
+        ];
+        if (d.startDate) rows.push([bn ? 'শুরু' : 'Starts', bn ? bnDigits(d.startDate) : d.startDate]);
+        if (d.maturityDate) rows.push([bn ? 'মেয়াদপূর্তি' : 'Matures', bn ? bnDigits(d.maturityDate) : d.maturityDate]);
+        const extra = d.payoutAmount
+            ? bn
+                ? `আপনার মুনাফা ${money(d.payoutAmount, l)} আপনার ব্যাংক অ্যাকাউন্টে পাঠানো হবে।`
+                : `Your profit of ${money(d.payoutAmount, l)} will be paid to your bank account.`
+            : d.keptAmount
+              ? bn
+                  ? `${money(d.keptAmount, l)} আপনার সাথী ব্যালান্সে রাখা আছে: পরে তুলে নিতে বা পরের বিনিয়োগে ব্যবহার করতে পারবেন।`
+                  : `${money(d.keptAmount, l)} is kept in your Shathi balance, to be paid out or put toward your next investment.`
+              : '';
+        return build(
+            l,
+            bn ? `পুনর্বিনিয়োগ ${ref} চালু হয়েছে` : `Reinvestment ${ref} is active`,
+            bn ? 'আপনার মেয়াদপূর্ণ বিনিয়োগ আবার কাজ শুরু করেছে।' : 'Your matured investment is working again.',
+            [
+                heading(bn ? 'আপনার বিনিয়োগ পুনর্বিনিয়োগ হয়েছে' : 'Your investment has been reinvested'),
+                paragraph(greeting(d.fullName, l)),
+                paragraph(
+                    bn
+                        ? 'আপনার মেয়াদপূর্ণ বিনিয়োগটি নতুন বুকিং হিসেবে আবার বিনিয়োগ করা হয়েছে। নতুন কোনো পরিশোধ লাগবে না।'
+                        : 'Your matured investment has been put to work again as a new booking. There is nothing new to pay.',
+                ),
+                detailRows(rows),
+                ...(extra ? [paragraph(extra)] : []),
+            ],
+            [
+                greetingText(d.fullName, l),
+                '',
+                bn ? 'আপনার মেয়াদপূর্ণ বিনিয়োগটি পুনর্বিনিয়োগ করা হয়েছে।' : 'Your matured investment has been reinvested.',
+                '',
+                ...rows.map(([a, b]) => `  ${a}: ${b}`),
+                ...(extra ? ['', extra.replace(/<[^>]+>/g, '')] : []),
             ],
         );
     },

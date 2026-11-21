@@ -55,6 +55,8 @@ const SAMPLES: Record<TemplateName, TemplateData> = {
         ],
     },
     account_delete_otp: { otp: '5182' },
+    reinvestment_topup_due: { bookingId: '000141', projectName: 'Project Paddy 01', investmentAmount: 250000, reinvestedAmount: 216500, topUpAmount: 33500 },
+    reinvestment_confirmed: { bookingId: '000142', projectName: 'Project Paddy 01', investmentAmount: 200000, startDate: '2026-11-18', maturityDate: '2027-03-18', keptAmount: 16500 },
 };
 
 type Sample = { name: string; group: string; locale: string; who: string; subject: string; html: string; text: string };

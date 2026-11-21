@@ -45,10 +45,21 @@ export default async function handler(
 				});
 			}
 
-			booking.paymentConfirmationStatus = paymentConfirmationStatus;
+			// A reinvestment carries an investor's matured money: rejecting its
+			// top-up receipt must not kill it. It goes back to waiting for a
+			// receipt (the app then offers the upload again); cancel it instead to
+			// return the money to the matured investment.
+			const reinvestment = (booking as any).bookingType === 'reinvestment';
+			booking.paymentConfirmationStatus = reinvestment ? 'pending' : paymentConfirmationStatus;
 			await booking.save({ transaction });
 
-			const bookingStatus = await BookingStatusEntry('denied', booking.idProjectInvestmentBookings!, userInfo.idUsers, remarks, transaction);
+			const bookingStatus = await BookingStatusEntry(
+				'denied',
+				booking.idProjectInvestmentBookings!,
+				userInfo.idUsers,
+				reinvestment ? `${remarks || 'Receipt rejected'} (reinvestment: waiting for a new receipt)` : remarks,
+				transaction,
+			);
 			if (!bookingStatus) {
 				await transaction.rollback();
 				throw new Error('Error updating booking status');

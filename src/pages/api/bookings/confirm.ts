@@ -116,6 +116,18 @@ export default async function handler(
                 });
             }
 
+            // A reinvestment's amount is the whole booking: what was carried over
+            // from the matured investment plus the top-up received. Typing only
+            // the top-up here would understate the investment.
+            const reinvested = Number((booking as any).reinvestedAmount) || 0;
+            if ((booking as any).bookingType === 'reinvestment' && Number(paymentAmount) + 0.004 < reinvested) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: `This is a reinvestment: enter the whole booking amount, BDT ${reinvested.toLocaleString('en-IN')} carried over plus the top-up received, not the top-up alone.`,
+                });
+            }
+
             const investor = await User.findOne({
                 where: { idUsers: booking.idUsers },
                 transaction,

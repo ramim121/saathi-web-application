@@ -28,6 +28,7 @@ import {
     Repeat2,
     ShieldAlert,
     TrendingUp,
+    Undo2,
     Upload,
     UserRound,
     Wallet,
@@ -38,6 +39,8 @@ import { Avatar, Card, Pill, Segmented, Skeleton, cx, type Tone } from '@/ui/pri
 import { Button, Field, FileInput, Input, Required, SearchInput, Select, Textarea } from '@/ui/controls';
 import { bdt, bdtExact, bdtRange, date, daysFromToday, plural, relativeDays } from '@/ui/format';
 import { capitalise, dhakaStamp, investmentStatus, paymentStatus, utcStamp } from '@/ui/status';
+import { ReinvestDialog } from '@/components/bookings/ReinvestDialog';
+import { InvestorBalance } from '@/components/bookings/InvestorBalance';
 
 interface DetailsProps {
     idProjectInvestmentBookings: number;
@@ -46,6 +49,9 @@ interface DetailsProps {
     cancelled: string;
     /** `fresh` or `reinvestment`. A reinvestment carries no payment method. */
     bookingType?: string;
+    /** Carried over from the matured investment; the rest of paymentAmount is the top-up. */
+    reinvestedAmount?: number | string;
+    reinvestmentSource?: { idProjectInvestmentBookings: number | null; bookingId: string | null; projectName: string | null } | null;
     createdAt?: string;
     idUserBanks: number;
     User: {
@@ -375,12 +381,25 @@ function Details() {
     });
     const [projectPartners, setProjectPartners] = useState<ProjectPartnersProps[]>([]);
     const proofOfPaymentRef = useRef<HTMLInputElement>(null);
+    /** The matured line being reinvested (opens the dialog), and a key to refresh the balance. */
+    const [reinvestLine, setReinvestLine] = useState<number | null>(null);
+    const [balanceKey, setBalanceKey] = useState(0);
 
     useEffect(() => {
         if (id != undefined) {
             fetchBookingDetails();
         }
     }, [id])
+
+    // Lists link here with ?reinvest=<line> to open the dialog straight away.
+    useEffect(() => {
+        const wanted = Number(router.query.reinvest);
+        if (!wanted || !details.ProjectInvestors?.some((l) => l.idProjectInvestors === wanted)) return;
+        setReinvestLine(wanted);
+        const { reinvest: _drop, ...rest } = router.query;
+        void _drop;
+        router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    }, [router.query.reinvest, details.ProjectInvestors])
 
     useEffect(() => {
         if (reload === true) {
@@ -878,9 +897,14 @@ function Details() {
 
     const handleCancel = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
+        // A reinvestment's money came from a matured booking: say where it goes back to.
+        const source = details.reinvestmentSource?.bookingId ? `booking #${details.reinvestmentSource.bookingId}` : 'the matured booking';
+        const reinvestment = details.bookingType === 'reinvestment';
         Swal.fire({
-            title: 'Are you sure?',
-            text: 'You want to cancel this booking!',
+            title: reinvestment ? (details.paymentConfirmationStatus === 'confirmed' ? 'Undo this reinvestment?' : 'Cancel this reinvestment?') : 'Are you sure?',
+            text: reinvestment
+                ? `Booking #${details.bookingId} is cancelled and its money goes back to ${source}, which is matured again: reinvest it again or pay it out. Balance entries this reinvestment made are reversed; payouts already recorded stay.`
+                : 'You want to cancel this booking!',
             icon: 'warning',
             input: 'text',
             inputPlaceholder: 'Enter your remarks here...',
@@ -1087,7 +1111,21 @@ function Details() {
     const pay = paymentStatus(details.paymentConfirmationStatus);
     const nid = investorNidState(details.User);
     const open = details.cancelled === 'no';
+    // A reinvestment's amount is the whole booking; the investor pays only what was not carried over.
+    const reinvestCarried = details.bookingType === 'reinvestment' ? Number(details.reinvestedAmount) || 0 : 0;
+    const reinvestTopUp = details.bookingType === 'reinvestment' ? Math.max(0, Math.round((Number(details.paymentAmount) - reinvestCarried) * 100) / 100) : 0;
     const canCancel = open && details.paymentConfirmationStatus !== 'confirmed';
+    /* A reinvestment that moved no new money can be undone after it was
+       confirmed (made by mistake: wrong project, units or option), as long as
+       nothing has happened to it since. One with a paid top-up needs a refund
+       decision, so it is not offered. */
+    const canUndoReinvest =
+        open &&
+        details.bookingType === 'reinvestment' &&
+        details.paymentConfirmationStatus === 'confirmed' &&
+        reinvestTopUp === 0 &&
+        (details.ProjectInvestors ?? []).length > 0 &&
+        (details.ProjectInvestors ?? []).every((l) => l.investmentStatus === 'confirmed');
     const canReview = open && isProofSubmitted(details.paymentConfirmationStatus);
     const canUpload = open && details.paymentConfirmationStatus !== 'confirmed';
     const collects = details.paymentMethod === 'cheque' || details.paymentMethod === 'cash';
@@ -1140,17 +1178,30 @@ function Details() {
                             <Pill tone={pay.tone}>{pay.label}</Pill>
                             {details.cancelled === 'yes' && <Pill tone="rose">Cancelled</Pill>}
                             {details.bookingType === 'reinvestment' && <Pill tone="violet">Reinvestment</Pill>}
+                            {details.reinvestmentSource?.idProjectInvestmentBookings && (
+                                <Link
+                                    href={`/bookings/details/${details.reinvestmentSource.idProjectInvestmentBookings}`}
+                                    className="tw-text-xs tw-font-semibold tw-text-violet-700 hover:tw-underline"
+                                >
+                                    from booking #{details.reinvestmentSource.bookingId ?? details.reinvestmentSource.idProjectInvestmentBookings}
+                                </Link>
+                            )}
                             {details.createdAt && <span className="tw-text-xs tw-text-slate-500">Booked {dhakaStamp(details.createdAt)}</span>}
                         </div>
                     ) : (
                         <Skeleton className="tw-mt-3 tw-h-5 tw-w-64" />
                     )}
                 </div>
-                {loaded && (canCancel || canReview) && (
+                {loaded && (canCancel || canReview || canUndoReinvest) && (
                     <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
                         {canCancel && (
                             <Button variant="danger-outline" onClick={handleCancel}>
-                                <Ban className="tw-h-4 tw-w-4" aria-hidden /> Cancel booking
+                                <Ban className="tw-h-4 tw-w-4" aria-hidden /> {details.bookingType === 'reinvestment' ? 'Cancel reinvestment' : 'Cancel booking'}
+                            </Button>
+                        )}
+                        {canUndoReinvest && (
+                            <Button variant="danger-outline" onClick={handleCancel}>
+                                <Undo2 className="tw-h-4 tw-w-4" aria-hidden /> Undo reinvestment
                             </Button>
                         )}
                         {canReview && (
@@ -1166,6 +1217,25 @@ function Details() {
                     </div>
                 )}
             </div>
+
+            {/* A reinvestment waiting for its top-up: say exactly what is owed and what to do. */}
+            {loaded && reinvestTopUp > 0 && open && details.paymentConfirmationStatus !== 'confirmed' && (
+                <div className="tw-mb-5 tw-flex tw-gap-3 tw-rounded-2xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-sm tw-leading-6 tw-text-amber-900" role="status">
+                    <Repeat2 className="tw-mt-1 tw-h-4 tw-w-4 tw-shrink-0" aria-hidden />
+                    <div>
+                        <p className="tw-font-semibold">Top-up due: {bdtExact(reinvestTopUp)}</p>
+                        <p>
+                            This reinvestment is {bdtExact(Number(details.paymentAmount))}: {bdtExact(reinvestCarried)} carried over
+                            {details.reinvestmentSource?.bookingId ? ` from booking #${details.reinvestmentSource.bookingId}` : ''} and a top-up of{' '}
+                            {bdtExact(reinvestTopUp)} from the investor.{' '}
+                            {isProofSubmitted(details.paymentConfirmationStatus)
+                                ? 'A receipt has been uploaded: check it below, then use Confirm payment and enter the payment date.'
+                                : 'The investor can upload the receipt in the app (under pending proof of payment), or you can upload it below.'}{' '}
+                            Confirming the payment starts the investment.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="tw-mb-5">
                 <Segmented
@@ -1237,6 +1307,10 @@ function Details() {
                                         <span className="tw-tabular-nums">{details.UserBank?.accountNumber || dash}</span>
                                     </Fact>
                                     <Fact label="Holder">{details.UserBank?.accountHolderName || dash}</Fact>
+                                    {/* Owed to the investor between investments (profit to pay out, leftovers). */}
+                                    <Fact label="Held for investor">
+                                        <InvestorBalance idUsers={details.idUsers} investorName={details.User?.fullName || 'the investor'} refreshKey={balanceKey} />
+                                    </Fact>
                                 </dl>
                             </Section>
 
@@ -1256,6 +1330,16 @@ function Details() {
                                     <Fact label="Amount">
                                         <span className="tw-tabular-nums">{details.paymentAmount ? bdtExact(Number(details.paymentAmount)) : dash}</span>
                                     </Fact>
+                                    {details.bookingType === 'reinvestment' && (
+                                        <>
+                                            <Fact label="Carried over">
+                                                <span className="tw-tabular-nums">{bdtExact(reinvestCarried)}</span>
+                                            </Fact>
+                                            <Fact label="Top-up">
+                                                <span className={cx('tw-tabular-nums', reinvestTopUp > 0 && 'tw-font-semibold')}>{reinvestTopUp > 0 ? bdtExact(reinvestTopUp) : 'None'}</span>
+                                            </Fact>
+                                        </>
+                                    )}
                                     <Fact label="Transaction ID">
                                         {details.transactionId ? <span className="tw-break-all tw-font-mono tw-text-xs">{details.transactionId}</span> : dash}
                                     </Fact>
@@ -1360,6 +1444,12 @@ function Details() {
                                        its recorded profit. */
                                     const canWithdraw =
                                         open && details.paymentConfirmationStatus === 'confirmed' && line.investmentStatus !== 'ready_for_withdrawal' && !closed;
+                                    /* Matured: marked ready (or the investor asked to withdraw), or
+                                       still active past its maturity date. The API checks again. */
+                                    const matured =
+                                        ['ready_for_withdrawal', 'request_withdrawal'].includes(line.investmentStatus) ||
+                                        (line.investmentStatus === 'confirmed' && Boolean(line.maturityDate) && daysFromToday(line.maturityDate) <= 0);
+                                    const canReinvest = open && details.paymentConfirmationStatus === 'confirmed' && !closed && matured;
                                     const request = line.ProjectSpecialBookingReq;
                                     return (
                                         <Card key={line.idProjectInvestors ?? index} className="tw-overflow-hidden">
@@ -1505,10 +1595,20 @@ function Details() {
                                                 </ul>
                                             </div>
 
+                                            {canReinvest && (
+                                                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-border-t tw-border-emerald-100 tw-bg-emerald-50/70 tw-px-5 tw-py-3">
+                                                    <p className="tw-text-sm tw-text-emerald-900">
+                                                        <span className="tw-font-semibold">Matured.</span> Reinvest it into a new booking, or pay it out.
+                                                    </p>
+                                                    <Button size="sm" variant="primary" className="tw-ml-auto" onClick={() => setReinvestLine(line.idProjectInvestors)}>
+                                                        <Repeat2 className="tw-h-3.5 tw-w-3.5" aria-hidden /> Reinvest…
+                                                    </Button>
+                                                </div>
+                                            )}
                                             {(canWithdraw || canNotify) && (
                                                 <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-t tw-border-slate-100 tw-bg-slate-50/60 tw-px-5 tw-py-3">
                                                     {canWithdraw && (
-                                                        <Button size="sm" variant="primary" onClick={() => handleInvestmentStatusChange(line.idProjectInvestors, 'ready_for_withdrawal')}>
+                                                        <Button size="sm" variant={canReinvest ? 'secondary' : 'primary'} onClick={() => handleInvestmentStatusChange(line.idProjectInvestors, 'ready_for_withdrawal')}>
                                                             <Wallet className="tw-h-3.5 tw-w-3.5" aria-hidden /> Mark ready for withdrawal
                                                         </Button>
                                                     )}
@@ -1641,12 +1741,21 @@ function Details() {
                                     </Select>
                                 </Field>
                             )}
-                            <Field label={<>Payment date<Required /></>}>
+                            <Field label={<>Payment date<Required /></>} hint={details.bookingType === 'reinvestment' ? 'The investment starts on this date.' : undefined}>
                                 <Input type='date' name='paymentDate' value={formData.paymentDate ?? ''} onChange={handleOnChange} />
                             </Field>
-                            <Field label={<>Amount received (৳)<Required /></>}>
-                                <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
-                            </Field>
+                            {details.bookingType === 'reinvestment' ? (
+                                <Field
+                                    label={<>Whole booking amount (৳)<Required /></>}
+                                    hint={`${bdtExact(reinvestCarried)} carried over + the top-up received (${bdtExact(reinvestTopUp)} was due).`}
+                                >
+                                    <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
+                                </Field>
+                            ) : (
+                                <Field label={<>Amount received (৳)<Required /></>}>
+                                    <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
+                                </Field>
+                            )}
                             <Field label={<>Transaction ID<Required /></>} className="sm:tw-col-span-2">
                                 <Input type='text' name='transactionId' value={formData.transactionId ?? ''} onChange={handleOnChange} />
                             </Field>
@@ -1860,6 +1969,15 @@ function Details() {
                     </div>
                 </Modal.Body>
             </Modal>
+
+            <ReinvestDialog
+                idProjectInvestors={reinvestLine}
+                onClose={() => setReinvestLine(null)}
+                onDone={() => {
+                    setReload(true);
+                    setBalanceKey((k) => k + 1);
+                }}
+            />
         </div>
     );
 }
