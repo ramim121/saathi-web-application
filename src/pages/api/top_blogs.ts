@@ -5,7 +5,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         try {
 
-            const result = await Blog.findAll({ limit: 3 });
+            // Newest first. With no order MySQL returned whichever three rows it
+            // found first, usually the oldest posts, under "Latest Insights".
+            const result = await Blog.findAll({
+                limit: 3,
+                order: [['writtenDate', 'DESC'], ['idBlogs', 'DESC']],
+            });
 
             return res.status(200).json({ success: true, data: result });
         } catch (error) {

@@ -385,6 +385,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(400).json({ success: false, message: 'User not found' });
             }
 
+            // `isNewUser` tells the app whether this sign-in created the account,
+            // so it can ask a brand-new investor for a name (and only them)
+            // instead of inferring it from missing profile fields.
+            const isNewUser = !user;
             if (!user) {
                 user = new User();
                 user.phoneNumber = phone;
@@ -396,6 +400,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 success: true,
                 token: signToken(user.idUsers, user.userType),
                 user,
+                isNewUser,
             });
         }
 
