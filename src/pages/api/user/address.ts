@@ -14,12 +14,12 @@ const cors = Cors({
 });
 
 const addressCreateSchema = Joi.object({
-    addressLine1: Joi.string().required().messages({
+    addressLine1: Joi.string().max(255).required().messages({
         "any.required": "Address line 1 is required",
         "string.empty": "Address line 1 can not be empty",
     }),
-    addressLine2: Joi.string().allow(null, ''),
-    receiverName: Joi.string().required().messages({
+    addressLine2: Joi.string().max(255).allow(null, ''),
+    receiverName: Joi.string().max(100).required().messages({
         "any.required": "Receiver name is required",
         "string.empty": "Receiver name can not be empty"
     }),
@@ -44,20 +44,20 @@ const addressCreateSchema = Joi.object({
         "any.required": "Inside Dhaka is required",
         "string.empty": "Inside Dhaka can not be empty",
     }),
-    postalCode: Joi.string().allow(null, ''),
-    phone: Joi.string().required().messages({
+    postalCode: Joi.string().max(12).allow(null, ''),
+    phone: Joi.string().max(20).required().messages({
         "any.required": "Phone number is required",
         "string.empty": "Phone number can not be empty",
     }),
 });
 
 const addressUpdateSchema = Joi.object({
-    addressLine1: Joi.string().required().messages({
+    addressLine1: Joi.string().max(255).required().messages({
         "any.required": "Address line 1 is required",
         "string.empty": "Address line 1 can not be empty",
     }),
-    addressLine2: Joi.string().allow(null, ''),
-    receiverName: Joi.string().required().messages({
+    addressLine2: Joi.string().max(255).allow(null, ''),
+    receiverName: Joi.string().max(100).required().messages({
         "any.required": "Receiver name is required",
         "string.empty": "Receiver name can not be empty"
     }),
@@ -82,8 +82,8 @@ const addressUpdateSchema = Joi.object({
         "any.required": "Inside Dhaka is required",
         "string.empty": "Inside Dhaka can not be empty",
     }),
-    postalCode: Joi.string().allow(null, ''),
-    phone: Joi.string().required().messages({
+    postalCode: Joi.string().max(12).allow(null, ''),
+    phone: Joi.string().max(20).required().messages({
         "any.required": "Phone number is required",
         "string.empty": "Phone number can not be empty",
     }),
@@ -127,12 +127,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: errorMessage });
         }
 
-        const existingAddress = await UserAddress.findByPk(req.body.idUserAddresses);
+        // SECURITY: the address must belong to the caller. This looked the id up
+        // without an owner, so any signed-in user could rewrite anyone's address.
+        // 404 rather than 403, so a probe cannot tell which ids exist.
+        const existingAddress = await UserAddress.findOne({
+            where: { idUserAddresses: req.body.idUserAddresses, idUsers: userInfo!.idUsers }
+        });
         if (!existingAddress) { res.status(404).json({ success: false, message: 'Address not found' }); return; }
 
         const updatedUserAddress = await UserAddress.update(req.body, {
             where: {
-                idUserAddresses: req.body.idUserAddresses
+                idUserAddresses: existingAddress.idUserAddresses,
+                idUsers: userInfo!.idUsers
             }
         });
 
@@ -207,12 +213,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const { idUserAddresses } = req.body;
         if (!idUserAddresses) { res.status(400).json({ success: false, message: 'Address ID is required' }); return; }
 
-        const existingAddress = await UserAddress.findByPk(idUserAddresses);
+        // SECURITY: only the caller's own address (same reasoning as PUT).
+        const existingAddress = await UserAddress.findOne({
+            where: { idUserAddresses, idUsers: userInfo!.idUsers }
+        });
         if (!existingAddress) { res.status(404).json({ success: false, message: 'Address not found' }); return; }
 
         const [err, result] = await to(UserAddress.destroy({
             where: {
-                idUserAddresses: idUserAddresses
+                idUserAddresses: existingAddress.idUserAddresses,
+                idUsers: userInfo!.idUsers
             }
         }));
 
