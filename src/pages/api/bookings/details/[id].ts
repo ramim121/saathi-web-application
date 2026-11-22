@@ -2,7 +2,15 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, ProjectPartner, Project, User, UserBank, Bank, BankBranch, ProjectInvestmentBookingStatus, ProjectInvestorStatus, File, ProjectSpecialBookingReq } from '@/models/__associations';
 import sequelize from '@/config/db';
 import { withCors, requireUser, canAccess, type AuthContext } from '@/utils/auth';
+import { publicPartnerAttributes } from '@/utils/publicFields';
 // WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
+
+/**
+ * Who changed a status, as the history list shows it ("by <name>"). The admin
+ * page and the app read only the name; the rest of an admin's or investor's
+ * row (phone, email, NID fields) has no business in another person's booking.
+ */
+const HISTORY_ACTOR_ATTRIBUTES = ['idUsers', 'fullName'];
 
 /**
  * One booking with its lines, partners, bank and history — the admin's
@@ -61,7 +69,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                                         ],
                                         include: [
                                             {
+                                                // The partner farmer. Public profile fields only:
+                                                // this went to the investor with the partner's
+                                                // whole user row — phone, email, date of birth,
+                                                // NID number and NID image keys.
                                                 model: User,
+                                                attributes: publicPartnerAttributes(),
                                                 include: [{
                                                     model: File,
                                                     as: 'ProfilePicture',
@@ -138,7 +151,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                 },
                 include: [
                     {
-                        model: User
+                        model: User,
+                        attributes: HISTORY_ACTOR_ATTRIBUTES
                     }
                 ]
             });
@@ -151,7 +165,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                 },
                 include: [
                     {
-                        model: User
+                        model: User,
+                        attributes: HISTORY_ACTOR_ATTRIBUTES
                     }
                 ]
             });

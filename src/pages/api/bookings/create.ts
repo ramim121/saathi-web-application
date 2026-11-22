@@ -9,11 +9,12 @@ import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { CapacityError, planBooking } from '@/utils/partnerCapacity';
+import { idempotencyKey, beginIdempotent, finishIdempotent, abandonIdempotent } from '@/utils/idempotency';
 
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
-    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
+    allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type', 'Idempotency-Key'],
 });
 
 const schema = Joi.object({
@@ -55,15 +56,14 @@ const schema = Joi.object({
                     }),
                 })
             )
-                // Same hole as `projects`: an empty array passed validation and
-                // produced an investor record with no partner attached, so the
-                // money was recorded against nobody.
-                .min(1)
-                .required()
-                .messages({
-                    "array.min": "Project partner must be selected",
-                    "any.required": "Project partner must be selected",
-                }),
+                // Optional, and only a hint. planBooking() allocates units to
+                // partners on the server under a lock (least-loaded partner with
+                // room) and uses this list only when it adds up and fits; an
+                // empty or missing list simply means "server decides". The app's
+                // own allocation loop could hang the phone when capacity ran
+                // short, so new app builds stop sending it. Older builds still
+                // send it, which keeps working.
+                .optional(),
         })
     )
         // `.required()` alone accepts `[]`, which created a booking row with no
@@ -131,7 +131,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
          * between an investor and a booking.
          */
 
-        const transaction = await sequelize.transaction();
+        // A repeated tap or retry with the same Idempotency-Key gets the first
+        // answer instead of a second booking (see utils/idempotency.ts).
+        const idemKey = idempotencyKey(req, 'bookings/create', userInfo.idUsers);
+        if (idemKey) {
+            const start = beginIdempotent(idemKey);
+            if (start.kind === 'in-flight') {
+                return res.status(409).json({ success: false, code: 'DUPLICATE_REQUEST', message: 'This booking is already being placed. Please wait a moment.' });
+            }
+            if (start.kind === 'replay') {
+                return res.status(start.status).json(start.body);
+            }
+        }
+
+        let transaction: Awaited<ReturnType<typeof sequelize.transaction>>;
+        try {
+            transaction = await sequelize.transaction();
+        } catch (err) {
+            abandonIdempotent(idemKey);
+            return res.status(503).json({ success: false, message: 'The server is busy. Please try again in a moment.' });
+        }
         let committed = false;
         let projectInvestmentBooking: any = null;
 
@@ -212,13 +231,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 lastDateToTransferFunds: currentDate,
             }, userVerification);
 
-            return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking })
+            const okBody = { success: true, message: 'Investment booked successfully', data: projectInvestmentBooking };
+            finishIdempotent(idemKey, 200, okBody);
+            return res.status(200).json(okBody)
         } catch (err) {
             // The booking exists once committed: a failed notification must not report it as failed.
             if (committed) {
                 console.error('Booking placed, but its notification failed:', (err as Error).message);
-                return res.status(200).json({ success: true, message: 'Investment booked successfully', data: projectInvestmentBooking });
+                const okBody = { success: true, message: 'Investment booked successfully', data: projectInvestmentBooking };
+                finishIdempotent(idemKey, 200, okBody);
+                return res.status(200).json(okBody);
             }
+            abandonIdempotent(idemKey);
             await transaction.rollback();
             const status = err instanceof CapacityError ? err.status : 400;
             return res.status(status).json({ success: false, code: err instanceof CapacityError ? err.code : undefined, message: (err as Error).message })

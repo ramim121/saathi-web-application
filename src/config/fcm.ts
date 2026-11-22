@@ -1,6 +1,7 @@
 import fs from 'fs';
 import admin from 'firebase-admin';
 import AppFcmToken from '@/models/AppFcmToken';
+import { allowDevicePush, allowTopicPush } from '@/utils/notifySandbox';
 
 /**
  * Firebase Cloud Messaging: push notifications to the mobile app.
@@ -45,6 +46,7 @@ function messaging(): admin.messaging.Messaging | null {
 export default async function sendNotif(to: string, title: string, body: string) {
     const fcm = messaging();
     if (!fcm) return undefined;
+    if (!allowDevicePush(to)) return undefined;
     const message = {
         token: to,
         notification: {
@@ -77,6 +79,9 @@ export async function sendNotificationToTopic(topic: string, title: string, body
         // Validate topic name (Firebase has specific requirements for topic names)
         if (!isValidTopicName(topic)) {
             throw new Error('Invalid topic name. Must only contain letters, numbers, hyphens, and underscores.');
+        }
+        if (!allowTopicPush(topic)) {
+            return { success: false, messageId: null, topic, heldBySandbox: true };
         }
 
         const message = {

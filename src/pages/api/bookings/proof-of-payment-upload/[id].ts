@@ -62,43 +62,70 @@ const schema = Joi.object({
     })
 }).unknown();
 
+/**
+ * A receipt cannot be attached to a booking that is finished one way or the
+ * other. Both used to be accepted: a second upload flipped a *confirmed*
+ * booking back to "proof submitted" and reset its collection fields, and a
+ * *cancelled* booking (units already released) took a receipt, inviting a
+ * second payment for nothing. A denied booking may upload again; that is how
+ * an investor answers a rejected receipt.
+ */
+function receiptBlocked(booking: { cancelled?: string | null; paymentConfirmationStatus?: string | null }): { code: string; message: string } | null {
+    if (booking.cancelled === 'yes') {
+        return { code: 'BOOKING_CANCELLED', message: 'This booking was cancelled, so it no longer takes a payment receipt.' };
+    }
+    if (booking.paymentConfirmationStatus === 'confirmed') {
+        return { code: 'BOOKING_CONFIRMED', message: 'This booking is already confirmed. Contact DigiGram if its receipt needs to change.' };
+    }
+    return null;
+}
+
+function readToken(req: NextApiRequest): JWTPayload | null {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return null;
+    try {
+        jwt.verify(token, JWT_SECRET);
+        return jwt.decode(token) as JWTPayload;
+    } catch {
+        // An expired or forged token used to throw out of the handler (a 500).
+        return null;
+    }
+}
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
 
-    let tokenData = req.headers.authorization;
-    let token = tokenData?.split(' ')[1];
-
-    if (!token || jwt.verify(token, JWT_SECRET) === null) {
+    const userInfo = readToken(req);
+    if (!userInfo) {
         return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
-    let userInfo = jwt.decode(token) as JWTPayload;
+    const booking = await ProjectInvestmentBooking.findByPk(String(req.query.id));
+    if (!booking) {
+        return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
 
-    const transaction = await sequelize.transaction();
+    // SECURITY: the token was verified above, but the booking id comes from the
+    // URL and was never checked against it — so any signed-in user could attach a
+    // proof-of-payment file, a payment method and a bank account to somebody
+    // else's booking. Admins keep the override because the admin panel records
+    // offline payments on behalf of investors.
+    if (userInfo.userType !== 'admin' && booking.idUsers !== userInfo.idUsers) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
-    try {
-        const booking = await ProjectInvestmentBooking.findByPk(String(req.query.id), { transaction });
+    const blocked = receiptBlocked(booking);
+    if (blocked) {
+        return res.status(409).json({ success: false, ...blocked });
+    }
 
-        if (!booking) {
-            await transaction.rollback();
-            return res.status(404).json({ success: false, message: 'Booking not found' });
-        }
+    const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
 
-        // SECURITY: the token was verified above, but the booking id comes from the
-        // URL and was never checked against it — so any signed-in user could attach a
-        // proof-of-payment file, a payment method and a bank account to somebody
-        // else's booking. Admins keep the override because the admin panel records
-        // offline payments on behalf of investors.
-        if (userInfo.userType !== 'admin' && booking.idUsers !== userInfo.idUsers) {
-            await transaction.rollback();
-            return res.status(403).json({ success: false, message: 'Access denied' });
-        }
-
-        const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
-
-        form.parse(req, async (err, fields, files) => {
+    form.parse(req, async (err, fields, files) => {
+        // Every path answers: a throw inside this callback used to leave the
+        // request hanging with no response.
+        try {
             if (err) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, message: err.message });
             }
 
@@ -109,91 +136,91 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 idUserBanks: fields.idUserBanks ? fields.idUserBanks[0] : null
             };
 
-            const options = { abortEarly: false };
-            const { error } = schema.validate(data, options);
-
+            const { error } = schema.validate(data, { abortEarly: false });
             if (error) {
-                let errorMessage: string[] = error.details.map(e => e.message);
-                await transaction.rollback();
+                const errorMessage: string[] = error.details.map(e => e.message);
                 return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
             }
 
             if (!files['proofOfPayment']) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, message: 'Proof of payment is required' });
             }
 
             const proofOfPaymentFile = files['proofOfPayment']![0] as formidable.File;
 
             if (proofOfPaymentFile.mimetype !== 'image/jpeg' && proofOfPaymentFile.mimetype !== 'image/png') {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
             }
 
-            let proofOfPaymentFileName = generateHash(Date.now() + (booking?.idProjectInvestmentBookings?.toString() ?? '') + proofOfPaymentFile.originalFilename!.toString()) + '.' + proofOfPaymentFile.originalFilename!.split('.').pop();
+            const proofOfPaymentFileName = generateHash(Date.now() + (booking.idProjectInvestmentBookings?.toString() ?? '') + proofOfPaymentFile.originalFilename!.toString()) + '.' + proofOfPaymentFile.originalFilename!.split('.').pop();
 
-            const params: any = {
-                Bucket: S3_BUCKET_NAME,
-                ContentType: proofOfPaymentFile.mimetype!,
-                // No public ACL. These are bank receipts, deposit slips and cheque
-
-                // images; they are read through /api/files/proof-of-payment/{bookingId},
-
-                // which checks ownership and issues a five-minute presigned URL.
-                Body: fs.createReadStream(proofOfPaymentFile.filepath),
-                Key: 'proof-of-payment/' + proofOfPaymentFileName
-            };
-
+            // Upload first, then open the transaction. The transaction used to be
+            // held open for the whole S3 upload, tying up a database connection
+            // for as long as a slow phone connection took.
             const upload = new Upload({
                 client: s3Client,
-                params: params
+                params: {
+                    Bucket: S3_BUCKET_NAME,
+                    ContentType: proofOfPaymentFile.mimetype!,
+                    // No public ACL. These are bank receipts, deposit slips and cheque
+                    // images; they are read through /api/files/proof-of-payment/{bookingId},
+                    // which checks ownership and issues a five-minute presigned URL.
+                    Body: fs.createReadStream(proofOfPaymentFile.filepath),
+                    Key: 'proof-of-payment/' + proofOfPaymentFileName
+                } as any
             });
-
-            upload.on('httpUploadProgress', (progress: any) => {
-                console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
-            });
-
-            let [err1, result1] = await _(upload.done());
-            if (err1) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: err1.message });
+            const [uploadError] = await _(upload.done());
+            if (uploadError) {
+                return res.status(400).json({ success: false, message: uploadError.message });
             }
 
-            if (data.paymentMethod) {
-                booking.paymentMethod = data.paymentMethod as 'cheque' | 'beftn' | 'rtgs' | 'npsb' | 'cash';
-                booking.idUserBanks = data.idUserBanks ? Number(data.idUserBanks) : undefined;
-            }
-            booking.proofOfPayment = proofOfPaymentFileName;
-            booking.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
-            booking.collectionRequired = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'yes' : 'no';
-            booking.collectionStatus = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? 'pending' : null;
-            booking.collectionDate = (data.paymentMethod === 'cheque' || data.paymentMethod === 'cash') && data.collectionDate ? new Date(new Date(data.collectionDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString() : null;
-            booking.collectionLocation = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash' ? data.collectionLocation : null;
+            const transaction = await sequelize.transaction();
+            try {
+                // Re-read under a row lock: the booking may have been confirmed or
+                // cancelled while the file was uploading.
+                const current = await ProjectInvestmentBooking.findByPk(booking.idProjectInvestmentBookings!, { transaction, lock: transaction.LOCK.UPDATE });
+                if (!current) {
+                    await transaction.rollback();
+                    return res.status(404).json({ success: false, message: 'Booking not found' });
+                }
+                const lateBlock = receiptBlocked(current);
+                if (lateBlock) {
+                    await transaction.rollback();
+                    return res.status(409).json({ success: false, ...lateBlock });
+                }
 
-            let [err2] = await _(booking.save({ transaction }));
-            if (err2) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: err2.message });
+                const cashOrCheque = data.paymentMethod === 'cheque' || data.paymentMethod === 'cash';
+                if (data.paymentMethod) {
+                    current.paymentMethod = data.paymentMethod as 'cheque' | 'beftn' | 'rtgs' | 'npsb' | 'cash';
+                    current.idUserBanks = data.idUserBanks ? Number(data.idUserBanks) : undefined;
+                }
+                current.proofOfPayment = proofOfPaymentFileName;
+                current.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
+                current.collectionRequired = cashOrCheque ? 'yes' : 'no';
+                current.collectionStatus = cashOrCheque ? 'pending' : null;
+                current.collectionDate = cashOrCheque && data.collectionDate ? new Date(new Date(data.collectionDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString() : null;
+                current.collectionLocation = cashOrCheque ? data.collectionLocation : null;
+
+                await current.save({ transaction });
+
+                const bookingStatus = await BookingStatusEntry('proof_of_payment_uploaded', current.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+                if (!bookingStatus) {
+                    throw new Error('Error updating booking status');
+                }
+
+                await transaction.commit();
+            } catch (dbError) {
+                await transaction.rollback().catch(() => undefined);
+                throw dbError;
             }
 
-            if (booking.idProjectInvestmentBookings === undefined) {
-                throw new Error('Booking ID is undefined');
-            }
-            const bookingStatus = await BookingStatusEntry('proof_of_payment_uploaded', booking.idProjectInvestmentBookings, userInfo.idUsers, '', transaction);
-            if (!bookingStatus) {
-                await transaction.rollback();
-                throw new Error('Error updating booking status');
-            }
-
-            await transaction.commit();
             return res.status(200).json({ success: true, message: 'Proof of payment uploaded successfully' });
-
-        });
-
-    } catch (err) {
-        await transaction.rollback();
-        return res.status(400).json({ success: false, message: (err as Error).message });
-    }
+        } catch (callbackError) {
+            if (!res.headersSent) {
+                return res.status(400).json({ success: false, message: (callbackError as Error).message });
+            }
+        }
+    });
 }
 
 export const config = {

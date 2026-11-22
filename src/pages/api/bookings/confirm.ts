@@ -154,7 +154,12 @@ export default async function handler(
             booking.transactionId = transactionId;
             booking.paymentConfirmationStatus = 'confirmed';
             booking.collectionRequired = paymentMethod.value === 'cheque' || paymentMethod.value === 'cash' ? 'yes' : 'no';
-            booking.collectionStatus = paymentMethod.value === 'cheque' || paymentMethod.value === 'cash' ? 'pending' : null;
+            // A cheque or cash collection already marked "collected" stays collected:
+            // confirming used to reset it to "pending", so a cheque picked up before
+            // the funds cleared showed as still to collect after confirmation.
+            booking.collectionStatus = paymentMethod.value === 'cheque' || paymentMethod.value === 'cash'
+                ? (booking.collectionStatus === 'collected' ? 'collected' : 'pending')
+                : null;
             const collectionDateTime = (paymentMethod.value === 'cheque' || paymentMethod.value === 'cash') && collectionDate ? new Date(collectionDate) : null;
             if (collectionDateTime) {
                 collectionDateTime.setHours(collectionDateTime.getHours() + 12);

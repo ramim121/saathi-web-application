@@ -10,6 +10,7 @@ import {
     ProjectInvestmentBookingStatus,
 } from '@/models/__associations';
 import { withCors, requireUser, type AuthContext } from '@/utils/auth';
+import { publicPartnerAttributes } from '@/utils/publicFields';
 
 /**
  * The signed-in investor's portfolio — the website's "My investments" source.
@@ -44,7 +45,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                             model: ProjectPartner,
                             include: [
                                 { model: Project },
-                                { model: User, include: [{ model: File, as: 'ProfilePicture' }] },
+                                // The partner farmer: public profile fields only, as in
+                                // investors/invested-projects. This sent the whole row
+                                // (phone, email, NID fields) to every investor.
+                                { model: User, attributes: publicPartnerAttributes(), include: [{ model: File, as: 'ProfilePicture' }] },
                             ],
                         },
                     ],

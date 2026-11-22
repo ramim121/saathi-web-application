@@ -1,5 +1,6 @@
 import { SESClient, SendEmailCommand, SendEmailCommandInput, SendEmailCommandOutput } from "@aws-sdk/client-ses";
 import { SES_AWS_REGION, SES_AWS_ACCESS_KEY_ID, SES_AWS_SECRET_ACCESS_KEY } from "@/config/constants";
+import { allowEmail } from "@/utils/notifySandbox";
 
 interface EmailOptions {
     from: string;
@@ -21,6 +22,13 @@ async function sendEmail(options: EmailOptions): Promise<SendEmailCommandOutput>
     // Validate email options
     if (!options.from || options.to.length === 0) {
         throw new Error('From address and at least one recipient are required');
+    }
+
+    // On a sandboxed server (NOTIFY_ALLOWLIST set), only listed addresses get
+    // email. Returned like any other send failure (no MessageId), which every
+    // caller already handles.
+    if (!allowEmail(options.to[0])) {
+        return new Error('Email held back by NOTIFY_ALLOWLIST') as unknown as SendEmailCommandOutput;
     }
 
     try {
