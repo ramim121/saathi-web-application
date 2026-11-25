@@ -38,7 +38,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
     try {
         const result = await ProjectInvestor.findAll({
             include: [
-                Project,
+                // Main image for the Portfolio cards (file name and thumbnail only).
+                { model: Project, include: [{ model: File, as: 'MainImage', attributes: ['fileName', 'thumbnail', 'originalFileName'] }] },
                 {
                     model: ProjectPartnerInvestor,
                     include: [
