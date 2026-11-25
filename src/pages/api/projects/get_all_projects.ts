@@ -101,7 +101,7 @@ export default async function handler(
 							sequelize.literal(`
 				                CASE
 				                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-				                        SELECT SUM(unit_purchased)
+				                        SELECT COALESCE(SUM(unit_purchased), 0)
 				                        FROM project_investors AS ppi
 				                        WHERE ppi.id_projects = Project.id_projects
 										AND ppi.investment_status = 'confirmed'
