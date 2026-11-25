@@ -97,7 +97,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
     // Asking the same thing twice changes nothing and adds no history.
     const latest = await ProjectInvestorStatus.findOne({
         where: { idProjectInvestors, status: PAYOUT_REQUEST_STATUSES },
-        order: [['createdAt', 'DESC']],
+        // created_at has one-second precision; the id breaks ties.
+                  order: [['createdAt', 'DESC'], ['idProjectInvestorStatus', 'DESC']],
     });
     if (latest && latest.status === historyStatus && line.investmentStatus === lineStatus) {
         return res.status(200).json({ success: true, message: 'Request already received', data: { choice, at: latest.createdAt } });
