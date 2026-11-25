@@ -11,6 +11,7 @@ export default interface UserBank {
     accountHolderName: string;
     accountNumber: string;
     default: 'yes' | 'no';
+    status?: 'active' | 'removed';
     User?: User;
     Bank?: Bank;
     BankBranch?: BankBranch;

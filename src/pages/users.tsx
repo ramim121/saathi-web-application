@@ -186,11 +186,28 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
     };
 
     const verifyUserInformation = async (idUsers: number, verificationType: string, verificationStatus: string = "") => {
+        // Rejecting NID photos needs a reason: the investor sees it in the app.
+        let reason: string | undefined;
+        if (verificationType === "nid" && verificationStatus === "rejected") {
+            const answer = await Swal.fire({
+                title: "Reject NID photos",
+                input: "textarea",
+                inputLabel: "Reason shown to the investor",
+                inputPlaceholder: "e.g. The back side is blurry. Please send a clear photo in good light.",
+                inputAttributes: { maxlength: "500" },
+                showCancelButton: true,
+                confirmButtonText: "Reject",
+                confirmButtonColor: "#dc2626",
+                inputValidator: (value) => (!value || value.trim().length < 3 ? "Write the reason" : undefined),
+            });
+            if (!answer.isConfirmed) return;
+            reason = String(answer.value).trim();
+        }
         try {
             setIsLoading(true);
             let response = await fetch(
                 API_URL + "api/verify",
-                postRequestOptions({ idUsers, verificationType, verificationStatus })
+                postRequestOptions({ idUsers, verificationType, verificationStatus, reason })
             );
             let data = await response.json();
             setIsLoading(false);
@@ -461,6 +478,9 @@ const UserList: NextPage<UserListProps> = ({ initial }) => {
                                                     <Pill tone="green">Verified</Pill>
                                                 ) : (
                                                     <Pill tone={selectedUser.nidVerificationStatus == "rejected" ? "rose" : "amber"}>{capitalise(selectedUser.nidVerificationStatus)}</Pill>
+                                                )}
+                                                {selectedUser.nidVerificationStatus == "rejected" && selectedUser.nidRejectionReason && (
+                                                    <span className="tw-w-full tw-text-sm tw-text-rose-700">Reason: {selectedUser.nidRejectionReason}</span>
                                                 )}
                                                 {selectedUser.nidVerified != "yes" && selectedUser.nidVerificationStatus == "pending" && (
                                                     <span className="tw-ml-auto tw-flex tw-gap-2">
