@@ -113,7 +113,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                       idProjectInvestors: dueIds,
                       status: ['request_withdrawal', 'reinvest_full_requested', 'reinvest_capital_requested'],
                   },
-                  order: [['createdAt', 'DESC']],
+                  // created_at has one-second precision; the id breaks ties.
+                  order: [['createdAt', 'DESC'], ['idProjectInvestorStatus', 'DESC']],
               })
             : [];
         const latestByLine = new Map<number, any>();
