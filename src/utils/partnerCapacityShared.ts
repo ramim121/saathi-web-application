@@ -38,8 +38,16 @@ export function unitsLeft(p: Pick<PartnerLoad, 'capacity' | 'confirmed' | 'pendi
  * Places `units` across a project's partners.
  *
  * What was requested stays where it is if it fits. Anything else goes round
- * robin: each unit to the partner holding the fewest units, first among those
- * with unreserved room, and only then into room held by unpaid bookings.
+ * robin within this booking: one unit to each partner with room, then a
+ * second round, and so on — first into unreserved room, only then into room
+ * held by unpaid bookings. Each round visits partners least-loaded first
+ * (confirmed + pending before this booking), ties by id, so single-unit
+ * bookings still spread across partners.
+ *
+ * (Until 2026-11-25 every unit went to whoever held the fewest units in
+ * total, so a lightly booked partner took every unit until she caught up —
+ * e.g. 6 of 7 to one farmer. Owners and investors expect the even
+ * round-robin split the app always showed.)
  *
  * `keepWithin` decides what "fits" means for the request itself: `reserved`
  * for an investor's booking, `confirmed` for an admin's explicit choice or a
@@ -73,22 +81,20 @@ export function fitAllocation(
     }
     const moved = useRequest ? left : 0;
 
+    const order = [...state].sort(
+        (a, b) => a.confirmed + a.pending - (b.confirmed + b.pending) || a.idProjectPartners - b.idProjectPartners,
+    );
     const spread = (room: (s: Slot) => number) => {
         while (left > 0) {
-            let next: Slot | null = null;
-            for (const s of state) {
+            let placed = false;
+            for (const s of order) {
+                if (left <= 0) break;
                 if (room(s) <= 0) continue;
-                if (!next) {
-                    next = s;
-                    continue;
-                }
-                const a = s.confirmed + s.pending + s.added;
-                const b = next.confirmed + next.pending + next.added;
-                if (a < b || (a === b && s.idProjectPartners < next.idProjectPartners)) next = s;
+                s.added += 1;
+                left -= 1;
+                placed = true;
             }
-            if (!next) return;
-            next.added += 1;
-            left -= 1;
+            if (!placed) return;
         }
     };
     spread(roomReserved);
