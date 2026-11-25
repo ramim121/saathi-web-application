@@ -66,6 +66,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 user.nidVerified = 'yes';
                 user.nidVerificationStatus = 'approved';
+                user.nidRejectionReason = null;
                 let [err, result] = await _(user.save());
                 if (err) { return res.status(400).json({ success: false, message: err.message }); }
 
@@ -76,8 +77,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 if (!user) { return res.status(404).json({ success: false, message: 'User not found' }); }
                 if (user.nidVerificationStatus != 'pending') { return res.status(400).json({ success: false, message: 'User NID does not require verification' }); }
 
+                // The reason is shown to the investor in the app so they know
+                // what to fix (migration 016). Required, short and plain text.
+                const reason = String(req.body.reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 500);
+                if (reason.length < 3) { return res.status(400).json({ success: false, message: 'Write the reason for rejecting, so the investor knows what to fix.' }); }
+
                 user.nidVerified = 'no';
                 user.nidVerificationStatus = 'rejected';
+                user.nidRejectionReason = reason;
                 let [err, result] = await _(user.save());
                 if (err) { return res.status(400).json({ success: false, message: err.message }); }
 

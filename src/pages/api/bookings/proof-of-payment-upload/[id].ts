@@ -5,6 +5,7 @@ import * as formidable from 'formidable';
 import _ from 'await-to-js';
 import fs from 'fs';
 import ProjectInvestmentBooking from '@/models/ProjectInvestmentBooking';
+import UserBank from '@/models/UserBank';
 import sequelize from '@/config/db';
 import Joi from 'joi';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
@@ -148,8 +149,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const proofOfPaymentFile = files['proofOfPayment']![0] as formidable.File;
 
-            if (proofOfPaymentFile.mimetype !== 'image/jpeg' && proofOfPaymentFile.mimetype !== 'image/png') {
-                return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
+            // PDF too: many banks send the transfer receipt as a PDF, and the
+            // investor had to screenshot it first.
+            if (!['image/jpeg', 'image/png', 'application/pdf'].includes(String(proofOfPaymentFile.mimetype))) {
+                return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG, PNG and PDF files are allowed.` });
+            }
+
+            // The paid-from account must be one of the uploader's own active
+            // accounts; the id used to be stored without any check.
+            if (data.idUserBanks) {
+                const ownBank = await UserBank.findOne({ where: { idUserBanks: Number(data.idUserBanks), idUsers: userInfo.idUsers } });
+                if (!ownBank) {
+                    return res.status(400).json({ success: false, message: 'Choose one of your own bank accounts.' });
+                }
             }
 
             const proofOfPaymentFileName = generateHash(Date.now() + (booking.idProjectInvestmentBookings?.toString() ?? '') + proofOfPaymentFile.originalFilename!.toString()) + '.' + proofOfPaymentFile.originalFilename!.split('.').pop();

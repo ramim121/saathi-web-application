@@ -71,6 +71,11 @@ const User = sequelize.define<UserModel>('User', {
         defaultValue: 'none',
         allowNull: false
     },
+    // Why the admin rejected the NID photos (migration 016); shown in the app.
+    nidRejectionReason: {
+        type: DataTypes.STRING(500),
+        allowNull: true
+    },
     profileImage: {
         type: DataTypes.STRING,
         allowNull: true

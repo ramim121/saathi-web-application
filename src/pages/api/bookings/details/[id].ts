@@ -102,7 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                         model: User
                     },
                     {
-                        model: UserBank,
+                        model: UserBank.unscoped(),
                         include: [
                             {
                                 model: Bank

@@ -8,6 +8,7 @@ import {
     ProjectInvestmentBooking,
     File,
     ProjectInvestmentBookingStatus,
+    ProjectInvestorStatus,
 } from '@/models/__associations';
 import { withCors, requireUser, type AuthContext } from '@/utils/auth';
 import { publicPartnerAttributes } from '@/utils/publicFields';
@@ -100,7 +101,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             return { ...investment.toJSON(), projectStartDate, projectEndDate };
         });
 
-        return res.status(200).json({ success: true, data: enhanced });
+        // What the investor asked for on payout-due lines (see payout-request.ts):
+        // withdraw is the line status itself; a reinvest request lives only in
+        // the line's status history.
+        const dueIds = enhanced
+            .filter((l: any) => l.investmentStatus === 'ready_for_withdrawal' || l.investmentStatus === 'request_withdrawal')
+            .map((l: any) => l.idProjectInvestors);
+        const requests = dueIds.length
+            ? await ProjectInvestorStatus.findAll({
+                  where: {
+                      idProjectInvestors: dueIds,
+                      status: ['request_withdrawal', 'reinvest_full_requested', 'reinvest_capital_requested'],
+                  },
+                  order: [['createdAt', 'DESC']],
+              })
+            : [];
+        const latestByLine = new Map<number, any>();
+        for (const r of requests as any[]) {
+            if (!latestByLine.has(r.idProjectInvestors)) latestByLine.set(r.idProjectInvestors, r);
+        }
+        const withRequests = enhanced.map((l: any) => {
+            const latest = latestByLine.get(l.idProjectInvestors);
+            let payoutRequest: { choice: string; at: string } | null = null;
+            if (l.investmentStatus === 'request_withdrawal') {
+                payoutRequest = { choice: 'withdraw', at: latest?.status === 'request_withdrawal' ? latest.createdAt : l.updatedAt };
+            } else if (l.investmentStatus === 'ready_for_withdrawal' && latest && latest.status !== 'request_withdrawal') {
+                payoutRequest = { choice: String(latest.status).replace(/_requested$/, ''), at: latest.createdAt };
+            }
+            return { ...l, payoutRequest };
+        });
+
+        return res.status(200).json({ success: true, data: withRequests });
     } catch (error) {
         return res.status(400).json({ success: false, message: (error as Error).message });
     }

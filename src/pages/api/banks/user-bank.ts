@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { Bank, UserBank, BankBranch } from '@/models/__associations';
+import { Bank, UserBank, BankBranch, ProjectInvestor } from '@/models/__associations';
 import Cors from 'micro-cors';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
@@ -12,7 +12,7 @@ import userBankType from '@/types/UserBank';
 
 const cors = Cors({
     origin: '*',
-    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
 
@@ -153,6 +153,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'User bank updated successfully', userBank });
         }
+    } else if (req.method === 'DELETE') {
+        return removeBank(req, res, userInfo);
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' })
     }
@@ -177,16 +179,40 @@ export async function createBank(req: NextApiRequest, res: NextApiResponse, user
         return errorMessage.join(". <br>");
     }
 
-    const userBankExist = await UserBank.findOne({
+    // Unscoped: a removed account (migration 015) still holds its row, and
+    // account_number is unique. Adding it again brings that row back.
+    const userBankExist = await UserBank.unscoped().findOne({
         where: {
             accountNumber: req.body.accountNumber,
             idUsers
         }
     });
 
-    if (userBankExist) {
+    if (userBankExist && userBankExist.status !== 'removed') {
         if (sendResponse) { res.status(400).json({ success: false, message: 'Account number already exist' }); return; }
         return 'Account number already exist';
+    }
+
+    if (userBankExist) {
+        const transaction = transactionMain || await sequelize.transaction();
+        try {
+            if (req.body.default === 'yes') {
+                await UserBank.update({ default: 'no' }, { where: { idUsers }, transaction });
+            }
+            userBankExist.idBanks = req.body.idBanks;
+            userBankExist.idBankBranches = req.body.idBankBranches;
+            userBankExist.accountHolderName = req.body.accountHolderName;
+            userBankExist.default = req.body.default;
+            userBankExist.status = 'active';
+            await userBankExist.save({ transaction });
+            if (!transactionMain) await transaction.commit();
+            if (sendResponse) { res.status(200).json({ success: true, message: 'User bank created successfully', data: userBankExist }); return; }
+            return userBankExist as userBankType;
+        } catch (err) {
+            if (!transactionMain) await transaction.rollback();
+            if (sendResponse) { res.status(400).json({ success: false, message: (err as Error).message }); return; }
+            return (err as Error).message;
+        }
     }
 
     const previousUserBank = await UserBank.findAll({ where: { idUsers } });
@@ -219,5 +245,68 @@ export async function createBank(req: NextApiRequest, res: NextApiResponse, user
         await transaction.rollback();
         if (sendResponse) { res.status(400).json({ success: false, message: (err as Error).message }); return; }
         return (err as Error).message;
+    }
+}
+
+
+/**
+ * DELETE /api/banks/user-bank?idUserBanks=…  — the investor removes one of
+ * their payout accounts.
+ *
+ * The row is marked 'removed', not deleted: bookings record the account they
+ * were paid from (see migration 015). If it was the default, the newest
+ * remaining account becomes the default. The last account cannot be removed
+ * while an investment is still running or a payout is due, because the payout
+ * would have nowhere to go.
+ */
+async function removeBank(req: NextApiRequest, res: NextApiResponse, userInfo: JWTPayload) {
+    const raw = (req.query.idUserBanks ?? (req.body && req.body.idUserBanks)) as string | number | undefined;
+    const idUserBanks = Number(raw);
+    if (!Number.isInteger(idUserBanks) || idUserBanks <= 0) {
+        return res.status(400).json({ success: false, message: 'Choose the bank account to remove' });
+    }
+    const idUsers = userInfo.idUsers;
+
+    const bank = await UserBank.findOne({ where: { idUserBanks, idUsers } });
+    if (!bank) {
+        return res.status(404).json({ success: false, message: 'Bank account not found' });
+    }
+
+    const others = await UserBank.findAll({
+        where: { idUsers, idUserBanks: { [Op.ne]: idUserBanks } },
+        order: [['idUserBanks', 'DESC']],
+    });
+
+    if (!others.length) {
+        const owed = await ProjectInvestor.count({
+            where: { idUsers, investmentStatus: ['confirmed', 'ready_for_withdrawal', 'request_withdrawal'] },
+        });
+        if (owed > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Add another bank account first. Your running investments are paid out to this one.',
+            });
+        }
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+        const wasDefault = bank.default === 'yes';
+        bank.status = 'removed';
+        bank.default = 'no';
+        await bank.save({ transaction });
+
+        let newDefault: number | null = null;
+        if (wasDefault && others.length && !others.some((b) => b.default === 'yes')) {
+            others[0].default = 'yes';
+            await others[0].save({ transaction });
+            newDefault = others[0].idUserBanks ?? null;
+        }
+
+        await transaction.commit();
+        return res.status(200).json({ success: true, message: 'Bank account removed', newDefault });
+    } catch (err) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: (err as Error).message });
     }
 }

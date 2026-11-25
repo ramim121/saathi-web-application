@@ -27,6 +27,13 @@ const UserBank = sequelize.define<UserBankModel>('UserBank', {
         allowNull: false,
         defaultValue: 'no'
     },
+    // 'removed' (migration 015): the investor removed this payout account. The
+    // row stays because bookings record which account paid them.
+    status: {
+        type: DataTypes.ENUM('active', 'removed'),
+        allowNull: false,
+        defaultValue: 'active'
+    },
     accountHolderName: {
         type: DataTypes.STRING,
         allowNull: false
@@ -48,6 +55,10 @@ const UserBank = sequelize.define<UserBankModel>('UserBank', {
     tableName: 'user_banks',
     underscored: true,
     timestamps: true,
+    // Removed accounts disappear from every list, login payload and ownership
+    // check by default. Read them with UserBank.unscoped() where history
+    // matters (booking details show the account a booking was paid from).
+    defaultScope: { where: { status: 'active' } },
 });
 
 export default UserBank;

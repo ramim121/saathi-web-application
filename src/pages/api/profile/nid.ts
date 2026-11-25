@@ -108,6 +108,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         user.nidImageFront = nidFrontfileName;
         user.nidImageBack = nidBackfileName;
         user.nidVerificationStatus = 'pending';
+        user.nidRejectionReason = null; // new photos, new review
         // New images have not been reviewed. Keeping `nidVerified = 'yes'` from an
         // earlier approval made the app show "Verified" for unreviewed scans, and
         // api/verify refuses to approve a user already marked verified, so the
