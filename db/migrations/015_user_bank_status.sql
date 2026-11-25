@@ -12,6 +12,27 @@
 -- SAFE TO RUN ON A LIVE DATABASE
 --   Additive column with a default: every existing account stays 'active' and
 --   no current query changes behaviour until the new code is deployed.
+--
+-- APPLY (guarded; safe to re-run)
+--   node db/migrate.mjs db/migrations/015_user_bank_status.sql
 
-ALTER TABLE `user_banks`
-    ADD COLUMN `status` ENUM('active', 'removed') NOT NULL DEFAULT 'active' AFTER `default`;
+SET @exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME   = 'user_banks'
+      AND COLUMN_NAME  = 'status'
+);
+
+SET @sql := IF(
+    @exists = 0,
+    'ALTER TABLE `user_banks` ADD COLUMN `status` ENUM(''active'', ''removed'') NOT NULL DEFAULT ''active'' AFTER `default`',
+    'SELECT ''user_banks.status already present, skipping'' AS note'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Verify
+--   SHOW COLUMNS FROM user_banks LIKE 'status';
