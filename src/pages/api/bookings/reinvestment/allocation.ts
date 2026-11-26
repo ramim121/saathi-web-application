@@ -18,6 +18,10 @@ const schema = Joi.object({
         .items(Joi.object({ idProjectPartners: Joi.number().integer().positive().required(), capacity: Joi.number().integer().min(0).max(1000000).required() }))
         .max(100)
         .default([]),
+    newPartners: Joi.array()
+        .items(Joi.object({ idUsers: Joi.number().integer().positive().required(), capacity: Joi.number().integer().min(1).max(1000000).required() }))
+        .max(20)
+        .default([]),
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -33,6 +37,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             idUsers: Number(line.idUsers),
             leavingLine: value.idProjectInvestors,
             raises: value.raises,
+            newPartners: value.newPartners,
         });
         return res.status(200).json({ success: true, data: plan });
     } catch (e) {

@@ -43,6 +43,10 @@ const schema = Joi.object({
         .items(Joi.object({ idProjectPartners: Joi.number().integer().positive().required(), capacity: Joi.number().integer().min(0).max(1000000).required() }))
         .max(100)
         .default([]),
+    newPartners: Joi.array()
+        .items(Joi.object({ idUsers: Joi.number().integer().positive().required(), capacity: Joi.number().integer().min(1).max(1000000).required() }))
+        .max(20)
+        .default([]),
     useBalance: Joi.boolean().default(false),
     startDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).allow(null, ''),
     payoutDoneNow: Joi.boolean().default(false),
@@ -58,7 +62,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
     if (error) return res.status(400).json({ success: false, message: error.details.map((d) => d.message).join('. <br>') });
     const input = value as {
         idProjectInvestors: number; mode: ReinvestMode; profitAmount: number; profitPercentage: number | null;
-        idProjects: number; units: number; raises: { idProjectPartners: number; capacity: number }[]; useBalance: boolean; startDate: string | null;
+        idProjects: number; units: number; raises: { idProjectPartners: number; capacity: number }[]; newPartners: { idUsers: number; capacity: number }[]; useBalance: boolean; startDate: string | null;
         payoutDoneNow: boolean; notify: boolean;
     };
 
@@ -84,7 +88,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
         await lockProjects([input.idProjects], transaction);
         // Round robin across the partners, with any capacity raises saved here.
         const allocation = await planReinvestAllocation(
-            { idProjects: input.idProjects, units: input.units, idUsers, leavingLine: input.idProjectInvestors, raises: input.raises },
+            { idProjects: input.idProjects, units: input.units, idUsers, leavingLine: input.idProjectInvestors, raises: input.raises, newPartners: input.newPartners },
             transaction,
             { apply: true },
         );
@@ -175,7 +179,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             maturityDate: startDate && term ? addTerm(startDate, term, t.tenure) : null,
             projectName: t.projectName,
             allocations: allocation.partners.filter((p) => p.units > 0).map((p) => ({ idProjectPartners: p.idProjectPartners, fullName: p.fullName, units: p.units })),
-            capacityRaised: (input.raises ?? []).length > 0,
+            capacityRaised: (input.raises ?? []).length > 0 || (input.newPartners ?? []).length > 0,
             balanceAfter: Math.round((balance + plan.payout * (input.payoutDoneNow ? 0 : 1) + plan.kept - plan.fromBalance) * 100) / 100,
         };
     } catch (err) {

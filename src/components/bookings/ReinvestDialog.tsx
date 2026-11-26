@@ -20,8 +20,9 @@ import { Button, Field, Input, Select } from '@/ui/controls';
  * Partners are not chosen by hand: the units go round robin across the
  * project's partners (api/bookings/reinvestment/allocation previews the same
  * planReinvestAllocation the save uses). When they do not have room for all
- * the units, the admin can raise partners' capacity right here; the raises
- * are saved with the reinvestment.
+ * the units, the admin can make room right here: raise partners' capacity
+ * and/or assign another partner to the project with a capacity. Both are
+ * saved with the reinvestment.
  */
 
 type ProjectOption = {
@@ -68,7 +69,12 @@ type AllocPartner = {
     pending: number;
     left: number | null;
     units: number;
+    isNew?: boolean;
+    idUsers?: number;
 };
+
+type Candidate = { idUsers: number; fullName: string; location: string | null };
+type NewPartnerRow = { idUsers: number; fullName: string; capacity: string };
 
 type AllocPlan = {
     partners: AllocPartner[];
@@ -140,6 +146,9 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
     /** Capacity typed per partner (raw input), keyed by idProjectPartners. */
     const [raises, setRaises] = useState<Record<number, string>>({});
     const [raiseOpen, setRaiseOpen] = useState(false);
+    /** Partners to assign to the project with this reinvestment. */
+    const [newPartners, setNewPartners] = useState<NewPartnerRow[]>([]);
+    const [candidates, setCandidates] = useState<Candidate[] | null>(null);
     const [useBalance, setUseBalance] = useState(true);
     const [startDate, setStartDate] = useState(todayIso());
     const [payoutDoneNow, setPayoutDoneNow] = useState(false);
@@ -196,7 +205,31 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
         setRaises({});
         setRaiseOpen(false);
         setAlloc(null);
+        setNewPartners([]);
+        setCandidates(null);
     }, [idProjects]);
+
+    // Partners who could be added, fetched the first time the editor opens.
+    useEffect(() => {
+        if (!raiseOpen || !idProjects || candidates !== null) return;
+        let live = true;
+        fetch(`/api/bookings/reinvestment/candidates?idProjects=${idProjects}`, getRequestOptions())
+            .then((r) => r.json())
+            .then((body) => live && setCandidates(Array.isArray(body?.data) ? body.data : []))
+            .catch(() => live && setCandidates([]));
+        return () => {
+            live = false;
+        };
+    }, [raiseOpen, idProjects, candidates]);
+
+    const newPartnersList = useMemo(
+        () =>
+            newPartners
+                .map((r) => ({ idUsers: r.idUsers, capacity: Math.floor(Number(r.capacity)) }))
+                .filter((r) => Number.isFinite(r.capacity) && r.capacity >= 1),
+        [newPartners],
+    );
+    const newPartnersKey = JSON.stringify(newPartnersList);
 
     // Capacity raises worth sending: whole numbers above the partner's capacity.
     const raisesList = useMemo(
@@ -222,7 +255,7 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
         const timer = setTimeout(() => {
             fetch(
                 API_URL + 'api/bookings/reinvestment/allocation',
-                postRequestOptions({ idProjectInvestors: options.source.idProjectInvestors, idProjects, units, raises: raisesList }),
+                postRequestOptions({ idProjectInvestors: options.source.idProjectInvestors, idProjects, units, raises: raisesList, newPartners: newPartnersList }),
             )
                 .then(async (r) => ({ ok: r.ok, body: await r.json() }))
                 .then(({ ok, body }) => {
@@ -243,7 +276,7 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
             clearTimeout(timer);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, options, idProjects, units, raisesKey, step]);
+    }, [open, options, idProjects, units, raisesKey, newPartnersKey, step]);
 
     /** Adds the missing room, one unit of capacity at a time round the partners. */
     const fillShortfall = () => {
@@ -304,6 +337,7 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                     idProjects,
                     units,
                     raises: raisesList,
+                    newPartners: newPartnersList,
                     useBalance: mode !== 'capital_only' && useBalance && balance > 0,
                     startDate: topUpDue ? null : startDate,
                     payoutDoneNow: mode === 'capital_only' && payoutDoneNow,
@@ -500,6 +534,10 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                     raiseOpen={raiseOpen}
                                     setRaiseOpen={setRaiseOpen}
                                     onFill={fillShortfall}
+                                    newPartners={newPartners}
+                                    setNewPartners={setNewPartners}
+                                    candidates={candidates}
+                                    suggested={Math.max(1, alloc?.shortfall ?? 0)}
                                 />
 
                                 <div className="tw-space-y-2.5">
@@ -559,6 +597,15 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                                 })
                                                 .join(', ')}
                                             {alloc.projectTotal ? `; the project total goes from ${alloc.projectTotal.from} to ${alloc.projectTotal.to} units` : ''}.
+                                        </li>
+                                    )}
+                                    {newPartnersList.length > 0 && (
+                                        <li>
+                                            Assigned to {project?.projectName}:{' '}
+                                            {newPartnersList
+                                                .map((r) => `${newPartners.find((x) => x.idUsers === r.idUsers)?.fullName ?? 'Partner'} (capacity ${r.capacity})`)
+                                                .join(', ')}
+                                            .
                                         </li>
                                     )}
                                     {topUpDue ? (
@@ -725,6 +772,10 @@ function PartnerSplit({
     raiseOpen,
     setRaiseOpen,
     onFill,
+    newPartners,
+    setNewPartners,
+    candidates,
+    suggested,
 }: {
     alloc: AllocPlan | null;
     loading: boolean;
@@ -733,10 +784,26 @@ function PartnerSplit({
     raiseOpen: boolean;
     setRaiseOpen: (v: boolean) => void;
     onFill: () => void;
+    newPartners: NewPartnerRow[];
+    setNewPartners: React.Dispatch<React.SetStateAction<NewPartnerRow[]>>;
+    candidates: Candidate[] | null;
+    /** Capacity offered for a new partner: what is still missing. */
+    suggested: number;
 }) {
     const needsRoom = Boolean(alloc && (alloc.code === 'partner_capacity' || alloc.code === 'project_total'));
-    const limited = (alloc?.partners ?? []).filter((p) => p.capacity > 0);
-    const changed = Object.keys(raises).length > 0;
+    const limited = (alloc?.partners ?? []).filter((p) => p.capacity > 0 && !p.isNew);
+    const changed = Object.keys(raises).length > 0 || newPartners.length > 0;
+    const [pick, setPick] = useState<number | ''>('');
+    const [pickCap, setPickCap] = useState('');
+    const available = (candidates ?? []).filter((c) => !newPartners.some((n) => n.idUsers === c.idUsers));
+    const addPartner = () => {
+        const c = available.find((x) => x.idUsers === pick);
+        const cap = Math.floor(Number(pickCap || suggested));
+        if (!c || !Number.isFinite(cap) || cap < 1) return;
+        setNewPartners((rows) => [...rows, { idUsers: c.idUsers, fullName: c.fullName, capacity: String(cap) }]);
+        setPick('');
+        setPickCap('');
+    };
     return (
         <section className="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4" aria-live="polite" aria-busy={loading}>
             <div className="tw-flex tw-flex-wrap tw-items-baseline tw-justify-between tw-gap-2">
@@ -749,9 +816,9 @@ function PartnerSplit({
                             <Loader2 className="tw-h-3 tw-w-3 tw-animate-spin" aria-hidden /> Working it out…
                         </span>
                     )}
-                    {!raiseOpen && limited.length > 0 && (
+                    {!raiseOpen && alloc && (
                         <button type="button" onClick={() => setRaiseOpen(true)} className="tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600">
-                            Edit capacity
+                            Edit capacity or add a partner
                         </button>
                     )}
                 </span>
@@ -773,7 +840,10 @@ function PartnerSplit({
                         const raised = p.plannedCapacity > p.capacity;
                         return (
                             <li key={p.idProjectPartners} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-1.5 tw-text-sm">
-                                <span className="tw-min-w-0 tw-truncate tw-text-slate-800">{p.fullName}</span>
+                                <span className="tw-min-w-0 tw-truncate tw-text-slate-800">
+                                    {p.fullName}
+                                    {p.isNew && <span className="tw-ml-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-emerald-700">New</span>}
+                                </span>
                                 <span className="tw-flex tw-shrink-0 tw-items-center tw-gap-4 tw-tabular-nums">
                                     <span className={cx('tw-w-14 tw-text-right tw-font-semibold', p.units ? 'tw-text-brand-700' : 'tw-text-slate-300')}>{p.units ? `+${p.units}` : '—'}</span>
                                     <span className="tw-w-36 tw-text-right tw-text-xs tw-text-slate-500">
@@ -798,20 +868,20 @@ function PartnerSplit({
                         <TriangleAlert className="tw-mt-0.5 tw-h-4 tw-w-4 tw-shrink-0" aria-hidden />
                         <span>{alloc.problem}</span>
                     </p>
-                    {needsRoom && !raiseOpen && limited.length > 0 && (
+                    {needsRoom && !raiseOpen && (
                         <Button size="sm" variant="secondary" className="tw-mt-2" onClick={() => setRaiseOpen(true)}>
-                            Raise partner capacity
+                            Raise capacity or add a partner
                         </Button>
                     )}
                 </div>
             )}
 
-            {raiseOpen && alloc && limited.length > 0 && (
+            {raiseOpen && alloc && (
                 <div className="tw-mt-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50/70 tw-p-3">
                     <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
-                        <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Partner capacity</p>
+                        <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Make room for the units</p>
                         <div className="tw-flex tw-gap-2">
-                            {needsRoom && (
+                            {needsRoom && limited.length > 0 && (
                                 <Button size="sm" variant="secondary" onClick={onFill}>
                                     Add what’s missing
                                 </Button>
@@ -821,6 +891,7 @@ function PartnerSplit({
                                 variant="ghost"
                                 onClick={() => {
                                     setRaises({});
+                                    setNewPartners([]);
                                     setRaiseOpen(false);
                                 }}
                             >
@@ -829,8 +900,9 @@ function PartnerSplit({
                         </div>
                     </div>
                     <p className="tw-mt-0.5 tw-text-xs tw-leading-5 tw-text-slate-500">
-                        Capacity can only go up here. It is saved together with this reinvestment, and the project’s unit total follows it.
+                        Raise a partner’s capacity (it can only go up here), or assign another partner to this project. Both are saved together with this reinvestment, and the project’s unit total follows them.
                     </p>
+                    {limited.length > 0 && (
                     <table className="tw-mt-2 tw-w-full tw-text-sm">
                         <thead>
                             <tr className="tw-text-left tw-text-xs tw-text-slate-500">
@@ -867,6 +939,71 @@ function PartnerSplit({
                             })}
                         </tbody>
                     </table>
+                    )}
+
+                    {newPartners.length > 0 && (
+                        <ul className="tw-mt-2 tw-space-y-1.5">
+                            {newPartners.map((row) => (
+                                <li key={row.idUsers} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-lg tw-bg-white tw-px-2 tw-py-1.5 tw-text-sm">
+                                    <span className="tw-min-w-0 tw-truncate tw-text-slate-800">
+                                        {row.fullName}
+                                        <span className="tw-ml-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-emerald-700">New to project</span>
+                                    </span>
+                                    <span className="tw-flex tw-items-center tw-gap-2">
+                                        <span className="tw-w-24">
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                step={1}
+                                                value={row.capacity}
+                                                aria-label={`Capacity for ${row.fullName}`}
+                                                className="tw-text-right"
+                                                onChange={(e) => setNewPartners((rows) => rows.map((r) => (r.idUsers === row.idUsers ? { ...r, capacity: e.target.value } : r)))}
+                                            />
+                                        </span>
+                                        <button
+                                            type="button"
+                                            aria-label={`Remove ${row.fullName}`}
+                                            onClick={() => setNewPartners((rows) => rows.filter((r) => r.idUsers !== row.idUsers))}
+                                            className="tw-rounded-md tw-p-1 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-600"
+                                        >
+                                            <X className="tw-h-4 tw-w-4" aria-hidden />
+                                        </button>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <div className="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-3">
+                        <p className="tw-text-xs tw-font-semibold tw-text-slate-600">Add a partner to this project</p>
+                        {candidates === null ? (
+                            <p className="tw-mt-1 tw-text-xs tw-text-slate-500">Loading partners…</p>
+                        ) : available.length === 0 ? (
+                            <p className="tw-mt-1 tw-text-xs tw-text-slate-500">Every active project partner is already on this project.</p>
+                        ) : (
+                            <div className="tw-mt-1.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                <div className="tw-min-w-[12rem] tw-flex-1">
+                                    <Select value={pick} onChange={(e) => setPick(Number(e.target.value) || '')} aria-label="Partner to add">
+                                        <option value="">Choose a partner…</option>
+                                        {available.map((c) => (
+                                            <option key={c.idUsers} value={c.idUsers}>
+                                                {c.fullName}
+                                                {c.location ? ` · ${c.location}` : ''}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <div className="tw-w-28">
+                                    <Input type="number" min={1} step={1} placeholder={String(suggested)} value={pickCap} onChange={(e) => setPickCap(e.target.value)} aria-label="Capacity for the new partner" className="tw-text-right" />
+                                </div>
+                                <Button size="sm" variant="secondary" onClick={addPartner} disabled={!pick}>
+                                    <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
                     {alloc.projectTotal && (
                         <p className="tw-mt-2 tw-text-xs tw-text-slate-600">
                             The project total goes from {alloc.projectTotal.from} to {alloc.projectTotal.to} units.
