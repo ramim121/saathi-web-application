@@ -106,6 +106,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // `no-store` matters: a cached redirect would outlive the signature and
     // hand a stale, dead URL to the next viewer.
     res.setHeader('Cache-Control', 'no-store');
+
+    // The app asks for the link as JSON (`?format=json`) instead of following
+    // a redirect: an image request that follows the 302 would carry the
+    // Authorization header to S3, which rejects a presigned URL that also has
+    // one. The link is the same five-minute presigned URL either way.
+    if (req.query.format === 'json') {
+        return res.status(200).json({
+            success: true,
+            url,
+            expiresIn: EXPIRES_IN_SECONDS,
+            isPdf: /\.pdf$/i.test(booking.proofOfPayment),
+        });
+    }
     return res.redirect(302, url);
 }
 

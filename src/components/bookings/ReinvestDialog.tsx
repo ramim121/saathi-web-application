@@ -16,6 +16,13 @@ import { Button, Field, Input, Select } from '@/ui/controls';
  *   3. Review, then create the new booking on the investor's account.
  * The figures come from src/utils/reinvestment.ts, the same code the API
  * uses to save, so what is shown is what is recorded.
+ *
+ * Partners are not chosen by hand: the units go round robin across the
+ * project's partners (api/bookings/reinvestment/allocation previews the same
+ * planReinvestAllocation the save uses). When they do not have room for all
+ * the units, the admin can make room right here: raise partners' capacity
+ * and/or assign another partner to the project with a capacity. Both are
+ * saved with the reinvestment.
  */
 
 type ProjectOption = {
@@ -53,7 +60,31 @@ type Options = {
     projects: ProjectOption[];
 };
 
-type Partner = { idProjectPartners: number; partnerUnitCapacity: number; confirmedUnits?: number; pendingUnits?: number; User?: { fullName?: string | null } };
+type AllocPartner = {
+    idProjectPartners: number;
+    fullName: string;
+    capacity: number;
+    plannedCapacity: number;
+    confirmed: number;
+    pending: number;
+    left: number | null;
+    units: number;
+    isNew?: boolean;
+    idUsers?: number;
+};
+
+type Candidate = { idUsers: number; fullName: string; location: string | null };
+type NewPartnerRow = { idUsers: number; fullName: string; capacity: string };
+
+type AllocPlan = {
+    partners: AllocPartner[];
+    allocations: { idProjectPartners: number; units: number }[];
+    shortfall: number;
+    projectLeft: number | null;
+    projectTotal: { from: number; to: number } | null;
+    problem: string | null;
+    code: 'partner_capacity' | 'project_total' | 'investor_cap' | 'no_partners' | 'bad_raise' | null;
+};
 
 type Result = {
     newBookingId: number;
@@ -68,6 +99,8 @@ type Result = {
     maturityDate: string | null;
     projectName: string;
     notified: boolean;
+    allocations?: { idProjectPartners: number; fullName: string; units: number }[];
+    capacityRaised?: boolean;
 };
 
 type Step = 'profit' | 'plan' | 'review' | 'done';
@@ -108,8 +141,14 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
     const [mode, setMode] = useState<ReinvestMode>('capital_profit');
     const [idProjects, setIdProjects] = useState<number | null>(null);
     const [units, setUnits] = useState(0);
-    const [partners, setPartners] = useState<Partner[] | null>(null);
-    const [idProjectPartners, setIdProjectPartners] = useState<number | null>(null);
+    const [alloc, setAlloc] = useState<AllocPlan | null>(null);
+    const [allocLoading, setAllocLoading] = useState(false);
+    /** Capacity typed per partner (raw input), keyed by idProjectPartners. */
+    const [raises, setRaises] = useState<Record<number, string>>({});
+    const [raiseOpen, setRaiseOpen] = useState(false);
+    /** Partners to assign to the project with this reinvestment. */
+    const [newPartners, setNewPartners] = useState<NewPartnerRow[]>([]);
+    const [candidates, setCandidates] = useState<Candidate[] | null>(null);
     const [useBalance, setUseBalance] = useState(true);
     const [startDate, setStartDate] = useState(todayIso());
     const [payoutDoneNow, setPayoutDoneNow] = useState(false);
@@ -161,30 +200,95 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
     const profitValid = profitAmount.trim() !== '' && Number.isFinite(profit) && profit >= 0;
     const balance = options?.balance ?? 0;
 
-    // Partners of the chosen project (as on the New booking page).
+    // A different project starts over: no capacity changes, no old split.
     useEffect(() => {
-        if (!idProjects) return;
+        setRaises({});
+        setRaiseOpen(false);
+        setAlloc(null);
+        setNewPartners([]);
+        setCandidates(null);
+    }, [idProjects]);
+
+    // Partners who could be added, fetched the first time the editor opens.
+    useEffect(() => {
+        if (!raiseOpen || !idProjects || candidates !== null) return;
         let live = true;
-        setPartners(null);
-        setIdProjectPartners(null);
-        fetch(`/api/projects/project-partners/${idProjects}`, getRequestOptions())
+        fetch(`/api/bookings/reinvestment/candidates?idProjects=${idProjects}`, getRequestOptions())
             .then((r) => r.json())
-            .then((body) => {
-                if (!live) return;
-                const list: Partner[] = Array.isArray(body?.data) ? body.data : [];
-                setPartners(list);
-                // Back into the same project: stay with the same partner when it is listed.
-                const same = idProjects === options?.source.project.idProjects ? options?.source.idProjectPartners : null;
-                setIdProjectPartners(list.find((p) => p.idProjectPartners === same)?.idProjectPartners ?? list[0]?.idProjectPartners ?? null);
-            })
-            .catch(() => live && setPartners([]));
+            .then((body) => live && setCandidates(Array.isArray(body?.data) ? body.data : []))
+            .catch(() => live && setCandidates([]));
         return () => {
             live = false;
         };
-        // Per project only: `options` has loaded before a project can be chosen
-        // and does not change while the dialog is open.
+    }, [raiseOpen, idProjects, candidates]);
+
+    const newPartnersList = useMemo(
+        () =>
+            newPartners
+                .map((r) => ({ idUsers: r.idUsers, capacity: Math.floor(Number(r.capacity)) }))
+                .filter((r) => Number.isFinite(r.capacity) && r.capacity >= 1),
+        [newPartners],
+    );
+    const newPartnersKey = JSON.stringify(newPartnersList);
+
+    // Capacity raises worth sending: whole numbers above the partner's capacity.
+    const raisesList = useMemo(
+        () =>
+            Object.entries(raises)
+                .map(([id, v]) => ({ idProjectPartners: Number(id), capacity: Math.floor(Number(v)) }))
+                .filter((r) => {
+                    const p = alloc?.partners.find((x) => x.idProjectPartners === r.idProjectPartners);
+                    return Number.isFinite(r.capacity) && p !== undefined && p.capacity > 0 && r.capacity > p.capacity;
+                }),
+        // `alloc` only supplies each partner's saved capacity, which does not
+        // change while the project stays the same.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [idProjects]);
+        [raises, alloc?.partners.length, idProjects],
+    );
+    const raisesKey = JSON.stringify(raisesList);
+
+    // How the units split across the partners, from the server (same rule as the save).
+    useEffect(() => {
+        if (!open || !options || !idProjects || units < 1 || (step !== 'plan' && step !== 'review')) return;
+        let live = true;
+        setAllocLoading(true);
+        const timer = setTimeout(() => {
+            fetch(
+                API_URL + 'api/bookings/reinvestment/allocation',
+                postRequestOptions({ idProjectInvestors: options.source.idProjectInvestors, idProjects, units, raises: raisesList, newPartners: newPartnersList }),
+            )
+                .then(async (r) => ({ ok: r.ok, body: await r.json() }))
+                .then(({ ok, body }) => {
+                    if (!live) return;
+                    setAlloc(
+                        ok
+                            ? (body.data as AllocPlan)
+                            : { partners: [], allocations: [], shortfall: units, projectLeft: null, projectTotal: null, problem: String(body.message || 'Could not work out the partners.'), code: null },
+                    );
+                })
+                .catch(() => {
+                    if (live) setAlloc({ partners: [], allocations: [], shortfall: units, projectLeft: null, projectTotal: null, problem: 'Could not reach the server to work out the partners.', code: null });
+                })
+                .finally(() => live && setAllocLoading(false));
+        }, 250);
+        return () => {
+            live = false;
+            clearTimeout(timer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, options, idProjects, units, raisesKey, newPartnersKey, step]);
+
+    /** Adds the missing room, one unit of capacity at a time round the partners. */
+    const fillShortfall = () => {
+        if (!alloc) return;
+        const need = Math.max(alloc.shortfall, alloc.code === 'project_total' && alloc.projectLeft !== null ? units - alloc.projectLeft : 0);
+        const caps = alloc.partners
+            .filter((p) => p.capacity > 0)
+            .map((p) => ({ id: p.idProjectPartners, cap: Math.max(p.capacity, Math.floor(Number(raises[p.idProjectPartners] ?? p.plannedCapacity)) || p.capacity) }));
+        if (need <= 0 || !caps.length) return;
+        for (let i = 0; i < need; i += 1) caps[i % caps.length].cap += 1;
+        setRaises(Object.fromEntries(caps.map((c) => [c.id, String(c.cap)])));
+    };
 
     const planFor = (m: ReinvestMode, u?: number): ReinvestPlan | null => {
         if (!project || !profitValid) return null;
@@ -201,8 +305,9 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
     }, [mode, idProjects, profitValid, profit, useBalance]);
 
     const plan = useMemo(() => planFor(mode, units), [mode, units, project, profitValid, profit, balance, useBalance]); // eslint-disable-line react-hooks/exhaustive-deps
-    const overProject = project?.remainingUnits !== null && project?.remainingUnits !== undefined && units > project.remainingUnits;
-    const planProblem = !project ? 'Choose a project.' : plan?.problem ?? (overProject ? `${project.projectName} has ${project.remainingUnits} unit(s) left.` : !idProjectPartners ? 'Choose a partner.' : null);
+    // The partner split (and project room) comes from the server preview.
+    const planProblem = !project ? 'Choose a project.' : plan?.problem ?? (alloc && !allocLoading ? alloc.problem : null);
+    const allocReady = Boolean(alloc) && !allocLoading;
     const topUpDue = (plan?.topUp ?? 0) > 0;
     const newMaturity = project && plan ? addTerm(topUpDue ? todayIso() : startDate, project.duration, project.tenure) : null;
 
@@ -231,7 +336,8 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                     profitPercentage: profitPct.trim() === '' ? null : Number(profitPct),
                     idProjects,
                     units,
-                    idProjectPartners,
+                    raises: raisesList,
+                    newPartners: newPartnersList,
                     useBalance: mode !== 'capital_only' && useBalance && balance > 0,
                     startDate: topUpDue ? null : startDate,
                     payoutDoneNow: mode === 'capital_only' && payoutDoneNow,
@@ -241,6 +347,11 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
             const body = await res.json();
             if (!res.ok) {
                 setSaveError(String(body.message || 'Could not create the reinvestment.').replace(/<br>/g, ' '));
+                // The partners filled up meanwhile: show the new split on the plan step.
+                if (body.allocation) {
+                    setAlloc(body.allocation as AllocPlan);
+                    setStep('plan');
+                }
                 return;
             }
             setResult(body.data);
@@ -408,24 +519,26 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                             </Button>
                                         </div>
                                     </Field>
-                                    <Field label="Partner">
-                                        <Select value={idProjectPartners ?? ''} onChange={(e) => setIdProjectPartners(Number(e.target.value) || null)} disabled={!partners || partners.length === 0}>
-                                            {partners === null && <option value="">Loading partners…</option>}
-                                            {partners && partners.length === 0 && <option value="">No partner has room in this project</option>}
-                                            {partners?.map((p) => (
-                                                <option key={p.idProjectPartners} value={p.idProjectPartners}>
-                                                    {p.User?.fullName || `Partner #${p.idProjectPartners}`}
-                                                    {Number(p.partnerUnitCapacity) > 0 ? ` · ${Math.max(0, Number(p.partnerUnitCapacity) - Number(p.confirmedUnits ?? 0) - Number(p.pendingUnits ?? 0))} of ${p.partnerUnitCapacity} left` : ''}
-                                                </option>
-                                            ))}
-                                        </Select>
-                                    </Field>
                                     {!topUpDue && (
                                         <Field label="Starts on" hint="Usually today. The maturity is counted from this date.">
                                             <Input type="date" max={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value || todayIso())} />
                                         </Field>
                                     )}
                                 </div>
+
+                                <PartnerSplit
+                                    alloc={alloc}
+                                    loading={allocLoading}
+                                    raises={raises}
+                                    setRaises={setRaises}
+                                    raiseOpen={raiseOpen}
+                                    setRaiseOpen={setRaiseOpen}
+                                    onFill={fillShortfall}
+                                    newPartners={newPartners}
+                                    setNewPartners={setNewPartners}
+                                    candidates={candidates}
+                                    suggested={Math.max(1, alloc?.shortfall ?? 0)}
+                                />
 
                                 <div className="tw-space-y-2.5">
                                     {mode !== 'capital_only' && balance > 0 && (
@@ -464,6 +577,37 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                     <li>
                                         A new booking is created on {src.investor.fullName || 'the investor'}’s account: {plural(units, 'unit')} of {project?.projectName} ({money(plan.investment)}).
                                     </li>
+                                    {alloc && alloc.allocations.length > 0 && (
+                                        <li>
+                                            The units go round robin to{' '}
+                                            {alloc.partners
+                                                .filter((p) => p.units > 0)
+                                                .map((p) => `${p.fullName} (${p.units})`)
+                                                .join(', ')}
+                                            .
+                                        </li>
+                                    )}
+                                    {alloc && raisesList.length > 0 && (
+                                        <li>
+                                            Partner capacity is raised:{' '}
+                                            {raisesList
+                                                .map((r) => {
+                                                    const p = alloc.partners.find((x) => x.idProjectPartners === r.idProjectPartners);
+                                                    return `${p?.fullName ?? 'Partner'} ${p?.capacity ?? '?'} → ${r.capacity}`;
+                                                })
+                                                .join(', ')}
+                                            {alloc.projectTotal ? `; the project total goes from ${alloc.projectTotal.from} to ${alloc.projectTotal.to} units` : ''}.
+                                        </li>
+                                    )}
+                                    {newPartnersList.length > 0 && (
+                                        <li>
+                                            Assigned to {project?.projectName}:{' '}
+                                            {newPartnersList
+                                                .map((r) => `${newPartners.find((x) => x.idUsers === r.idUsers)?.fullName ?? 'Partner'} (capacity ${r.capacity})`)
+                                                .join(', ')}
+                                            .
+                                        </li>
+                                    )}
                                     {topUpDue ? (
                                         <li>
                                             It waits for the <strong>top-up of {money(plan.topUp)}</strong>. The investor sees it in the app under pending proof of payment and can upload the receipt there, or you can upload it on the new booking. Confirming the payment starts the investment.
@@ -514,6 +658,12 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                 )}
                                 {result.payout > 0 && !result.payoutDoneNow && <p>Pay {money(result.payout)} to the investor, then record it with “Record payout” on the investor’s balance.</p>}
                                 {result.kept > 0 && <p>{money(result.kept)} is in the investor’s balance.</p>}
+                                {result.allocations && result.allocations.length > 0 && (
+                                    <p>
+                                        Partners: {result.allocations.map((a) => `${a.fullName} ${a.units}`).join(', ')}
+                                        {result.capacityRaised ? ' (capacity raised as set).' : '.'}
+                                    </p>
+                                )}
                                 <p className="tw-text-slate-500">{result.notified ? 'The investor has been notified.' : 'The investor was not notified.'}</p>
                             </div>
                         </div>
@@ -549,12 +699,12 @@ export function ReinvestDialog({ idProjectInvestors, onClose, onDone }: { idProj
                                     </Button>
                                 )}
                                 {src?.eligible && step === 'plan' && (
-                                    <Button variant="primary" onClick={() => setStep('review')} disabled={Boolean(planProblem)}>
+                                    <Button variant="primary" onClick={() => setStep('review')} disabled={Boolean(planProblem) || !allocReady}>
                                         Review <ArrowRight className="tw-h-4 tw-w-4" aria-hidden />
                                     </Button>
                                 )}
                                 {src?.eligible && step === 'review' && (
-                                    <Button variant="primary" onClick={submit} disabled={saving || Boolean(planProblem)}>
+                                    <Button variant="primary" onClick={submit} disabled={saving || Boolean(planProblem) || !allocReady}>
                                         {saving && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden />}
                                         Create reinvestment booking
                                     </Button>
@@ -611,5 +761,256 @@ function PlanSummary({
             )}
             {plan && !problem && topUpDue && <Pill tone="amber">Waits for the top-up</Pill>}
         </aside>
+    );
+}
+
+function PartnerSplit({
+    alloc,
+    loading,
+    raises,
+    setRaises,
+    raiseOpen,
+    setRaiseOpen,
+    onFill,
+    newPartners,
+    setNewPartners,
+    candidates,
+    suggested,
+}: {
+    alloc: AllocPlan | null;
+    loading: boolean;
+    raises: Record<number, string>;
+    setRaises: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+    raiseOpen: boolean;
+    setRaiseOpen: (v: boolean) => void;
+    onFill: () => void;
+    newPartners: NewPartnerRow[];
+    setNewPartners: React.Dispatch<React.SetStateAction<NewPartnerRow[]>>;
+    candidates: Candidate[] | null;
+    /** Capacity offered for a new partner: what is still missing. */
+    suggested: number;
+}) {
+    const needsRoom = Boolean(alloc && (alloc.code === 'partner_capacity' || alloc.code === 'project_total'));
+    const limited = (alloc?.partners ?? []).filter((p) => p.capacity > 0 && !p.isNew);
+    const changed = Object.keys(raises).length > 0 || newPartners.length > 0;
+    const [pick, setPick] = useState<number | ''>('');
+    const [pickCap, setPickCap] = useState('');
+    const available = (candidates ?? []).filter((c) => !newPartners.some((n) => n.idUsers === c.idUsers));
+    const addPartner = () => {
+        const c = available.find((x) => x.idUsers === pick);
+        const cap = Math.floor(Number(pickCap || suggested));
+        if (!c || !Number.isFinite(cap) || cap < 1) return;
+        setNewPartners((rows) => [...rows, { idUsers: c.idUsers, fullName: c.fullName, capacity: String(cap) }]);
+        setPick('');
+        setPickCap('');
+    };
+    return (
+        <section className="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4" aria-live="polite" aria-busy={loading}>
+            <div className="tw-flex tw-flex-wrap tw-items-baseline tw-justify-between tw-gap-2">
+                <h3 className="tw-text-sm tw-font-semibold tw-text-slate-900">
+                    Partners <span className="tw-font-normal tw-text-slate-500">· split automatically</span>
+                </h3>
+                <span className="tw-flex tw-items-center tw-gap-3">
+                    {loading && (
+                        <span className="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-text-slate-500">
+                            <Loader2 className="tw-h-3 tw-w-3 tw-animate-spin" aria-hidden /> Working it out…
+                        </span>
+                    )}
+                    {!raiseOpen && alloc && (
+                        <button type="button" onClick={() => setRaiseOpen(true)} className="tw-text-xs tw-font-semibold tw-text-brand-700 hover:tw-text-brand-600">
+                            Edit capacity or add a partner
+                        </button>
+                    )}
+                </span>
+            </div>
+            <p className="tw-mt-0.5 tw-text-xs tw-leading-5 tw-text-slate-500">
+                One unit at a time to each partner with room, least-loaded first: the same rule investors’ bookings use in the app.
+            </p>
+
+            {!alloc ? (
+                <div className="tw-mt-3 tw-space-y-2">
+                    <Skeleton className="tw-h-4 tw-w-full" />
+                    <Skeleton className="tw-h-4 tw-w-5/6" />
+                    <Skeleton className="tw-h-4 tw-w-4/6" />
+                </div>
+            ) : alloc.partners.length > 0 ? (
+                <ul className="tw-mt-2 tw-divide-y tw-divide-slate-100">
+                    {alloc.partners.map((p) => {
+                        const after = p.left === null ? null : Math.max(0, p.left - p.units);
+                        const raised = p.plannedCapacity > p.capacity;
+                        return (
+                            <li key={p.idProjectPartners} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-1.5 tw-text-sm">
+                                <span className="tw-min-w-0 tw-truncate tw-text-slate-800">
+                                    {p.fullName}
+                                    {p.isNew && <span className="tw-ml-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-emerald-700">New</span>}
+                                </span>
+                                <span className="tw-flex tw-shrink-0 tw-items-center tw-gap-4 tw-tabular-nums">
+                                    <span className={cx('tw-w-14 tw-text-right tw-font-semibold', p.units ? 'tw-text-brand-700' : 'tw-text-slate-300')}>{p.units ? `+${p.units}` : '—'}</span>
+                                    <span className="tw-w-36 tw-text-right tw-text-xs tw-text-slate-500">
+                                        {p.plannedCapacity > 0 ? (
+                                            <>
+                                                {after} of {p.plannedCapacity} left after{raised && <span className="tw-ml-1 tw-font-semibold tw-text-amber-700">(raised)</span>}
+                                            </>
+                                        ) : (
+                                            'no limit'
+                                        )}
+                                    </span>
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ul>
+            ) : null}
+
+            {alloc?.problem && (
+                <div className={cx('tw-mt-3 tw-rounded-xl tw-border tw-p-3 tw-text-sm', needsRoom ? 'tw-border-amber-200 tw-bg-amber-50 tw-text-amber-900' : 'tw-border-rose-200 tw-bg-rose-50 tw-text-rose-800')}>
+                    <p className="tw-flex tw-gap-2">
+                        <TriangleAlert className="tw-mt-0.5 tw-h-4 tw-w-4 tw-shrink-0" aria-hidden />
+                        <span>{alloc.problem}</span>
+                    </p>
+                    {needsRoom && !raiseOpen && (
+                        <Button size="sm" variant="secondary" className="tw-mt-2" onClick={() => setRaiseOpen(true)}>
+                            Raise capacity or add a partner
+                        </Button>
+                    )}
+                </div>
+            )}
+
+            {raiseOpen && alloc && (
+                <div className="tw-mt-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50/70 tw-p-3">
+                    <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
+                        <p className="tw-text-sm tw-font-semibold tw-text-slate-900">Make room for the units</p>
+                        <div className="tw-flex tw-gap-2">
+                            {needsRoom && limited.length > 0 && (
+                                <Button size="sm" variant="secondary" onClick={onFill}>
+                                    Add what’s missing
+                                </Button>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                    setRaises({});
+                                    setNewPartners([]);
+                                    setRaiseOpen(false);
+                                }}
+                            >
+                                {changed ? 'Undo changes' : 'Close'}
+                            </Button>
+                        </div>
+                    </div>
+                    <p className="tw-mt-0.5 tw-text-xs tw-leading-5 tw-text-slate-500">
+                        Raise a partner’s capacity (it can only go up here), or assign another partner to this project. Both are saved together with this reinvestment, and the project’s unit total follows them.
+                    </p>
+                    {limited.length > 0 && (
+                    <table className="tw-mt-2 tw-w-full tw-text-sm">
+                        <thead>
+                            <tr className="tw-text-left tw-text-xs tw-text-slate-500">
+                                <th className="tw-py-1 tw-font-medium">Partner</th>
+                                <th className="tw-py-1 tw-text-right tw-font-medium">Holds</th>
+                                <th className="tw-py-1 tw-pl-3 tw-text-right tw-font-medium">Capacity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {limited.map((p) => {
+                                const value = raises[p.idProjectPartners] ?? String(p.capacity);
+                                const num = Math.floor(Number(value));
+                                const invalid = value.trim() === '' || !Number.isFinite(num) || num < p.capacity;
+                                return (
+                                    <tr key={p.idProjectPartners} className="tw-border-t tw-border-slate-200/70">
+                                        <td className="tw-py-1.5 tw-pr-2 tw-text-slate-800">{p.fullName}</td>
+                                        <td className="tw-py-1.5 tw-text-right tw-tabular-nums tw-text-slate-500">{p.confirmed + p.pending}</td>
+                                        <td className="tw-py-1.5 tw-pl-3 tw-text-right">
+                                            <div className="tw-ml-auto tw-w-24">
+                                                <Input
+                                                    type="number"
+                                                    min={p.capacity}
+                                                    step={1}
+                                                    value={value}
+                                                    aria-label={`Capacity for ${p.fullName}`}
+                                                    aria-invalid={invalid}
+                                                    className={cx('tw-text-right', invalid && 'tw-border-rose-400')}
+                                                    onChange={(e) => setRaises((r) => ({ ...r, [p.idProjectPartners]: e.target.value }))}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    )}
+
+                    {newPartners.length > 0 && (
+                        <ul className="tw-mt-2 tw-space-y-1.5">
+                            {newPartners.map((row) => (
+                                <li key={row.idUsers} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-lg tw-bg-white tw-px-2 tw-py-1.5 tw-text-sm">
+                                    <span className="tw-min-w-0 tw-truncate tw-text-slate-800">
+                                        {row.fullName}
+                                        <span className="tw-ml-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-emerald-700">New to project</span>
+                                    </span>
+                                    <span className="tw-flex tw-items-center tw-gap-2">
+                                        <span className="tw-w-24">
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                step={1}
+                                                value={row.capacity}
+                                                aria-label={`Capacity for ${row.fullName}`}
+                                                className="tw-text-right"
+                                                onChange={(e) => setNewPartners((rows) => rows.map((r) => (r.idUsers === row.idUsers ? { ...r, capacity: e.target.value } : r)))}
+                                            />
+                                        </span>
+                                        <button
+                                            type="button"
+                                            aria-label={`Remove ${row.fullName}`}
+                                            onClick={() => setNewPartners((rows) => rows.filter((r) => r.idUsers !== row.idUsers))}
+                                            className="tw-rounded-md tw-p-1 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-600"
+                                        >
+                                            <X className="tw-h-4 tw-w-4" aria-hidden />
+                                        </button>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <div className="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-3">
+                        <p className="tw-text-xs tw-font-semibold tw-text-slate-600">Add a partner to this project</p>
+                        {candidates === null ? (
+                            <p className="tw-mt-1 tw-text-xs tw-text-slate-500">Loading partners…</p>
+                        ) : available.length === 0 ? (
+                            <p className="tw-mt-1 tw-text-xs tw-text-slate-500">Every active project partner is already on this project.</p>
+                        ) : (
+                            <div className="tw-mt-1.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                <div className="tw-min-w-[12rem] tw-flex-1">
+                                    <Select value={pick} onChange={(e) => setPick(Number(e.target.value) || '')} aria-label="Partner to add">
+                                        <option value="">Choose a partner…</option>
+                                        {available.map((c) => (
+                                            <option key={c.idUsers} value={c.idUsers}>
+                                                {c.fullName}
+                                                {c.location ? ` · ${c.location}` : ''}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <div className="tw-w-28">
+                                    <Input type="number" min={1} step={1} placeholder={String(suggested)} value={pickCap} onChange={(e) => setPickCap(e.target.value)} aria-label="Capacity for the new partner" className="tw-text-right" />
+                                </div>
+                                <Button size="sm" variant="secondary" onClick={addPartner} disabled={!pick}>
+                                    <Plus className="tw-h-3.5 tw-w-3.5" aria-hidden /> Add
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {alloc.projectTotal && (
+                        <p className="tw-mt-2 tw-text-xs tw-text-slate-600">
+                            The project total goes from {alloc.projectTotal.from} to {alloc.projectTotal.to} units.
+                        </p>
+                    )}
+                </div>
+            )}
+        </section>
     );
 }
