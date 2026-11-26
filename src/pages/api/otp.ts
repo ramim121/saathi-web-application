@@ -216,6 +216,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
          * a reviewer's second tap with "please wait".
          */
         if (isReviewPhone(phone)) {
+            /*
+             * The review number may be a real person's phone (it is the owner's
+             * own number today), and without an SMS that person could not sign
+             * in at all. So it gets a real code as well, best effort and without
+             * the resend cooldown (a reviewer tapping twice must not see "please
+             * wait"); the fixed review code keeps working alongside it.
+             */
+            const otp = generateOtp();
+            const [createErr] = await _(
+                AppOtp.create({
+                    phoneNumber: phone,
+                    otpHash: hashOtp(phone, otp),
+                    expiresAt: new Date(Date.now() + OTP_EXPIRY),
+                    attempts: 0,
+                    consumedAt: null,
+                } as never),
+            );
+            if (!createErr) {
+                await _(
+                    SendSms(
+                        `Your SHATHI login code is ${otp}. It expires in ${Math.round(OTP_EXPIRY / 60000)} minutes. Never share it.`,
+                        phone,
+                    ),
+                );
+            }
             return res.status(200).json({
                 success: true,
                 message: 'OTP sent successfully',
@@ -327,8 +352,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 });
             }
             if (!timingSafeEqual(String(otp), OTP_REVIEW_CODE)) {
-                noteReviewFailure(caller);
-                return res.status(400).json({ success: false, message: 'Invalid OTP' });
+                // Not the review code: it may be the SMS code the owner of the
+                // number was sent.
+                const record = await AppOtp.findOne({
+                    where: { phoneNumber: phone, consumedAt: null },
+                    order: [['createdAt', 'DESC']],
+                });
+                const smsOk =
+                    record !== null &&
+                    new Date(record.expiresAt).getTime() >= Date.now() &&
+                    record.attempts < OTP_MAX_ATTEMPTS &&
+                    timingSafeEqual(record.otpHash, hashOtp(phone, String(otp)));
+                if (!smsOk) {
+                    if (record) {
+                        record.attempts += 1;
+                        if (record.attempts >= OTP_MAX_ATTEMPTS) record.consumedAt = new Date();
+                        await record.save();
+                    }
+                    noteReviewFailure(caller);
+                    return res.status(400).json({ success: false, message: 'Invalid OTP' });
+                }
+                record!.consumedAt = new Date();
+                await record!.save();
             }
 
             // Look the account up by the number as configured, so typing it
