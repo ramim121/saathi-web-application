@@ -418,7 +418,16 @@ function Details() {
                     label: details.paymentMethod === 'cheque' ? 'Cheque' : details.paymentMethod === 'beftn' ? 'BEFTN' : details.paymentMethod === 'rtgs' ? 'RTGS' : details.paymentMethod === 'npsb' ? 'NPSB' : 'Cash'
                 },
                 paymentDate: details.paymentDate,
-                paymentAmount: details.paymentAmount,
+                // Nothing recorded yet (the app's upload does not send an
+                // amount): start from what the open projects cost, so a
+                // multi-project booking is not confirmed for one project only.
+                paymentAmount:
+                    Number(details.paymentAmount) > 0
+                        ? details.paymentAmount
+                        : ((details.ProjectInvestors ?? [])
+                              .filter((l) => l.investmentStatus !== 'cancelled')
+                              .map(lineFigures)
+                              .reduce((sum, f) => sum + f.amount, 0) as any),
                 transactionId: details.transactionId,
                 collectionDate: details.collectionDate ? new Date(details.collectionDate).toISOString().slice(0, 16) : '',
                 collectionLocation: details.collectionLocation,
@@ -1122,6 +1131,12 @@ function Details() {
     const lines = details.ProjectInvestors ?? [];
     const figures = lines.map(lineFigures);
     const total = figures.reduce((sum, f) => sum + f.amount, 0);
+    /** What the investor owes: projects still in the booking (a dropped one is not). */
+    const payable = lines.reduce((sum, l, i) => (l.investmentStatus === 'cancelled' ? sum : sum + figures[i].amount), 0);
+    /** One booking, several projects: one transfer and one receipt cover them all. */
+    const multi = lines.length > 1;
+    const enteredAmount = Number(formData.paymentAmount) || 0;
+    const amountGap = Math.round((enteredAmount - payable) * 100) / 100;
     const totalUnits = lines.reduce((sum, l) => sum + Number(l.unitPurchased || 0), 0);
     const backMin = figures.reduce((sum, f) => sum + f.backMin, 0);
     const backMax = figures.reduce((sum, f) => sum + f.backMax, 0);
@@ -1397,6 +1412,27 @@ function Details() {
                             </Section>
 
                             <Section title="Proof of payment" icon={FileText}>
+                                {multi && (
+                                    <div className="tw-mb-3 tw-rounded-xl tw-border tw-border-violet-200 tw-bg-violet-50 tw-px-3 tw-py-2.5 tw-text-xs tw-leading-5 tw-text-violet-900">
+                                        <p className="tw-font-semibold">One receipt for {plural(lines.length, 'project')} · {bdtExact(payable)}</p>
+                                        <ul className="tw-mt-1 tw-space-y-0.5">
+                                            {lines.map((l, i) => (
+                                                <li
+                                                    key={l.idProjectInvestors ?? i}
+                                                    className={cx('tw-flex tw-justify-between tw-gap-3', l.investmentStatus === 'cancelled' && 'tw-text-violet-400 tw-line-through')}
+                                                >
+                                                    <span className="tw-truncate">
+                                                        {l.Project?.projectName} · {plural(Number(l.unitPurchased || 0), 'unit')}
+                                                    </span>
+                                                    <span className="tw-tabular-nums">{bdtExact(figures[i].amount)}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <p className="tw-mt-1 tw-text-violet-700">
+                                            The investor pays these together in one transfer. Confirming the payment starts every project in the booking; each then runs, matures and pays out on its own.
+                                        </p>
+                                    </div>
+                                )}
                                 {/* Served through an authenticated route, not the public
                                     bucket URL: these are bank receipts and cheque images, and
                                     they used to be readable by anyone holding the link. The
@@ -1432,6 +1468,7 @@ function Details() {
                                     <div className="tw-mt-4">
                                         <label htmlFor="proof-of-payment" className="tw-mb-1.5 tw-block tw-text-xs tw-font-medium tw-text-slate-600">
                                             {hasProof ? 'Replace it with another file' : 'Upload it on the investor’s behalf'}
+                                            {multi ? ` (one receipt for all ${lines.length} projects)` : ''}
                                         </label>
                                         <FileInput id="proof-of-payment" onChange={handleFileChange} ref={proofOfPaymentRef} />
                                         <Button size="sm" variant="primary" className="tw-mt-2" onClick={handleFileUpload}>
@@ -1714,8 +1751,28 @@ function Details() {
                             <span className="tw-text-slate-600">
                                 {details.User?.fullName} · {plural(totalUnits, 'unit')}
                             </span>
-                            <span className="tw-font-semibold tw-tabular-nums tw-text-slate-900">Booking total {bdt(total)}</span>
+                            <span className="tw-font-semibold tw-tabular-nums tw-text-slate-900">Booking total {bdt(payable)}</span>
                         </div>
+                        {multi && (
+                            <div className="tw-rounded-xl tw-border tw-border-slate-200 tw-px-4 tw-py-3 tw-text-sm">
+                                <p className="tw-mb-1.5 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">
+                                    One payment covers {plural(lines.length, 'project')}
+                                </p>
+                                <ul className="tw-space-y-1">
+                                    {lines.map((l, i) => (
+                                        <li
+                                            key={l.idProjectInvestors ?? i}
+                                            className={cx('tw-flex tw-justify-between tw-gap-3', l.investmentStatus === 'cancelled' && 'tw-text-slate-400 tw-line-through')}
+                                        >
+                                            <span className="tw-truncate tw-text-slate-700">
+                                                {l.Project?.projectName} · {plural(Number(l.unitPurchased || 0), 'unit')}
+                                            </span>
+                                            <span className="tw-tabular-nums tw-text-slate-900">{bdtExact(figures[i].amount)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                         <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
                             <Field label={<>Payment method<Required /></>}>
                                 <Select
@@ -1774,7 +1831,16 @@ function Details() {
                                     <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
                                 </Field>
                             ) : (
-                                <Field label={<>Amount received (৳)<Required /></>}>
+                                <Field
+                                    label={<>Amount received (৳)<Required /></>}
+                                    hint={
+                                        enteredAmount > 0 && Math.abs(amountGap) >= 1
+                                            ? `${amountGap > 0 ? 'More' : 'Less'} than the booking total (${bdtExact(payable)}) by ${bdtExact(Math.abs(amountGap))}. Check the receipt${multi ? ': one transfer should cover every project above' : ''}.`
+                                            : multi
+                                            ? 'The whole transfer, for every project above.'
+                                            : undefined
+                                    }
+                                >
                                     <Input type='number' name='paymentAmount' value={formData.paymentAmount ?? ''} onChange={handleOnChange} />
                                 </Field>
                             )}
