@@ -7,7 +7,8 @@ import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import ProjectInvestorStatusEntry from '@/utils/ProjectInvestorStatusEntry';
 import { generateNotification } from '@/notifications';
 import { addTerm, planReinvestment, REINVEST_MODES, type ReinvestMode } from '@/utils/reinvestment';
-import { balanceOf, capacityProblem, loadReinvestSource, nextBookingRef } from '@/utils/reinvestmentServer';
+import { balanceOf, loadReinvestSource, nextBookingRef } from '@/utils/reinvestmentServer';
+import { planReinvestAllocation } from '@/utils/reinvestAllocation';
 import { lockProjects } from '@/utils/partnerCapacity';
 
 /**
@@ -33,7 +34,15 @@ const schema = Joi.object({
     profitPercentage: Joi.number().min(0).allow(null),
     idProjects: Joi.number().integer().positive().required().messages({ 'any.required': 'Choose a project' }),
     units: Joi.number().integer().min(1).required(),
-    idProjectPartners: Joi.number().integer().positive().required().messages({ 'any.required': 'Choose a partner' }),
+    // Ignored since 2026-11-26: units are split round robin across the
+    // project's partners (planReinvestAllocation). Accepted so an old page
+    // still validates.
+    idProjectPartners: Joi.number().integer().positive().allow(null),
+    // Partner capacity raised by the admin in the same step, saved with it.
+    raises: Joi.array()
+        .items(Joi.object({ idProjectPartners: Joi.number().integer().positive().required(), capacity: Joi.number().integer().min(0).max(1000000).required() }))
+        .max(100)
+        .default([]),
     useBalance: Joi.boolean().default(false),
     startDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).allow(null, ''),
     payoutDoneNow: Joi.boolean().default(false),
@@ -49,7 +58,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
     if (error) return res.status(400).json({ success: false, message: error.details.map((d) => d.message).join('. <br>') });
     const input = value as {
         idProjectInvestors: number; mode: ReinvestMode; profitAmount: number; profitPercentage: number | null;
-        idProjects: number; units: number; idProjectPartners: number; useBalance: boolean; startDate: string | null;
+        idProjects: number; units: number; raises: { idProjectPartners: number; capacity: number }[]; useBalance: boolean; startDate: string | null;
         payoutDoneNow: boolean; notify: boolean;
     };
 
@@ -73,8 +82,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
         });
         if (plan.problem) throw Object.assign(new Error(plan.problem), { status: 400 });
         await lockProjects([input.idProjects], transaction);
-        const capacity = await capacityProblem({ idProjects: input.idProjects, idProjectPartners: input.idProjectPartners, idUsers, units: input.units, leavingLine: input.idProjectInvestors }, transaction);
-        if (capacity) throw Object.assign(new Error(capacity), { status: 400 });
+        // Round robin across the partners, with any capacity raises saved here.
+        const allocation = await planReinvestAllocation(
+            { idProjects: input.idProjects, units: input.units, idUsers, leavingLine: input.idProjectInvestors, raises: input.raises },
+            transaction,
+            { apply: true },
+        );
+        if (allocation.problem) throw Object.assign(new Error(allocation.problem), { status: 400, allocation });
 
         const topUpDue = plan.topUp > 0;
         const startDate = topUpDue ? null : input.startDate || todayUtc();
@@ -122,12 +136,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             investmentDate: startDate || todayUtc(),
         } as any, { transaction });
         await ProjectInvestorStatusEntry(topUpDue ? 'booked' : 'confirmed', line.idProjectInvestors as number, auth.idUsers, `Reinvestment from booking #${sourceRef}`, transaction);
-        await (ProjectPartnerInvestor as any).create({
-            idProjectInvestors: line.idProjectInvestors,
-            idProjectPartners: input.idProjectPartners,
-            amountInvested: plan.investment,
-            investedUnit: input.units,
-        }, { transaction });
+        for (const a of allocation.allocations) {
+            await (ProjectPartnerInvestor as any).create({
+                idProjectInvestors: line.idProjectInvestors,
+                idProjectPartners: a.idProjectPartners,
+                amountInvested: Math.round(unitValue * a.units * 100) / 100,
+                investedUnit: a.units,
+            }, { transaction });
+        }
 
         // 4. Money that did not go into the new booking, and balance used for it.
         const entry = (amount: number, entryType: string, note: string) =>
@@ -158,12 +174,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             startDate,
             maturityDate: startDate && term ? addTerm(startDate, term, t.tenure) : null,
             projectName: t.projectName,
+            allocations: allocation.partners.filter((p) => p.units > 0).map((p) => ({ idProjectPartners: p.idProjectPartners, fullName: p.fullName, units: p.units })),
+            capacityRaised: (input.raises ?? []).length > 0,
             balanceAfter: Math.round((balance + plan.payout * (input.payoutDoneNow ? 0 : 1) + plan.kept - plan.fromBalance) * 100) / 100,
         };
     } catch (err) {
         await transaction.rollback().catch(() => undefined);
         const status = (err as any).status || 400;
-        return res.status(status).json({ success: false, message: (err as Error).message });
+        // A partner-room problem carries the plan, so the dialog can show who is full.
+        return res.status(status).json({ success: false, message: (err as Error).message, allocation: (err as any).allocation ?? undefined });
     }
 
     // Tell the investor (best effort: a failed notification must not undo the booking).
