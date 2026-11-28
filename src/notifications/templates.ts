@@ -3,6 +3,7 @@ import {
     type EmailLocale,
 } from '@/notifications/shell';
 import { WEB_BASE_URL } from '@/config/constants';
+import { formatDue } from '@/utils/bookingHoldsShared';
 
 /**
  * Every transactional email, in English and Bangla.
@@ -46,7 +47,10 @@ export type TemplateName =
     | 'project_maturity_1_week'
     | 'account_delete_otp'
     | 'reinvestment_topup_due'
-    | 'reinvestment_confirmed';
+    | 'reinvestment_confirmed'
+    | 'booking_payment_reminder'
+    | 'booking_expired'
+    | 'booking_payment_window_notice';
 
 export type TemplateData = {
     fullName?: string | null;
@@ -68,6 +72,10 @@ export type TemplateData = {
     payoutAmount?: number | null;
     keptAmount?: number | null;
     startDate?: string | null;
+    /** End of the payment window, ISO UTC (utils/bookingHolds.ts). Formatted per language here. */
+    paymentDueAt?: string | null;
+    /** Several bookings in one notice (the launch notice). */
+    bookings?: Array<{ bookingId?: string; paymentDueAt?: string | null }>;
     suggestedProjects?: Array<{
         projectName?: string;
         categoryName?: string;
@@ -96,6 +104,11 @@ function money(amount: number | string | undefined, locale: EmailLocale): string
 
 function num(value: number | string | undefined, locale: EmailLocale): string {
     return locale === 'bn' ? bnDigits(value ?? 0) : String(value ?? 0);
+}
+
+/** The payment deadline in the reader's language, Dhaka time; '' when unknown. */
+function due(value: string | null | undefined, locale: EmailLocale): string {
+    return value ? formatDue(value, locale) : '';
 }
 
 /** Greeting without HTML escaping, for the plain-text part. */
@@ -323,6 +336,9 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
         const bn = l === 'bn';
         const ref = d.bookingId ?? '';
         const projects = d.projects ?? [];
+        // The real deadline (Dhaka time). Without one, the copy states the
+        // window without a date rather than a number of days nobody enforces.
+        const by = due(d.paymentDueAt, l);
 
         const lines = projects.map((p) => {
             const term = [p.duration, p.tenure].filter(Boolean).join(' ');
@@ -331,27 +347,32 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 : `${p.unitPurchased ?? 0} unit${Number(p.unitPurchased ?? 0) === 1 ? '' : 's'}`;
             return [String(p.projectName ?? ''), term ? `${units} · ${term}` : units] as [string, string];
         });
+        const rows: [string, string][] = [...lines, [bn ? 'মোট' : 'Total', money(d.totalAmount, l)]];
+        if (by) rows.push([bn ? 'পরিশোধের শেষ সময়' : 'Pay by', by]);
 
         return build(
             l,
             bn ? `বুকিং ${ref} নিশ্চিত হয়েছে` : `Booking ${ref} confirmed`,
-            bn ? '৩ দিনের মধ্যে পরিশোধের প্রমাণ জমা দিন।' : 'Submit your proof of payment within 3 days.',
+            by
+                ? bn ? `${by}-এর মধ্যে পরিশোধ করে রসিদ জমা দিন।` : `Pay and submit the receipt by ${by}.`
+                : bn ? 'নির্ধারিত সময়ের মধ্যে পরিশোধের প্রমাণ জমা দিন।' : 'Submit your proof of payment in time.',
             [
                 heading(bn ? 'আপনার বুকিং জমা হয়েছে' : 'Your booking is placed'),
                 paragraph(greeting(d.fullName, l)),
                 paragraph(
                     bn
-                        ? `বুকিং <strong>${escapeHtml(ref)}</strong> গ্রহণ করা হয়েছে।`
-                        : `Booking <strong>${escapeHtml(ref)}</strong> has been received.`,
+                        ? `বুকিং <strong>${escapeHtml(ref)}</strong> গ্রহণ করা হয়েছে। এককগুলো আপনার জন্য রাখা আছে।`
+                        : `Booking <strong>${escapeHtml(ref)}</strong> has been received. The units are held for you.`,
                 ),
-                detailRows([
-                    ...lines,
-                    [bn ? 'মোট' : 'Total', money(d.totalAmount, l)],
-                ]),
+                detailRows(rows),
                 paragraph(
-                    bn
-                        ? 'এখন নির্দেশনা অনুযায়ী পরিশোধ সম্পন্ন করে <strong>৩ দিনের মধ্যে</strong> রসিদ জমা দিন। অ্যাপ বা ওয়েবসাইটে "আমার বিনিয়োগ" অংশে অপশনটি পাবেন।'
-                        : 'Complete the payment as instructed, then submit the receipt <strong>within 3 days</strong>. The option is under "My investments" in the app or on the website.',
+                    by
+                        ? bn
+                            ? `এখন নির্দেশনা অনুযায়ী পরিশোধ সম্পন্ন করে <strong>${escapeHtml(by)}</strong>-এর মধ্যে রসিদ জমা দিন। অ্যাপ বা ওয়েবসাইটে "আমার বিনিয়োগ" অংশে অপশনটি পাবেন।`
+                            : `Complete the payment as instructed, then submit the receipt <strong>by ${escapeHtml(by)}</strong> (Dhaka time). The option is under "My investments" in the app or on the website.`
+                        : bn
+                            ? 'এখন নির্দেশনা অনুযায়ী পরিশোধ সম্পন্ন করে রসিদ জমা দিন। অ্যাপ বা ওয়েবসাইটে "আমার বিনিয়োগ" অংশে অপশনটি পাবেন।'
+                            : 'Complete the payment as instructed, then submit the receipt. The option is under "My investments" in the app or on the website.',
                 ),
                 button(bn ? 'রসিদ জমা দিন' : 'Submit proof of payment', url('/account')),
                 note(
@@ -367,10 +388,15 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 '',
                 ...lines.map(([a, b]) => `  ${a} — ${b}`),
                 `  ${bn ? 'মোট' : 'Total'}: ${money(d.totalAmount, l)}`,
+                ...(by ? [`  ${bn ? 'পরিশোধের শেষ সময়' : 'Pay by'}: ${by}`] : []),
                 '',
-                bn
-                    ? 'পরিশোধ সম্পন্ন করে ৩ দিনের মধ্যে রসিদ জমা দিন, নইলে বুকিং বাতিল হবে।'
-                    : 'Complete the payment and submit the receipt within 3 days, or the booking is cancelled.',
+                by
+                    ? bn
+                        ? `পরিশোধ সম্পন্ন করে ${by}-এর মধ্যে রসিদ জমা দিন, নইলে বুকিং বাতিল হবে।`
+                        : `Complete the payment and submit the receipt by ${by} (Dhaka time), or the booking is cancelled.`
+                    : bn
+                        ? 'পরিশোধ সম্পন্ন করে সময়মতো রসিদ জমা দিন, নইলে বুকিং বাতিল হবে।'
+                        : 'Complete the payment and submit the receipt in time, or the booking is cancelled.',
                 '',
                 url('/account'),
             ],
@@ -620,6 +646,7 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                     [bn ? 'নতুন বিনিয়োগ' : 'New investment', money(d.investmentAmount, l)],
                     [bn ? 'মেয়াদপূর্ণ বিনিয়োগ থেকে' : 'Carried over from your matured investment', money(d.reinvestedAmount, l)],
                     [bn ? 'আপনার পরিশোধ্য টপ-আপ' : 'Top-up for you to pay', topUp],
+                    ...(d.paymentDueAt ? [[bn ? 'পরিশোধের শেষ সময়' : 'Pay by', due(d.paymentDueAt, l)] as [string, string]] : []),
                 ]),
                 paragraph(
                     bn
@@ -695,6 +722,134 @@ const RENDERERS: Record<TemplateName, (d: TemplateData, l: EmailLocale) => Rende
                 '',
                 ...rows.map(([a, b]) => `  ${a}: ${b}`),
                 ...(extra ? ['', extra.replace(/<[^>]+>/g, '')] : []),
+            ],
+        );
+    },
+
+    /* ---------------------------------------------------------------------- */
+    booking_payment_reminder(d, l) {
+        const bn = l === 'bn';
+        const ref = d.bookingId ?? '';
+        const by = due(d.paymentDueAt, l);
+        return build(
+            l,
+            bn ? `বুকিং ${ref}: ${by}-এর মধ্যে পরিশোধ করুন` : `Booking ${ref}: pay by ${by}`,
+            bn ? 'রসিদ জমা না পড়লে বুকিংটি বাতিল হবে।' : 'Without a receipt by then, the booking is cancelled.',
+            [
+                heading(bn ? 'পরিশোধের সময় শেষ হয়ে আসছে' : 'Your payment is due soon'),
+                paragraph(greeting(d.fullName, l)),
+                paragraph(
+                    bn
+                        ? `বুকিং <strong>${escapeHtml(ref)}</strong>-এর পরিশোধ এখনো পাওয়া যায়নি। <strong>${escapeHtml(by)}</strong>-এর মধ্যে পরিশোধ করে রসিদ জমা দিন।`
+                        : `We have not received payment for booking <strong>${escapeHtml(ref)}</strong> yet. Please pay and submit the receipt <strong>by ${escapeHtml(by)}</strong> (Dhaka time).`,
+                ),
+                button(bn ? 'রসিদ জমা দিন' : 'Submit proof of payment', url('/account')),
+                note(
+                    bn
+                        ? 'এর মধ্যে রসিদ জমা না পড়লে বুকিংটি বাতিল হবে এবং এককগুলো অন্য বিনিয়োগকারীদের জন্য উন্মুক্ত হবে। ইতিমধ্যে পরিশোধ করে থাকলে রসিদটি জমা দিলেই হবে।'
+                        : 'If no receipt arrives by then, the booking is cancelled and its units are offered to other investors. If you have already paid, just submit the receipt.',
+                ),
+            ],
+            [
+                greetingText(d.fullName, l),
+                '',
+                bn
+                    ? `বুকিং ${ref}-এর পরিশোধ এখনো পাওয়া যায়নি। ${by}-এর মধ্যে পরিশোধ করে রসিদ জমা দিন, নইলে বুকিংটি বাতিল হবে।`
+                    : `Booking ${ref} is waiting for payment. Please pay and submit the receipt by ${by} (Dhaka time), or the booking is cancelled.`,
+                '',
+                url('/account'),
+            ],
+        );
+    },
+
+    /* ---------------------------------------------------------------------- */
+    booking_expired(d, l) {
+        const bn = l === 'bn';
+        const ref = d.bookingId ?? '';
+        const by = due(d.paymentDueAt, l);
+        return build(
+            l,
+            bn ? `বুকিং ${ref}-এর মেয়াদ শেষ হয়েছে` : `Booking ${ref} has expired`,
+            bn ? 'সময়মতো পরিশোধ না হওয়ায় এককগুলো ছেড়ে দেওয়া হয়েছে।' : 'It was not paid in time, so its units were released.',
+            [
+                heading(bn ? 'বুকিংয়ের মেয়াদ শেষ' : 'Booking expired'),
+                paragraph(greeting(d.fullName, l)),
+                paragraph(
+                    bn
+                        ? `বুকিং <strong>${escapeHtml(ref)}</strong>-এর রসিদ ${escapeHtml(by)}-এর মধ্যে জমা পড়েনি, তাই বুকিংটি বাতিল করা হয়েছে এবং এককগুলো ছেড়ে দেওয়া হয়েছে।`
+                        : `No receipt arrived for booking <strong>${escapeHtml(ref)}</strong> by ${escapeHtml(by)} (Dhaka time), so it has been cancelled and its units released.`,
+                ),
+                paragraph(
+                    bn
+                        ? 'এখনো বিনিয়োগ করতে চাইলে নতুন করে বুকিং দিন। আর ইতিমধ্যে পরিশোধ করে থাকলে আমাদের জানান: আমরা দেখে নেব।'
+                        : 'If you still want to invest, you can book again. If you have already paid, tell us and we will sort it out.',
+                ),
+                button(bn ? 'প্রকল্পগুলো দেখুন' : 'Browse projects', url('/projects')),
+                note(
+                    bn
+                        ? 'লিখুন info@digigramventures.com — বুকিং নম্বরটি উল্লেখ করবেন।'
+                        : 'Write to info@digigramventures.com and quote the booking reference.',
+                ),
+            ],
+            [
+                greetingText(d.fullName, l),
+                '',
+                bn
+                    ? `বুকিং ${ref}-এর রসিদ ${by}-এর মধ্যে জমা পড়েনি, তাই বুকিংটি বাতিল হয়েছে এবং এককগুলো ছেড়ে দেওয়া হয়েছে।`
+                    : `No receipt arrived for booking ${ref} by ${by} (Dhaka time), so it has been cancelled and its units released.`,
+                '',
+                bn ? 'ইতিমধ্যে পরিশোধ করে থাকলে লিখুন info@digigramventures.com' : 'Already paid? Write to info@digigramventures.com',
+            ],
+        );
+    },
+
+    /* ---------------------------------------------------------------------- */
+    booking_payment_window_notice(d, l) {
+        const bn = l === 'bn';
+        const bookings = d.bookings?.length ? d.bookings : [{ bookingId: d.bookingId, paymentDueAt: d.paymentDueAt }];
+        const rows = bookings.map((b) => [
+            bn ? `বুকিং ${b.bookingId ?? ''}` : `Booking ${b.bookingId ?? ''}`,
+            bn ? `${due(b.paymentDueAt, l)}-এর মধ্যে` : `pay by ${due(b.paymentDueAt, l)}`,
+        ] as [string, string]);
+        return build(
+            l,
+            bn ? 'আপনার বুকিংয়ে এখন পরিশোধের শেষ সময় আছে' : 'Your booking now has a payment deadline',
+            bn ? 'নির্ধারিত সময়ের মধ্যে পরিশোধ করে রসিদ জমা দিন।' : 'Pay and submit the receipt by the date shown.',
+            [
+                heading(bn ? 'পরিশোধের শেষ সময়' : 'A payment deadline for your booking'),
+                paragraph(greeting(d.fullName, l)),
+                paragraph(
+                    bn
+                        ? 'পরিশোধ না হওয়া বুকিং এখন একটি নির্দিষ্ট সময় পর্যন্ত এককগুলো ধরে রাখে, যাতে অন্য বিনিয়োগকারীরাও সুযোগ পান। আপনার বুকিংয়ের শেষ সময়:'
+                        : 'Unpaid bookings now hold their units until a deadline, so that other investors get a fair chance too. Yours:',
+                ),
+                detailRows(rows),
+                paragraph(
+                    bn
+                        ? 'এর মধ্যে পরিশোধ করে "আমার বিনিয়োগ" অংশে রসিদ জমা দিন। সময়মতো রসিদ জমা না পড়লে বুকিংটি বাতিল হবে।'
+                        : 'Please pay and submit the receipt under "My investments" by then (Dhaka time). A booking with no receipt by its deadline is cancelled.',
+                ),
+                button(bn ? 'রসিদ জমা দিন' : 'Submit proof of payment', url('/account')),
+                note(
+                    bn
+                        ? 'আর বিনিয়োগ করতে না চাইলে কিছু করতে হবে না। প্রশ্ন থাকলে লিখুন info@digigramventures.com'
+                        : 'If you no longer want to invest, there is nothing to do. Questions? Write to info@digigramventures.com',
+                ),
+            ],
+            [
+                greetingText(d.fullName, l),
+                '',
+                bn
+                    ? 'পরিশোধ না হওয়া বুকিং এখন একটি নির্দিষ্ট সময় পর্যন্ত এককগুলো ধরে রাখে। আপনার বুকিংয়ের শেষ সময়:'
+                    : 'Unpaid bookings now hold their units until a deadline. Yours:',
+                '',
+                ...rows.map(([a, b]) => `  ${a}: ${b}`),
+                '',
+                bn
+                    ? 'এর মধ্যে পরিশোধ করে রসিদ জমা দিন, নইলে বুকিং বাতিল হবে।'
+                    : 'Please pay and submit the receipt by then (Dhaka time), or the booking is cancelled.',
+                '',
+                url('/account'),
             ],
         );
     },

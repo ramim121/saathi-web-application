@@ -10,6 +10,8 @@ import { addTerm, planReinvestment, REINVEST_MODES, type ReinvestMode } from '@/
 import { balanceOf, loadReinvestSource, nextBookingRef } from '@/utils/reinvestmentServer';
 import { planReinvestAllocation } from '@/utils/reinvestAllocation';
 import { lockProjects } from '@/utils/partnerCapacity';
+import { newBookingDueDate } from '@/utils/bookingHolds';
+import { formatDue } from '@/utils/bookingHoldsShared';
 
 /**
  * POST: reinvest a matured investment line into a new booking on the
@@ -118,6 +120,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             idUsers,
             bookingId: ref,
             paymentConfirmationStatus: topUpDue ? 'pending' : 'confirmed',
+            // A top-up has the same payment window as any booking. If it is not
+            // paid in time, the expiry job cancels it and undoReinvestment
+            // gives the money back to the matured investment.
+            paymentDueAt: topUpDue ? newBookingDueDate() : null,
             paymentAmount: plan.investment,
             paymentDate: startDate,
             cancelled: 'no',
@@ -171,6 +177,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
         outcome = {
             newBookingId: idBooking,
             newBookingRef: ref,
+            paymentDueAt: (booking as any).paymentDueAt ? new Date((booking as any).paymentDueAt).toISOString() : null,
             topUp: plan.topUp,
             investment: plan.investment,
             reinvested: plan.reinvested,
@@ -204,6 +211,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                         // Formatted copies for the SMS/push text, numbers for the email.
                         investment: fmt(outcome.investment), topUp: fmt(outcome.topUp), reinvested: fmt(outcome.reinvested),
                         investmentAmount: outcome.investment, topUpAmount: outcome.topUp, reinvestedAmount: outcome.reinvested,
+                        paymentDueAt: outcome.paymentDueAt, dueText: outcome.paymentDueAt ? formatDue(outcome.paymentDueAt) : undefined,
                     }, investor);
                 } else {
                     const note = outcome.payout > 0 && !outcome.payoutDoneNow

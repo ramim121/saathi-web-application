@@ -41,6 +41,7 @@ const SAMPLES: Record<TemplateName, TemplateData> = {
             { projectName: 'Mymensingh Cattle Rearing — Winter Cycle', unitPurchased: 3, duration: 6, tenure: 'months' },
             { projectName: 'Rangpur Potato', unitPurchased: 1, duration: 4, tenure: 'months' },
         ],
+        paymentDueAt: '2026-12-02T17:59:59.000Z',
     },
     booking_active: { bookingId: '000131' },
     booking_cancelled: { bookingId: '000129' },
@@ -55,8 +56,17 @@ const SAMPLES: Record<TemplateName, TemplateData> = {
         ],
     },
     account_delete_otp: { otp: '5182' },
-    reinvestment_topup_due: { bookingId: '000141', projectName: 'Project Paddy 01', investmentAmount: 250000, reinvestedAmount: 216500, topUpAmount: 33500 },
+    reinvestment_topup_due: { bookingId: '000141', projectName: 'Project Paddy 01', investmentAmount: 250000, reinvestedAmount: 216500, topUpAmount: 33500, paymentDueAt: '2026-12-02T17:59:59.000Z' },
     reinvestment_confirmed: { bookingId: '000142', projectName: 'Project Paddy 01', investmentAmount: 200000, startDate: '2026-11-18', maturityDate: '2027-03-18', keptAmount: 16500 },
+    booking_payment_reminder: { bookingId: '000131', paymentDueAt: '2026-12-02T17:59:59.000Z' },
+    booking_expired: { bookingId: '000131', paymentDueAt: '2026-12-02T17:59:59.000Z' },
+    booking_payment_window_notice: {
+        bookings: [
+            { bookingId: '000142', paymentDueAt: '2026-11-30T17:59:59.000Z' },
+            { bookingId: '000144', paymentDueAt: '2026-11-30T17:59:59.000Z' },
+            { bookingId: '000197', paymentDueAt: '2026-12-01T17:59:59.000Z' },
+        ],
+    },
 };
 
 type Sample = { name: string; group: string; locale: string; who: string; subject: string; html: string; text: string };

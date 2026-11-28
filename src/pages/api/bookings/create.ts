@@ -9,6 +9,8 @@ import JWTPayload from '@/types/JWTPayload';
 import { generateNotification } from '@/notifications';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { CapacityError, planBooking } from '@/utils/partnerCapacity';
+import { newBookingDueDate } from '@/utils/bookingHolds';
+import { formatDue } from '@/utils/bookingHoldsShared';
 import { idempotencyKey, beginIdempotent, finishIdempotent, abandonIdempotent } from '@/utils/idempotency';
 
 const cors = Cors({
@@ -162,13 +164,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const maximumBookingId = await ProjectInvestmentBooking.max('bookingId', { transaction });
             const bookingId = (maximumBookingId ? parseInt(String(maximumBookingId)) + 1 : 1).toString().padStart(6, '0');
 
+            // Units are held until the end of the Nth day, Dhaka time; an
+            // unpaid booking is cancelled after that (utils/bookingHolds.ts).
+            const paymentDueAt = newBookingDueDate();
             projectInvestmentBooking = await ProjectInvestmentBooking.create({
                 idUsers: userInfo.idUsers,
                 bookingId: bookingId,
                 paymentConfirmationStatus: 'pending',
+                paymentDueAt,
             }, { transaction });
 
             const projectForNotifications = [];
+            let totalAmount = 0;
             for (const [lineIndex, project] of projects.entries()) {
                 const projectInfo = await Project.findOne({
                     where: {
@@ -185,6 +192,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     unitInvestmentValue: projectInfo!.unitInvestmentValue,
                     unitPurchased: project.unitPurchased,
                 });
+                totalAmount += Number(projectInfo!.unitInvestmentValue || 0) * Number(project.unitPurchased || 0);
 
                 const projectInvestor = await ProjectInvestor.create({
                     idUsers: userInfo.idUsers,
@@ -223,12 +231,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await transaction.commit();
             committed = true;
 
-            let currentDate = new Date();
+            const due = projectInvestmentBooking.paymentDueAt as Date;
             await generateNotification('booking_placed', {
                 fullName: userVerification.fullName,
                 projects: projectForNotifications,
                 bookingId: bookingId,
-                lastDateToTransferFunds: currentDate,
+                totalAmount,
+                // The real deadline (this used to be the time of booking).
+                lastDateToTransferFunds: due,
+                paymentDueAt: due.toISOString(),
+                dueText: formatDue(due),
             }, userVerification);
 
             const okBody = { success: true, message: 'Investment booked successfully', data: projectInvestmentBooking };

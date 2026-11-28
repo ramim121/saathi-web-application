@@ -711,8 +711,9 @@ function Create() {
                                     <ul className="tw-mt-3 tw-space-y-2">
                                         {modalProject.projectPartners.map((pp, idx) => {
                                             const capacity = Number(pp.partnerUnitCapacity || 0);
-                                            // Paid units are the hard limit; unpaid bookings only reserve room.
-                                            const room = capacity > 0 ? Math.max(0, capacity - Number(pp.confirmedUnits || 0)) : 0;
+                                            // Paid units and units held by unpaid bookings still within
+                                            // their payment window both use room (utils/bookingHolds.ts).
+                                            const room = capacity > 0 ? Math.max(0, capacity - Number(pp.confirmedUnits || 0) - Number(pp.pendingUnits || 0)) : 0;
                                             const over = capacity > 0 && Number(pp.investedUnit) > room;
                                             return (
                                                 <li key={idx} className="tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
