@@ -14,10 +14,11 @@ import { REVIEW_FLAG_HOURS, bookingState, dueDateFor, effectiveDue, type Booking
  * passes, whether or not the expiry job has run. The job only makes it
  * official (cancels, frees the rows, notifies).
  *
- * A booking with no stored deadline (made before migration 017 and not yet
- * backfilled) runs to the end of the Nth day after it was made, Dhaka time,
- * the same as a new one. Deadlines are compared with UTC_TIMESTAMP(), since
- * every column is stored in UTC.
+ * A booking with no stored deadline (open before migration 017, not yet
+ * backfilled) has no deadline yet and keeps holding: the backfill gives it
+ * one (decision 3), and every new booking gets one when it is made. See
+ * `effectiveDue`. Deadlines are compared with UTC_TIMESTAMP(), since every
+ * column is stored in UTC.
  *
  * Only constant SQL is built here: aliases are code, and the window is an
  * integer checked at boot.
@@ -28,14 +29,14 @@ export const PAYMENT_WINDOW_DAYS = BOOKING_PAYMENT_WINDOW_DAYS;
 /** Deadline for a booking made now (or at `createdAt`). */
 export const newBookingDueDate = (createdAt: Date = new Date()) => dueDateFor(createdAt, PAYMENT_WINDOW_DAYS);
 
-/** The booking's deadline as SQL, with the same fallback as `effectiveDue`. */
+/** The booking's deadline as SQL; NULL when it has none yet (comparisons with it are then false). */
 export function dueSql(b = 'b'): string {
-    return `COALESCE(${b}.payment_due_at, TIMESTAMP(DATE(${b}.created_at + INTERVAL 6 HOUR) + INTERVAL ${PAYMENT_WINDOW_DAYS} DAY, '23:59:59') - INTERVAL 6 HOUR)`;
+    return `${b}.payment_due_at`;
 }
 
-/** SQL: the booking `b` is holding its units right now (not cancelled; under review or within its deadline). */
+/** SQL: the booking `b` is holding its units right now (not cancelled; under review, no deadline yet, or within it). */
 export function bookingHoldingSql(b = 'b'): string {
-    return `(${b}.cancelled = 'no' AND (${b}.payment_confirmation_status IN ('uploaded', 'proof_submitted') OR ${dueSql(b)} > UTC_TIMESTAMP()))`;
+    return `(${b}.cancelled = 'no' AND (${b}.payment_confirmation_status IN ('uploaded', 'proof_submitted') OR ${b}.payment_due_at IS NULL OR ${b}.payment_due_at > UTC_TIMESTAMP()))`;
 }
 
 /** SQL: line `pi` is booked and held by its booking `b` (unpaid, but counting). */
@@ -148,6 +149,6 @@ export function holdFields(b: {
     paymentDueAt?: Date | string | null;
     createdAt?: Date | string | null;
 }, now: Date = new Date()): { paymentDueAt: string | null; state: BookingState } {
-    const due = b.paymentConfirmationStatus === 'confirmed' ? null : effectiveDue(b, PAYMENT_WINDOW_DAYS);
-    return { paymentDueAt: due ? due.toISOString() : null, state: bookingState(b, PAYMENT_WINDOW_DAYS, now) };
+    const due = b.paymentConfirmationStatus === 'confirmed' ? null : effectiveDue(b);
+    return { paymentDueAt: due ? due.toISOString() : null, state: bookingState(b, now) };
 }

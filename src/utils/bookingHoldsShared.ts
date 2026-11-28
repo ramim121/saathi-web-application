@@ -91,17 +91,17 @@ export function remindersDue(due: Date | string, now: Date): number {
 }
 
 /**
- * The deadline a booking runs to. A booking with no stored deadline (created
- * before migration 017 and not backfilled yet) is treated as due N days after
- * it was made, the same fallback the SQL rule uses.
+ * The deadline a booking runs to, or null when it has none stored.
+ *
+ * A booking with no stored deadline was open before migration 017 and has not
+ * been backfilled yet. It has NO deadline until the backfill gives it one
+ * (decision 3: at least launch day + 2), so it keeps holding its units and
+ * can still take a receipt. Treating it as due N days after it was made (the
+ * plan's first draft) would refuse receipts from those investors in the hours
+ * between the deploy and the backfill.
  */
-export function effectiveDue(
-    b: { paymentDueAt?: Date | string | null; createdAt?: Date | string | null },
-    windowDays: number,
-): Date | null {
-    if (b.paymentDueAt) return toDate(b.paymentDueAt);
-    if (b.createdAt) return dueDateFor(b.createdAt, windowDays);
-    return null;
+export function effectiveDue(b: { paymentDueAt?: Date | string | null }): Date | null {
+    return b.paymentDueAt ? toDate(b.paymentDueAt) : null;
 }
 
 /**
@@ -118,15 +118,13 @@ export function bookingState(
         cancelled?: string | null;
         cancelReason?: string | null;
         paymentDueAt?: Date | string | null;
-        createdAt?: Date | string | null;
     },
-    windowDays: number,
     now: Date = new Date(),
 ): BookingState {
     if (b.cancelled === 'yes') return b.cancelReason === 'expired' ? 'expired' : 'cancelled';
     if (b.paymentConfirmationStatus === 'confirmed') return 'confirmed';
     if (isUnderReview(b.paymentConfirmationStatus)) return 'under_review';
-    const due = effectiveDue(b, windowDays);
+    const due = effectiveDue(b);
     if (due && due.getTime() <= now.getTime()) return 'expired';
     return b.paymentConfirmationStatus === 'denied' ? 'receipt_rejected' : 'awaiting_payment';
 }

@@ -1,4 +1,3 @@
-import { PAYMENT_WINDOW_DAYS } from '@/utils/bookingHolds';
 import { effectiveDue, formatDueDay, isAwaitingPayment } from '@/utils/bookingHoldsShared';
 
 /**
@@ -27,7 +26,7 @@ export function receiptBlocked(
     now: Date = new Date(),
 ): { code: string; message: string } | null {
     const expiredMessage = () => {
-        const due = effectiveDue(booking, PAYMENT_WINDOW_DAYS);
+        const due = effectiveDue(booking);
         return `This booking expired${due ? ` on ${formatDueDay(due)}` : ''}. Book again, or contact DigiGram if you have already paid.`;
     };
     if (booking.cancelled === 'yes') {
@@ -38,7 +37,7 @@ export function receiptBlocked(
         return { code: 'BOOKING_CONFIRMED', message: 'This booking is already confirmed. Contact DigiGram if its receipt needs to change.' };
     }
     if (isAwaitingPayment(booking.paymentConfirmationStatus)) {
-        const due = effectiveDue(booking, PAYMENT_WINDOW_DAYS);
+        const due = effectiveDue(booking);
         if (due && due.getTime() <= now.getTime()) return { code: 'BOOKING_EXPIRED', message: expiredMessage() };
     }
     return null;

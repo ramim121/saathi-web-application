@@ -5,7 +5,6 @@ import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, Proj
 import { requireAdmin, withCors, type AuthContext } from '@/utils/auth';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { CapacityError, lockProjects, partnerLoads, unitsUsed } from '@/utils/partnerCapacity';
-import { PAYMENT_WINDOW_DAYS } from '@/utils/bookingHolds';
 import { effectiveDue, endOfDhakaDay, formatDue, isAwaitingPayment, remindersDue } from '@/utils/bookingHoldsShared';
 
 /**
@@ -67,7 +66,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             await transaction.rollback();
             return res.status(409).json({ success: false, message: 'Only a booking awaiting payment has a deadline. A receipt under review holds its units until it is confirmed or rejected.' });
         }
-        const current = effectiveDue(booking, PAYMENT_WINDOW_DAYS);
+        const current = effectiveDue(booking);
         if (current && due.getTime() <= current.getTime()) {
             await transaction.rollback();
             return res.status(400).json({ success: false, message: `The deadline is already ${formatDue(current)}. Choose a later day.` });

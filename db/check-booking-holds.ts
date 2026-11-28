@@ -113,26 +113,26 @@ console.log('Booking state (plan 5.1)');
 
 const now = new Date('2026-11-28T06:00:00Z');
 const base = { cancelled: 'no', cancelReason: null, createdAt: '2026-11-27T09:00:00Z', paymentDueAt: '2026-12-02T17:59:59Z' };
-check('pending in the window: awaiting payment', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, 5, now), 'awaiting_payment'));
-check('denied in the window: receipt rejected', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'denied' }, 5, now), 'receipt_rejected'));
-check('uploaded: under review', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded' }, 5, now), 'under_review'));
-check('proof_submitted: under review', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'proof_submitted' }, 5, now), 'under_review'));
+check('pending in the window: awaiting payment', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, now), 'awaiting_payment'));
+check('denied in the window: receipt rejected', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'denied' }, now), 'receipt_rejected'));
+check('uploaded: under review', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded' }, now), 'under_review'));
+check('proof_submitted: under review', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'proof_submitted' }, now), 'under_review'));
 check('under review past the deadline still under review (decision 1)', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded' }, 5, new Date('2026-12-10T00:00:00Z')), 'under_review'));
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded' }, new Date('2026-12-10T00:00:00Z')), 'under_review'));
 check('pending past the deadline, before the job: expired', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, 5, new Date('2026-12-02T18:00:00Z')), 'expired'));
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, new Date('2026-12-02T18:00:00Z')), 'expired'));
 check('the deadline second itself counts as expired (SQL holds while due > now)', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, 5, new Date('2026-12-02T17:59:59Z')), 'expired'));
-check('confirmed', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'confirmed' }, 5, new Date('2027-01-01T00:00:00Z')), 'confirmed'));
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending' }, new Date('2026-12-02T17:59:59Z')), 'expired'));
+check('confirmed', () => assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'confirmed' }, new Date('2027-01-01T00:00:00Z')), 'confirmed'));
 check('cancelled by the job: expired', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending', cancelled: 'yes', cancelReason: 'expired' }, 5, now), 'expired'));
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending', cancelled: 'yes', cancelReason: 'expired' }, now), 'expired'));
 check('cancelled by hand: cancelled', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending', cancelled: 'yes', cancelReason: 'admin' }, 5, now), 'cancelled'));
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'pending', cancelled: 'yes', cancelReason: 'admin' }, now), 'cancelled'));
 check('cancelled before migration 017 (no reason): cancelled', () =>
-    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded', cancelled: 'yes' }, 5, now), 'cancelled'));
-check('no stored deadline: falls back to created + window', () => {
-    assert.equal(iso(effectiveDue({ createdAt: '2026-11-27T09:00:00Z', paymentDueAt: null }, 5)), '2026-12-02T17:59:59.000Z');
-    assert.equal(bookingState({ ...base, paymentDueAt: null, paymentConfirmationStatus: 'pending' }, 5, new Date('2026-12-03T00:00:00Z')), 'expired');
+    assert.equal(bookingState({ ...base, paymentConfirmationStatus: 'uploaded', cancelled: 'yes' }, now), 'cancelled'));
+check('no stored deadline (not backfilled yet): no deadline, still awaiting payment', () => {
+    assert.equal(effectiveDue({ paymentDueAt: null }), null);
+    assert.equal(bookingState({ ...base, paymentDueAt: null, paymentConfirmationStatus: 'pending' }, new Date('2027-01-01T00:00:00Z')), 'awaiting_payment');
 });
 
 console.log('Formatting');
