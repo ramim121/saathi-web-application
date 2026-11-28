@@ -4,6 +4,8 @@ import { loadPayables } from '@/utils/payables';
 import { projectCapacities } from '@/utils/partnerCapacity';
 import { isOpenProject, needsAttention, type ProjectCapacity } from '@/utils/partnerCapacityShared';
 import type { PayableWindowSummary } from '@/utils/payablesShared';
+import { dueSql, receiptSinceSql } from '@/utils/bookingHolds';
+import { REVIEW_FLAG_HOURS } from '@/utils/bookingHoldsShared';
 
 /**
  * The numbers behind the management dashboard.
@@ -68,6 +70,8 @@ export type Dashboard = {
     /** Owed to investors on request (reinvestment profit and remainders). */
     heldTotal: number;
     capacity: { openProjects: number; attention: ProjectCapacity[] };
+    /** The payment window (utils/bookingHolds.ts): receipts waiting for review, deadlines close or passed. */
+    holds: { reviewWaiting: number; reviewOverdue: number; oldestReviewHours: number; expiringIn24h: number; pastDeadline: number };
     byProject: ProjectRow[];
     byMonth: MonthRow[];
     byType: TypeRow[];
@@ -194,6 +198,32 @@ export async function loadDashboard(): Promise<Dashboard> {
         .filter((c) => needsAttention(c) || c.gap > 0)
         .sort((a, b) => (severity[a.level] ?? 9) - (severity[b.level] ?? 9) || b.usedPercent - a.usedPercent);
 
+    /* --------------------------------------------------- payment window -- */
+    // Decision 1: a receipt under review holds its units until an admin acts,
+    // so one waiting more than 48 h is flagged here.
+    const holdsRow = await one<{ reviewWaiting: unknown; reviewOverdue: unknown; oldestReviewHours: unknown; expiringIn24h: unknown; pastDeadline: unknown }>(`
+        SELECT SUM(b.payment_confirmation_status IN ('uploaded', 'proof_submitted')) AS reviewWaiting,
+               SUM(b.payment_confirmation_status IN ('uploaded', 'proof_submitted')
+                   AND ${receiptSinceSql('b')} <= UTC_TIMESTAMP() - INTERVAL ${REVIEW_FLAG_HOURS} HOUR) AS reviewOverdue,
+               MAX(CASE WHEN b.payment_confirmation_status IN ('uploaded', 'proof_submitted')
+                        THEN TIMESTAMPDIFF(HOUR, ${receiptSinceSql('b')}, UTC_TIMESTAMP()) END) AS oldestReviewHours,
+               SUM(b.payment_confirmation_status IN ('pending', 'denied')
+                   AND ${dueSql('b')} > UTC_TIMESTAMP() AND ${dueSql('b')} <= UTC_TIMESTAMP() + INTERVAL 24 HOUR) AS expiringIn24h,
+               SUM(b.payment_confirmation_status IN ('pending', 'denied') AND ${dueSql('b')} <= UTC_TIMESTAMP()) AS pastDeadline
+          FROM project_investment_bookings b
+         WHERE b.cancelled = 'no'
+           AND EXISTS (SELECT 1 FROM project_investors pi
+                        WHERE pi.id_project_investment_bookings = b.id_project_investment_bookings AND pi.investment_status = 'booked')`, {
+        reviewWaiting: 0, reviewOverdue: 0, oldestReviewHours: 0, expiringIn24h: 0, pastDeadline: 0,
+    });
+    const holds = {
+        reviewWaiting: n(holdsRow.reviewWaiting),
+        reviewOverdue: n(holdsRow.reviewOverdue),
+        oldestReviewHours: n(holdsRow.oldestReviewHours),
+        expiringIn24h: n(holdsRow.expiringIn24h),
+        pastDeadline: n(holdsRow.pastDeadline),
+    };
+
     /* ------------------------------------------------------- breakdowns -- */
 
     const byProject = (await q<{
@@ -275,6 +305,7 @@ export async function loadDashboard(): Promise<Dashboard> {
         payables: payablesReport.windows,
         heldTotal: payablesReport.heldTotal,
         capacity: { openProjects: open.length, attention },
+        holds,
         byProject,
         byMonth,
         byType,

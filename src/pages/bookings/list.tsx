@@ -11,6 +11,7 @@ import { ListFooter, ListToolbar, SortTH, useListState, type FilterChip } from "
 import { investmentStatus, paymentStatus } from "@/ui/status";
 import { date, daysFromToday } from "@/ui/format";
 import { dhakaStamp } from "@/ui/status";
+import { REVIEW_FLAG_HOURS, formatDue, hoursSince, timeLeft } from "@/utils/bookingHoldsShared";
 
 /**
  * All bookings: one search box (ref, internal number, investor name, phone or
@@ -28,6 +29,10 @@ interface BookingListProps {
         fullName: string;
     },
     paymentConfirmationStatus: string;
+    /** End of the payment window (UTC) and the derived state, from the API. */
+    paymentDueAt?: string | null;
+    state?: string;
+    receiptSubmittedAt?: string | null;
     ProjectInvestors: {
         idProjectInvestors: number;
         Project: {
@@ -51,9 +56,17 @@ const PAYMENT_OPTIONS: [string, string][] = [
     ["denied", "Denied"],
 ];
 
+const HOLD_OPTIONS: [string, string][] = [
+    ["expiring_24h", "Expiring in 24 h"],
+    ["expired", "Expired"],
+    ["review", "Receipt under review"],
+    ["review_48h", `Receipt waiting over ${REVIEW_FLAG_HOURS} h`],
+];
+
 const DEFAULTS = {
     q: "",
     paymentConfirmationStatus: "",
+    hold: "",
     bookingType: "",
     cancelled: "no",
     orderBy: "idProjectInvestmentBookings",
@@ -103,6 +116,9 @@ function List() {
     if (state.paymentConfirmationStatus) {
         chips.push({ label: `Payment: ${PAYMENT_OPTIONS.find(([v]) => v === state.paymentConfirmationStatus)?.[1] ?? state.paymentConfirmationStatus}`, onClear: () => update({ paymentConfirmationStatus: "" }) });
     }
+    if (state.hold) {
+        chips.push({ label: HOLD_OPTIONS.find(([v]) => v === state.hold)?.[1] ?? state.hold, onClear: () => update({ hold: "" }) });
+    }
     if (state.bookingType) {
         chips.push({ label: state.bookingType === "reinvestment" ? "Reinvestments only" : "New money only", onClear: () => update({ bookingType: "" }) });
     }
@@ -146,6 +162,15 @@ function List() {
                                     <Select value={state.paymentConfirmationStatus} onChange={(e) => update({ paymentConfirmationStatus: e.target.value })}>
                                         <option value="">Any</option>
                                         {PAYMENT_OPTIONS.map(([v, l]) => (
+                                            <option key={v} value={v}>{l}</option>
+                                        ))}
+                                    </Select>
+                                </Field>
+                                <Field label="Payment deadline">
+                                    {/* Expired bookings may already be cancelled by the job, so that filter looks at every tab. */}
+                                    <Select value={state.hold} onChange={(e) => update(e.target.value === "expired" ? { hold: e.target.value, cancelled: "" } : { hold: e.target.value })}>
+                                        <option value="">Any</option>
+                                        {HOLD_OPTIONS.map(([v, l]) => (
                                             <option key={v} value={v}>{l}</option>
                                         ))}
                                     </Select>
@@ -195,6 +220,7 @@ function List() {
                                 <td className={cx(TD, "tw-font-medium tw-text-slate-800")}>{booking.User?.fullName}</td>
                                 <td className={TD}>
                                     <Pill tone={pay.tone}>{pay.label}</Pill>
+                                    <HoldNote booking={booking} />
                                 </td>
                                 <td className={TD}>
                                     <ul className="tw-space-y-1.5">
@@ -257,6 +283,31 @@ function List() {
         </div>
     )
 
+}
+
+/** Under the payment pill: the deadline, or how long a receipt has waited. */
+function HoldNote({ booking }: { booking: BookingListProps }) {
+    if (booking.state === "expired") {
+        return <span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-rose-700">Expired{booking.paymentDueAt ? ` ${formatDue(booking.paymentDueAt)}` : ""}</span>;
+    }
+    if ((booking.state === "awaiting_payment" || booking.state === "receipt_rejected") && booking.paymentDueAt) {
+        const left = timeLeft(booking.paymentDueAt);
+        const soon = new Date(booking.paymentDueAt).getTime() - Date.now() <= 24 * 3600 * 1000;
+        return (
+            <span className={cx("tw-mt-1 tw-block tw-whitespace-nowrap tw-text-xs tw-tabular-nums", soon ? "tw-font-semibold tw-text-amber-700" : "tw-text-slate-500")}>
+                Pay by {formatDue(booking.paymentDueAt)}{left ? ` · ${left} left` : ""}
+            </span>
+        );
+    }
+    if (booking.state === "under_review" && booking.receiptSubmittedAt) {
+        const hours = hoursSince(booking.receiptSubmittedAt);
+        return (
+            <span className={cx("tw-mt-1 tw-block tw-whitespace-nowrap tw-text-xs tw-tabular-nums", hours >= REVIEW_FLAG_HOURS ? "tw-font-semibold tw-text-rose-700" : "tw-text-slate-500")}>
+                Waiting {hours >= 48 ? `${Math.floor(hours / 24)} days` : `${hours} h`}
+            </span>
+        );
+    }
+    return null;
 }
 
 export default List;

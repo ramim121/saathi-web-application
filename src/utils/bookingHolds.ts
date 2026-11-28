@@ -1,6 +1,6 @@
 import { literal } from 'sequelize';
 import { BOOKING_PAYMENT_WINDOW_DAYS } from '@/config/constants';
-import { bookingState, dueDateFor, effectiveDue, type BookingState } from '@/utils/bookingHoldsShared';
+import { REVIEW_FLAG_HOURS, bookingState, dueDateFor, effectiveDue, type BookingState } from '@/utils/bookingHoldsShared';
 
 /**
  * THE rule for "this line uses capacity" (plan 4.1). Every query that counts
@@ -81,6 +81,38 @@ export function partnerUnitsSql(partnerRef: string, kind: UnitsKind): string {
  */
 export function projectRemainingSql(projectRef: string, totalRef: string): string {
     return `CASE WHEN ${totalRef} != 0 THEN GREATEST(0, ${totalRef} - ${projectUnitsSql(projectRef, 'used')}) ELSE NULL END`;
+}
+
+/**
+ * When the receipt now under review was sent: the latest upload in the
+ * booking's history, or the row's last change when no upload was recorded
+ * (bookings written by hand).
+ */
+export function receiptSinceSql(b = 'b'): string {
+    return `COALESCE((SELECT MAX(h_s.created_at) FROM project_investment_booking_status AS h_s
+                       WHERE h_s.id_project_investment_bookings = ${b}.id_project_investment_bookings
+                         AND h_s.status = 'proof_of_payment_uploaded'), ${b}.updated_at)`;
+}
+
+/** Admin list filters for the payment window. */
+export const HOLD_FILTERS = ['review', 'review_48h', 'expiring_24h', 'expired'] as const;
+export type HoldFilter = (typeof HOLD_FILTERS)[number];
+
+/** SQL for one admin list filter on booking alias `b`. */
+export function holdFilterSql(filter: HoldFilter, b = 'b'): string {
+    const review = `${b}.cancelled = 'no' AND ${b}.payment_confirmation_status IN ('uploaded', 'proof_submitted')`;
+    const awaiting = `${b}.cancelled = 'no' AND ${b}.payment_confirmation_status IN ('pending', 'denied')`;
+    switch (filter) {
+        case 'review':
+            return `(${review})`;
+        case 'review_48h':
+            return `(${review} AND ${receiptSinceSql(b)} <= UTC_TIMESTAMP() - INTERVAL ${REVIEW_FLAG_HOURS} HOUR)`;
+        case 'expiring_24h':
+            return `(${awaiting} AND ${dueSql(b)} > UTC_TIMESTAMP() AND ${dueSql(b)} <= UTC_TIMESTAMP() + INTERVAL 24 HOUR)`;
+        case 'expired':
+            // Cancelled by the job, or past the deadline and not swept yet.
+            return `((${b}.cancelled = 'yes' AND ${b}.cancel_reason = 'expired') OR (${awaiting} AND ${dueSql(b)} <= UTC_TIMESTAMP()))`;
+    }
 }
 
 type Attr = [ReturnType<typeof literal>, string];

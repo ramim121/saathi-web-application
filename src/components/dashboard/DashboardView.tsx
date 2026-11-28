@@ -7,6 +7,7 @@ import { bdt } from '@/ui/format';
 import { dhakaStamp } from '@/ui/status';
 import { cx } from '@/ui/primitives';
 import { PageHeader } from '@/ui/layout';
+import { REVIEW_FLAG_HOURS } from '@/utils/bookingHoldsShared';
 
 /**
  * The management dashboard. Redesigned 2026-11-17 (Tailwind); the figures,
@@ -328,6 +329,50 @@ export function DashboardView({ data }: { data: Dashboard }) {
                 </div>
 
                 <div className="tw-flex tw-flex-col tw-gap-6 xl:tw-col-span-5">
+                    <Panel
+                        title="Payment window"
+                        subtitle="Unpaid bookings hold units until their deadline; a receipt under review holds them until someone confirms or rejects it."
+                        action={{ href: '/bookings/list?hold=review&cancelled=no', label: 'Receipts' }}
+                    >
+                        <ul className="tw-divide-y tw-divide-slate-100 tw-border-t tw-border-slate-100">
+                            {[
+                                {
+                                    href: '/bookings/list?hold=review_48h&cancelled=no',
+                                    label: `Receipts waiting over ${REVIEW_FLAG_HOURS} h`,
+                                    value: data.holds.reviewOverdue,
+                                    note: data.holds.reviewWaiting
+                                        ? `${data.holds.reviewWaiting} under review · oldest ${data.holds.oldestReviewHours >= 48 ? `${Math.floor(data.holds.oldestReviewHours / 24)} days` : `${data.holds.oldestReviewHours} h`}`
+                                        : 'None under review',
+                                    alert: data.holds.reviewOverdue > 0,
+                                },
+                                {
+                                    href: '/bookings/list?hold=expiring_24h&cancelled=no',
+                                    label: 'Deadline within 24 h',
+                                    value: data.holds.expiringIn24h,
+                                    note: 'Awaiting payment, no receipt yet',
+                                    alert: false,
+                                },
+                                {
+                                    href: '/bookings/list?hold=expired&cancelled=',
+                                    label: 'Past deadline, not cancelled yet',
+                                    value: data.holds.pastDeadline,
+                                    note: 'No longer holding units; the expiry job cancels them',
+                                    alert: false,
+                                },
+                            ].map((row) => (
+                                <li key={row.label}>
+                                    <Link href={row.href} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-2.5 hover:tw-bg-slate-50/60">
+                                        <span className="tw-min-w-0">
+                                            <span className="tw-block tw-text-sm tw-font-medium tw-text-slate-800">{row.label}</span>
+                                            <span className="tw-block tw-text-xs tw-text-slate-500">{row.note}</span>
+                                        </span>
+                                        <span className={cx('tw-text-lg tw-font-semibold tw-tabular-nums', row.alert ? 'tw-text-rose-700' : 'tw-text-slate-900')}>{row.value}</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </Panel>
+
                     <Panel
                         title="Capacity watch"
                         subtitle={`${data.capacity.attention.length} of ${data.capacity.openProjects} open projects need attention`}

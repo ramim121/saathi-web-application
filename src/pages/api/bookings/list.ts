@@ -7,7 +7,7 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
 import { likePattern, numberIn, searchTerm, sqlLike } from '@/utils/listSearch';
-import { holdFields } from '@/utils/bookingHolds';
+import { HOLD_FILTERS, holdFields, holdFilterSql, receiptSinceSql, type HoldFilter } from '@/utils/bookingHolds';
 const cors = Cors({
 	origin: '*',
 	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -56,12 +56,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 	}
 
 
+	// Payment-window filters (utils/bookingHolds.ts).
+	const hold = String(req.query.hold ?? '');
+	if ((HOLD_FILTERS as readonly string[]).includes(hold)) {
+		whereClause[Op.and] = [...(whereClause[Op.and] ?? []), literal(holdFilterSql(hold as HoldFilter, 'ProjectInvestmentBooking'))];
+	}
+
 	const limit = parseInt(pageSize as string) || 10;
 	const offset = (parseInt(page as string) - 1) * limit || 0;
 
 		try {
 		const result = await ProjectInvestmentBooking.findAndCountAll({
 			where: whereClause,
+			// When the receipt under review was sent, for the "waiting" flag.
+			attributes: { include: [[literal(receiptSinceSql('ProjectInvestmentBooking')), 'receiptSubmittedAt']] },
 			include: [
 				{
 					model: User,

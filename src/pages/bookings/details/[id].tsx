@@ -10,6 +10,7 @@ import { S3_URL } from '@/config/public';
 import { API_URL } from '@/config/public';
 import { getCookie } from '@/utils/GetCookie';
 import { isProofSubmitted } from '@/utils/bookingStatus';
+import { DHAKA_OFFSET_MS, formatDue, timeLeft } from '@/utils/bookingHoldsShared';
 import {
     ArrowLeft,
     ArrowUpRight,
@@ -61,6 +62,10 @@ interface DetailsProps {
         nidVerificationStatus?: string;
     },
     paymentConfirmationStatus: string;
+    /** End of the payment window (UTC), the derived state and why it was cancelled (utils/bookingHolds.ts). */
+    paymentDueAt?: string | null;
+    state?: string;
+    cancelReason?: string | null;
     UserBank: {
         Bank: {
             bankNameFull: string;
@@ -926,6 +931,49 @@ function Details() {
         });
     }
 
+    /** Move the payment deadline later (api/bookings/extend-deadline), with a reason for the history. */
+    const handleExtendDeadline = () => {
+        const dhakaDay = (ms: number) => new Date(ms + DHAKA_OFFSET_MS).toISOString().slice(0, 10);
+        const base = Math.max(Date.now(), details.paymentDueAt ? new Date(details.paymentDueAt).getTime() : 0);
+        const suggested = dhakaDay(base + 2 * 24 * 3600 * 1000);
+        Swal.fire({
+            title: 'Move the payment deadline',
+            html:
+                `<p style="font-size:14px;margin:0 0 8px">The booking holds its units until the end of the chosen day, Dhaka time.</p>` +
+                `<input id="extend-due" type="date" class="swal2-input" min="${dhakaDay(Date.now())}" value="${suggested}">` +
+                `<input id="extend-reason" class="swal2-input" maxlength="200" placeholder="Reason (kept in the history)">`,
+            showCancelButton: true,
+            confirmButtonText: 'Move deadline',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: false,
+            preConfirm: async () => {
+                const dueDate = (document.getElementById('extend-due') as HTMLInputElement | null)?.value ?? '';
+                const reason = (document.getElementById('extend-reason') as HTMLInputElement | null)?.value.trim() ?? '';
+                if (!dueDate || reason.length < 3) {
+                    Swal.showValidationMessage('Choose a day and give a reason.');
+                    return false;
+                }
+                try {
+                    const res = await fetch(API_URL + 'api/bookings/extend-deadline', putRequestOptions({ idProjectInvestmentBookings: details.idProjectInvestmentBookings, dueDate, reason }));
+                    const body = await res.json();
+                    if (!res.ok) {
+                        Swal.showValidationMessage(body.message || 'The deadline could not be moved.');
+                        return false;
+                    }
+                    return body;
+                } catch (err) {
+                    Swal.showValidationMessage((err as Error).message || 'Something went wrong!');
+                    return false;
+                }
+            },
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ icon: 'success', title: 'Deadline moved', text: `Now due ${formatDue(result.value.data.paymentDueAt)} (Dhaka).` });
+                setReload(true);
+            }
+        });
+    };
+
     const handleCancel = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.preventDefault();
         // A reinvestment's money came from a matured booking: say where it goes back to.
@@ -1164,6 +1212,9 @@ function Details() {
         (details.ProjectInvestors ?? []).length > 0 &&
         (details.ProjectInvestors ?? []).every((l) => l.investmentStatus === 'confirmed');
     const canReview = open && isProofSubmitted(details.paymentConfirmationStatus);
+    // A booking awaiting payment has a deadline; one past it no longer holds its units.
+    const awaitingPayment = open && (details.paymentConfirmationStatus === 'pending' || details.paymentConfirmationStatus === 'denied');
+    const expired = details.state === 'expired';
     const canUpload = open && details.paymentConfirmationStatus !== 'confirmed';
     const collects = details.paymentMethod === 'cheque' || details.paymentMethod === 'cash';
     const formCollects = formData.paymentMethod.value === 'cheque' || formData.paymentMethod.value === 'cash';
@@ -1213,7 +1264,8 @@ function Details() {
                     {loaded ? (
                         <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
                             <Pill tone={pay.tone}>{pay.label}</Pill>
-                            {details.cancelled === 'yes' && <Pill tone="rose">Cancelled</Pill>}
+                            {details.cancelled === 'yes' && <Pill tone="rose">{details.cancelReason === 'expired' ? 'Expired: not paid in time' : 'Cancelled'}</Pill>}
+                            {details.cancelled !== 'yes' && expired && <Pill tone="rose">Past its deadline</Pill>}
                             {details.bookingType === 'reinvestment' && <Pill tone="violet">Reinvestment</Pill>}
                             {details.reinvestmentSource?.idProjectInvestmentBookings && (
                                 <Link
@@ -1356,6 +1408,17 @@ function Details() {
                                     <Fact label="Status">
                                         <Pill tone={pay.tone}>{pay.label}</Pill>
                                     </Fact>
+                                    {awaitingPayment && details.paymentDueAt && (
+                                        <Fact label="Pay by">
+                                            <span className={cx('tw-tabular-nums', expired ? 'tw-text-rose-700' : timeLeft(details.paymentDueAt).match(/^\d+ (h|min)$/) ? 'tw-text-amber-700' : '')}>
+                                                {formatDue(details.paymentDueAt)}
+                                                <span className="tw-block tw-text-xs tw-font-normal tw-text-slate-500">
+                                                    {expired ? 'Passed: the units are free again' : `${timeLeft(details.paymentDueAt)} left, Dhaka time`}
+                                                </span>
+                                            </span>
+                                            <Button size="sm" className="tw-mt-1" onClick={handleExtendDeadline}>Move deadline</Button>
+                                        </Fact>
+                                    )}
                                     <Fact label="Method">
                                         {/* A reinvestment has no payment method — the money came
                                             from a finished investment, not a transfer. */}
