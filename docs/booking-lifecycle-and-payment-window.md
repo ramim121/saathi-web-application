@@ -152,7 +152,8 @@ Three different definitions are in use:
 
 | Where | Number shown | Counts unpaid bookings? |
 |---|---|---|
-| `projects/details/[id]` (app and website project page) — `totalRemainingUnits`, partners' `alreadyInvestedUnits` | total − paid; partner paid units | **no** |
+| `projects/details/[id]` (app and website project page) — `totalRemainingUnits`, partners' `alreadyInvestedUnits` | total − paid; partner paid units (the app shows a partner's room as `partnerUnitCapacity − alreadyInvestedUnits`) | **no** |
+| `partners/details/[id]` (app partner page) — `Partnerships[].alreadyInvestedUnits`, `roomLeft` filter | capacity − paid | **no** |
 | `projects/get_projects_for_investment`, `get_all_projects`, `popular_projects` (project lists; also hide full projects) | total − paid | **no** |
 | `bookings/details/[id]` — partner `remainingCapacity` | capacity − paid | **no** |
 | `projects/top-partners/…`, `projects/project-partners/[id]` (hide full partners) | filter on paid units | **no** (the second also returns `pendingUnits`) |
@@ -365,12 +366,23 @@ lock and re-check:
   `bookings/list`.
 - Project and partner responses: keep the existing fields, and make every
   "left" figure count holds: `totalRemainingUnits`, `remainingCapacity`, the
-  full-project and full-partner filters. Add `reservedUnits` and
-  `availableUnits`. Keep `alreadyInvestedUnits` = paid, because it is labelled
-  "invested". **Check how the app works out a partner's "left"**: if it is
-  `partnerUnitCapacity − alreadyInvestedUnits`, old builds keep showing the
-  number without holds until they read `availableUnits`. Booking is still
-  refused correctly either way, because the server enforces the rule.
+  full-project and full-partner filters. Add `paidUnits`, `reservedUnits` and
+  `availableUnits`.
+- **How the app reads them** (`saathi-mobile-app`, release 2.8 source,
+  checked 2026-11-28): a project's room is `totalRemainingUnits`
+  (`src/components/home/openProjects.ts`, `ProjectPage.tsx`), and a partner's
+  room is `partnerUnitCapacity − alreadyInvestedUnits`
+  (`src/utility/partnerPlan.ts`, `src/components/partners/usePartnerDetails.ts`),
+  from `projects/details` and `partners/details`. The app uses
+  `alreadyInvestedUnits` for nothing else. So on the **public** responses of
+  those two routes, report `alreadyInvestedUnits` as paid + held: every
+  installed build then shows the right room with no app release. Admin
+  responses keep paid only. Check the website repo for any place that shows
+  `alreadyInvestedUnits` as "invested" before shipping.
+- The app already hides the receipt upload once `cancelled = 'yes'`
+  (`src/screens/Portfolio/BookingDetail.tsx:248`), so expiring a booking needs
+  no app change; it shows as "Cancelled" until the app reads `cancelReason`.
+  It shows no payment deadline today.
 - App and website: "Pay by 2 Dec, 11:59 PM, 3 days left" on unpaid bookings;
   an **Expired** state with "Book again" instead of the upload form.
 - Admin: deadline and countdown on the booking page and list; an **Extend
@@ -506,7 +518,8 @@ good, rather than one at a time.
 3. Capacity: `partnerLoads`, `projectCapacities`, `planBooking` (no spill
    into held room; per-investor counts holds), `confirm`, `settleLinePartners`,
    `reinvestAllocation`, `reinvestmentServer`, `change-partner`.
-4. Read endpoints in section 3: "left" figures and filters count holds; add
+4. Read endpoints in section 3: "left" figures and filters count holds;
+   public `alreadyInvestedUnits` = paid + held (decision 7); add `paidUnits`,
    `reservedUnits`, `availableUnits`, `paymentDueAt`, `state`.
 5. Set `payment_due_at` in create, manual booking, reinvestment (top-up), deny,
    failed collection.
@@ -561,7 +574,7 @@ and check the units come back and the investor is notified, with
 | 4 | Reinvestment top-ups | Same window; expiry returns the money to *Payout due* |
 | 5 | Admin-uploaded receipts | Add one-step **Record payment**; keep upload-only too |
 | 6 | Time to fix a rejected receipt | Later of the original deadline and 48 h after rejection |
-| 7 | Old app builds' partner "left" | Check the app's formula; if needed, include holds in `alreadyInvestedUnits` until the app reads `availableUnits` |
+| 7 | Installed app builds' partner "left" | Report `alreadyInvestedUnits` as paid + held on the public `projects/details` and `partners/details` responses (the app uses it only to compute room); admin responses stay paid only |
 
 ---
 
@@ -630,7 +643,8 @@ SELECT investment_status, COUNT(*) AS lines_, MIN(updated_at) AS oldest
 - **The database.** This analysis ran in a sandbox that cannot reach the RDS
   host (MySQL port 3306 is refused; only HTTPS goes out). Every finding comes
   from the code. The SQL above sizes them.
-- **The mobile app's source** (`saathi-mobile-app`) was not read, so how the
-  app computes a partner's "left", and which raw status strings it compares,
-  is inferred from the API and from `status-rename-and-booking-rules.md`.
-- **The website repo**, for the same reason.
+- **The mobile app** (`saathi-mobile-app`, release 2.8 source) was checked
+  on 2026-11-28 only for how it reads capacity and booking status (4.7). Its
+  source accepts both `uploaded` and `proof_submitted`; which build investors
+  have installed was not checked.
+- **The website repo** was not read.
