@@ -218,11 +218,24 @@ export async function generateNotification(notificationName: string, notificatio
     }
 }
 
-let notificationQueueRunning = false;
+/*
+ * One queue loop per process. The flag lives on `globalThis`, not in this
+ * module: Next bundles each page and API route on its own, so a module-level
+ * flag is per bundle, and the admin page and the cron route would each start a
+ * loop. Two loops can pick the same pending row before either marks it
+ * started, which sends the same SMS twice.
+ */
+const QUEUE_FLAG = '__shathiNotificationQueueRunning';
 export default function init() {
-    console.log('Notification service started');
-    if (!notificationQueueRunning) {
-        notificationQueueRunning = true;
+    const g = globalThis as unknown as Record<string, boolean | undefined>;
+    if (!g[QUEUE_FLAG]) {
+        g[QUEUE_FLAG] = true;
+        console.log('Notification service started');
         setInterval(() => { runNotificationQueue() }, 1000 * 30); // Every 30 seconds
     }
+}
+
+/** True once this process runs the queue loop. */
+export function notificationQueueStarted(): boolean {
+    return Boolean((globalThis as unknown as Record<string, boolean | undefined>)[QUEUE_FLAG]);
 }

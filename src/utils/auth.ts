@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET, CORS_ALLOWED_ORIGINS } from "@/config/constants";
+import { timingSafeEqual } from "crypto";
+import { JWT_SECRET, CORS_ALLOWED_ORIGINS, CRON_SECRET } from "@/config/constants";
 import JWTPayload from "@/types/JWTPayload";
 
 /**
@@ -88,6 +89,27 @@ export function requireAdmin(handler: AuthedHandler) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
     return handler(req, res, auth);
+  };
+}
+
+/**
+ * For jobs started by the server's crontab, not by a person: the
+ * `Authorization: Bearer <CRON_SECRET>` header. 503 while CRON_SECRET is
+ * unset, so nothing can trigger the job until it is configured.
+ */
+export function requireCron(handler: (req: NextApiRequest, res: NextApiResponse) => unknown | Promise<unknown>) {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    if (!CRON_SECRET) {
+      return res.status(503).json({ success: false, message: "CRON_SECRET is not set on this server" });
+    }
+    const [scheme, token] = String(req.headers.authorization ?? "").split(" ");
+    const given = Buffer.from(token ?? "");
+    const expected = Buffer.from(CRON_SECRET);
+    const ok = scheme?.toLowerCase() === "bearer" && given.length === expected.length && timingSafeEqual(given, expected);
+    if (!ok) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+    return handler(req, res);
   };
 }
 
