@@ -7,7 +7,8 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import Joi from 'joi';
 import Cors from 'micro-cors';
-import { Op } from 'sequelize';
+import { QueryTypes } from 'sequelize';
+import { usesCapacity } from '@/utils/bookingHolds';
 
 const cors = Cors({
     origin: '*',
@@ -59,8 +60,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
 
+        // The project, found before the transaction so its lock can be the
+        // first thing the transaction does (see confirm.ts: a plain read
+        // before the lock would fix a snapshot that misses what the lock
+        // holder commits).
+        const allocation = await ProjectPartnerInvestor.findOne({ where: { idProjectPartnerInvestors }, attributes: ['idProjectInvestors'] });
+        const lineProject = allocation
+            ? await ProjectInvestor.findByPk(allocation.idProjectInvestors as number, { attributes: ['idProjects'] })
+            : null;
+        if (!allocation || !lineProject) {
+            return res.status(400).json({ success: false, message: allocation ? 'Investment not found' : 'Booking not found' });
+        }
+
         const transaction = await sequelize.transaction();
         try {
+            await lockProjects([Number(lineProject.idProjects)], transaction);
             const booking = await ProjectPartnerInvestor.findOne({
                 where: { idProjectPartnerInvestors },
                 transaction,
@@ -78,7 +92,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 await transaction.rollback();
                 return res.status(400).json({ success: false, message: 'Investment not found' });
             }
-            await lockProjects([Number(line.idProjects)], transaction);
 
             const partnerInfo = await ProjectPartner.findOne({
                 where: { idProjectPartners },
@@ -92,19 +105,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             // Only money that is live uses capacity; history can be re-filed freely.
+            // Room counts paid units and units held by unpaid bookings within
+            // their payment window (utils/bookingHolds.ts), apart from this row.
             const live = ['confirmed', 'booked'].includes(String(line.investmentStatus));
             if (live && Number(partnerInfo.partnerUnitCapacity) !== 0) {
-                const alreadyInvested = await ProjectPartnerInvestor.sum('investedUnit', {
-                    where: {
-                        idProjectPartners,
-                        idProjectPartnerInvestors: { [Op.not]: idProjectPartnerInvestors },
-                        idProjectInvestors: {
-                            [Op.in]: sequelize.literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed')`),
-                        },
-                    },
-                    transaction,
-                });
-                const room = Number(partnerInfo.partnerUnitCapacity) - (Number(alreadyInvested) || 0);
+                const [used] = await sequelize.query<{ units: unknown }>(
+                    `SELECT IFNULL(SUM(ppi.invested_unit), 0) AS units
+                       FROM project_partner_investors ppi
+                       JOIN project_investors pi ON pi.id_project_investors = ppi.id_project_investors
+                       LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+                      WHERE ppi.id_project_partners = :idProjectPartners
+                        AND ppi.id_project_partner_investors <> :idProjectPartnerInvestors
+                        AND ${usesCapacity('pi', 'b')}`,
+                    { replacements: { idProjectPartners, idProjectPartnerInvestors }, type: QueryTypes.SELECT, transaction },
+                );
+                const room = Number(partnerInfo.partnerUnitCapacity) - (Number(used?.units) || 0);
                 if (Number(booking.investedUnit) > room) {
                     await transaction.rollback();
                     return res.status(400).json({ success: false, message: `This partner has room for ${Math.max(0, room)} unit(s), and this allocation is ${booking.investedUnit}.` });

@@ -9,6 +9,8 @@ import {
     User,
 } from '@/models/__associations';
 import { addTerm } from '@/utils/reinvestment';
+import { projectUnitsSql, usesCapacity } from '@/utils/bookingHolds';
+import { unitsUsed } from '@/utils/partnerCapacity';
 import ProjectInvestorStatusEntry from '@/utils/ProjectInvestorStatusEntry';
 
 /**
@@ -93,13 +95,16 @@ export async function balanceOf(idUsers: number, transaction?: Transaction): Pro
     return Math.round(Number(sum || 0) * 100) / 100;
 }
 
-/** Projects open for new money, as on the New booking page (not closed, units left). */
+/**
+ * Projects open for new money, as on the New booking page (not closed, units
+ * left). Units left counts paid units and live holds (utils/bookingHolds.ts).
+ */
 export async function openProjects() {
     const rows = await Project.findAll({
         attributes: [
             'idProjects', 'projectName', 'unitInvestmentValue', 'duration', 'tenure', 'returnRangeMin', 'returnRangeMax',
             'totalAvailableUnits', 'investorUnitCapacity', 'projectStatus',
-            [literal(`(SELECT COALESCE(SUM(pi.unit_purchased), 0) FROM project_investors AS pi WHERE pi.id_projects = Project.id_projects AND pi.investment_status = 'confirmed')`), 'confirmedUnits'],
+            [literal(projectUnitsSql('Project.id_projects', 'used')), 'confirmedUnits'],
         ],
         where: { projectStatus: { [Op.notIn]: ['closed', 'completed'] } },
         order: [['projectName', 'ASC']],
@@ -127,8 +132,8 @@ export async function openProjects() {
 
 /**
  * The checks api/bookings/confirm.ts makes before money goes in, run before a
- * reinvestment is created so an impossible one is refused up front. Only
- * `confirmed` lines count, as there.
+ * reinvestment is created so an impossible one is refused up front. Paid
+ * units and live holds count (utils/bookingHolds.ts), as there.
  *
  * `leavingLine` is the matured line being reinvested: a matured line can still
  * be `confirmed`, but its units leave the project as this booking is made, so
@@ -143,16 +148,15 @@ export async function capacityProblem(
     if (!project) return 'Project not found.';
     const p = project as any;
     const leaving = Number.isInteger(args.leavingLine) && (args.leavingLine as number) > 0 ? (args.leavingLine as number) : 0;
-    const notLeaving = { idProjectInvestors: { [Op.ne]: leaving } };
-    const confirmedInProject = Number((await ProjectInvestor.sum('unitPurchased', { where: { idProjects: args.idProjects, investmentStatus: 'confirmed', ...notLeaving }, transaction })) || 0);
+    const usedInProject = await unitsUsed({ idProjects: args.idProjects, excludeLine: leaving || undefined }, transaction);
     const total = Number(p.totalAvailableUnits) || 0;
-    if (total > 0 && confirmedInProject + args.units > total) {
-        return `${p.projectName} has ${Math.max(0, total - confirmedInProject)} unit(s) left.`;
+    if (total > 0 && usedInProject + args.units > total) {
+        return `${p.projectName} has ${Math.max(0, total - usedInProject)} unit(s) left.`;
     }
     const cap = Number(p.investorUnitCapacity) || 0;
     if (cap > 0) {
-        const held = Number((await ProjectInvestor.sum('unitPurchased', { where: { idUsers: args.idUsers, idProjects: args.idProjects, investmentStatus: 'confirmed', ...notLeaving }, transaction })) || 0);
-        if (held + args.units > cap) return `This investor holds ${held} unit(s) in ${p.projectName}; ${args.units} more would pass the limit of ${cap} per investor.`;
+        const held = await unitsUsed({ idProjects: args.idProjects, idUsers: args.idUsers, excludeLine: leaving || undefined }, transaction);
+        if (held + args.units > cap) return `This investor holds or has booked ${held} unit(s) in ${p.projectName}; ${args.units} more would pass the limit of ${cap} per investor.`;
     }
     const partner = await ProjectPartner.findOne({ where: { idProjectPartners: args.idProjectPartners, idProjects: args.idProjects }, attributes: ['partnerUnitCapacity'], transaction });
     if (!partner) return 'Choose a partner of this project.';
@@ -163,7 +167,11 @@ export async function capacityProblem(
                 where: {
                     idProjectPartners: args.idProjectPartners,
                     // `leaving` is a validated integer, so it is safe in the literal.
-                    idProjectInvestors: { [Op.in]: literal(`(SELECT id_project_investors FROM project_investors WHERE investment_status = 'confirmed' AND id_project_investors <> ${leaving})`) },
+                    idProjectInvestors: {
+                        [Op.in]: literal(`(SELECT pi.id_project_investors FROM project_investors pi
+                            LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+                            WHERE ${usesCapacity('pi', 'b')} AND pi.id_project_investors <> ${leaving})`),
+                    },
                 },
                 transaction,
             })) || 0,

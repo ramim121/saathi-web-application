@@ -8,7 +8,7 @@ import { generateNotification } from '@/notifications';
 import sequelize from '@/config/db';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
 import { Op } from 'sequelize';
-import { CapacityError, lockProjects, settleLinePartners, type PartnerMove } from '@/utils/partnerCapacity';
+import { CapacityError, lockProjects, settleLinePartners, unitsUsed, type PartnerMove } from '@/utils/partnerCapacity';
 const schema = Joi.object({
     bookingId: Joi.number().required().messages({
         'any.required': 'Booking ID is required',
@@ -101,6 +101,20 @@ export default async function handler(
             return res.status(400).json({ success: false, message: errorMessage.join(". <br>") });
         }
 
+        // Which projects this booking touches, read BEFORE the transaction.
+        // Inside it, the project locks must come before any plain read: under
+        // REPEATABLE READ the first plain read fixes the snapshot, so a sum
+        // read after waiting for another confirmation's lock would not see
+        // what that confirmation committed, and both could pass the limit.
+        const found = await ProjectInvestmentBooking.findOne({ where: { bookingId }, attributes: ['idProjectInvestmentBookings'] });
+        if (!found) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+        const lineProjects = await ProjectInvestor.findAll({
+            where: { idProjectInvestmentBookings: found.idProjectInvestmentBookings! },
+            attributes: ['idProjects'],
+        });
+
         const transaction = await sequelize.transaction();
         let committed = false;
 
@@ -120,6 +134,7 @@ export default async function handler(
                     message: 'Booking not found',
                 });
             }
+            await lockProjects(lineProjects.map((line) => Number(line.idProjects)), transaction);
 
             // A reinvestment's amount is the whole booking: what was carried over
             // from the matured investment plus the top-up received. Typing only
@@ -175,20 +190,13 @@ export default async function handler(
                 where: { idProjectInvestmentBookings: booking.idProjectInvestmentBookings! },
                 transaction,
             });
-            await lockProjects(projectInvestor.map((line) => Number(line.idProjects)), transaction);
             const moves: PartnerMove[] = [];
+            // Units of this booking confirmed so far in this loop, per project.
+            const confirmedHere = new Map<number, number>();
 
             for (const investor of projectInvestor) {
                 // Only lines still waiting: one already cancelled stays cancelled.
                 if (investor.investmentStatus !== 'booked') continue;
-
-                const alreadyPurchased = await ProjectInvestor.sum('unitPurchased', {
-                    where: {
-                        idProjects: investor.idProjects,
-                        investmentStatus: 'confirmed'
-                    },
-                    transaction,
-                });
 
                 const projectInfo = await Project.findOne({
                     where: {
@@ -198,10 +206,21 @@ export default async function handler(
                     transaction,
                 });
 
-                if (projectInfo && projectInfo.totalAvailableUnits !== 0) {
-                    if (Number(alreadyPurchased) + Number(investor.unitPurchased) > projectInfo.totalAvailableUnits) {
+                // Paid units plus the live holds of OTHER bookings: a booking
+                // within its payment window always fits (its units were held
+                // for it); one past its deadline needs genuinely free room.
+                const idProjects = Number(investor.idProjects);
+                if (projectInfo && Number(projectInfo.totalAvailableUnits) !== 0) {
+                    const others = await unitsUsed({ idProjects, excludeBooking: booking.idProjectInvestmentBookings! }, transaction);
+                    const total = Number(projectInfo.totalAvailableUnits);
+                    const mine = (confirmedHere.get(idProjects) ?? 0) + Number(investor.unitPurchased);
+                    if (others + mine > total) {
                         await transaction.rollback();
-                        return res.status(400).json({ success: false, message: 'Total available units excedded' });
+                        return res.status(400).json({
+                            success: false,
+                            code: 'PROJECT_CAPACITY',
+                            message: `Total available units exceeded: ${projectInfo.projectName} has ${Math.max(0, total - others - (confirmedHere.get(idProjects) ?? 0))} unit(s) free for this booking (paid units and other bookings' holds count), and it needs ${Number(investor.unitPurchased)}.`,
+                        });
                     }
                 }
 
@@ -257,7 +276,12 @@ export default async function handler(
                 }
 
                 const moved = await settleLinePartners(
-                    { idProjectInvestors: investor.idProjectInvestors!, idProjects: Number(investor.idProjects), unitPurchased: Number(investor.unitPurchased) },
+                    {
+                        idProjectInvestors: investor.idProjectInvestors!,
+                        idProjects,
+                        unitPurchased: Number(investor.unitPurchased),
+                        idProjectInvestmentBookings: booking.idProjectInvestmentBookings!,
+                    },
                     projectInfo?.projectName ?? 'This project',
                     rebalance,
                     transaction,
@@ -266,6 +290,7 @@ export default async function handler(
 
                 investor.investmentStatus = 'confirmed';
                 await investor.save({ transaction });
+                confirmedHere.set(idProjects, (confirmedHere.get(idProjects) ?? 0) + Number(investor.unitPurchased));
 
             }
 

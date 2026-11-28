@@ -69,6 +69,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
     const transaction = await sequelize.transaction();
     let outcome: any = null;
     try {
+        // The target project's lock first, before any plain read: a snapshot
+        // fixed earlier would miss units another booking committed while we
+        // waited for the lock (see confirm.ts).
+        await lockProjects([input.idProjects], transaction);
         // Lock the matured line: two admins must not reinvest it twice.
         await ProjectInvestor.findByPk(input.idProjectInvestors, { transaction, lock: transaction.LOCK.UPDATE });
         const source = await loadReinvestSource(input.idProjectInvestors, transaction);
@@ -85,7 +89,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             mode: input.mode, capital: source.capital, profit: input.profitAmount, balance, useBalance: input.useBalance, unitValue, units: input.units,
         });
         if (plan.problem) throw Object.assign(new Error(plan.problem), { status: 400 });
-        await lockProjects([input.idProjects], transaction);
         // Round robin across the partners, with any capacity raises saved here.
         const allocation = await planReinvestAllocation(
             { idProjects: input.idProjects, units: input.units, idUsers, leavingLine: input.idProjectInvestors, raises: input.raises, newPartners: input.newPartners },

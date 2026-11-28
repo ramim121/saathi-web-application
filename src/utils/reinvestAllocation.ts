@@ -1,6 +1,6 @@
 import { Op, type Transaction } from 'sequelize';
 import { Project, ProjectInvestor, ProjectPartner, ProjectPartnerInvestor, User } from '@/models/__associations';
-import { partnerLoads } from '@/utils/partnerCapacity';
+import { partnerLoads, unitsUsed } from '@/utils/partnerCapacity';
 import { fitAllocation, nextProjectTotal, unitsLeft, type PartnerLoad } from '@/utils/partnerCapacityShared';
 
 /**
@@ -155,13 +155,10 @@ export async function planReinvestAllocation(
         const newSum = planned.reduce((s, l) => s + l.capacity, 0);
         to = nextProjectTotal(from, oldSum, newSum, confirmedSum);
     }
-    const confirmedInProject = n(
-        await ProjectInvestor.sum('unitPurchased', {
-            where: { idProjects: args.idProjects, investmentStatus: 'confirmed', idProjectInvestors: { [Op.ne]: leaving } },
-            transaction,
-        }),
-    );
-    const projectLeft = to > 0 ? Math.max(0, to - confirmedInProject) : null;
+    // Paid units and live holds of unpaid bookings (utils/bookingHolds.ts),
+    // without the matured line that this reinvestment replaces.
+    const usedInProject = await unitsUsed({ idProjects: args.idProjects, excludeLine: leaving || undefined }, transaction);
+    const projectLeft = to > 0 ? Math.max(0, to - usedInProject) : null;
 
     const fit = fitAllocation(planned, units);
     const byId = new Map(fit.allocations.map((a) => [a.idProjectPartners, a.units]));
@@ -188,14 +185,9 @@ export async function planReinvestAllocation(
     } else {
         const cap = n(project.investorUnitCapacity);
         if (cap > 0) {
-            const held = n(
-                await ProjectInvestor.sum('unitPurchased', {
-                    where: { idUsers: args.idUsers, idProjects: args.idProjects, investmentStatus: 'confirmed', idProjectInvestors: { [Op.ne]: leaving } },
-                    transaction,
-                }),
-            );
+            const held = await unitsUsed({ idProjects: args.idProjects, idUsers: args.idUsers, excludeLine: leaving || undefined }, transaction);
             if (held + units > cap) {
-                problem = `This investor holds ${held} unit(s) in ${project.projectName}; ${units} more would pass the limit of ${cap} per investor.`;
+                problem = `This investor holds or has booked ${held} unit(s) in ${project.projectName}; ${units} more would pass the limit of ${cap} per investor.`;
                 code = 'investor_cap';
             }
         }

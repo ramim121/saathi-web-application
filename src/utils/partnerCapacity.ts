@@ -1,6 +1,7 @@
 import { Op, QueryTypes, type Transaction } from 'sequelize';
 import sequelize from '@/config/db';
-import { Project, ProjectInvestor, ProjectPartner, ProjectPartnerInvestor, User } from '@/models/__associations';
+import { Project, ProjectPartner, ProjectPartnerInvestor, User } from '@/models/__associations';
+import { heldSql, usesCapacity } from '@/utils/bookingHolds';
 import {
     fitAllocation,
     isOpenProject,
@@ -45,22 +46,34 @@ export async function lockProjects(ids: number[], transaction: Transaction): Pro
     });
 }
 
-export async function partnerLoads(ids?: number[], transaction?: Transaction): Promise<PartnerLoad[]> {
+/**
+ * Each partner's paid units and the units held for them by unpaid bookings
+ * still within their payment window (utils/bookingHolds.ts).
+ *
+ * `excludeBooking` leaves one booking's holds out of `pending`: confirming a
+ * booking checks its own units against everyone else's.
+ */
+export async function partnerLoads(ids?: number[], transaction?: Transaction, opts: { excludeBooking?: number } = {}): Promise<PartnerLoad[]> {
     if (ids && ids.length === 0) return [];
+    const exclude = Number.isInteger(opts.excludeBooking) && (opts.excludeBooking as number) > 0 ? (opts.excludeBooking as number) : 0;
+    const replacements: Record<string, unknown> = {};
+    if (ids) replacements.ids = ids;
+    if (exclude) replacements.exclude = exclude;
     const rows = await sequelize.query<Record<string, unknown>>(
         `SELECT pp.id_project_partners AS idProjectPartners, pp.id_projects AS idProjects, pp.id_users AS idUsers,
                 COALESCE(u.full_name, CONCAT('Partner #', pp.id_users)) AS fullName,
                 pp.partner_unit_capacity AS capacity,
                 COALESCE(SUM(CASE WHEN pi.investment_status = 'confirmed' THEN ppi.invested_unit END), 0) AS confirmed,
-                COALESCE(SUM(CASE WHEN pi.investment_status = 'booked' THEN ppi.invested_unit END), 0) AS pending
+                COALESCE(SUM(CASE WHEN ${heldSql('pi', 'b')}${exclude ? ' AND pi.id_project_investment_bookings <> :exclude' : ''} THEN ppi.invested_unit END), 0) AS pending
            FROM project_partners pp
            LEFT JOIN users u ON u.id_users = pp.id_users
            LEFT JOIN project_partner_investors ppi ON ppi.id_project_partners = pp.id_project_partners
            LEFT JOIN project_investors pi ON pi.id_project_investors = ppi.id_project_investors
+           LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
           ${ids ? 'WHERE pp.id_projects IN (:ids)' : ''}
           GROUP BY pp.id_project_partners, pp.id_projects, pp.id_users, u.full_name, pp.partner_unit_capacity
           ORDER BY pp.id_project_partners`,
-        { replacements: ids ? { ids } : undefined, type: QueryTypes.SELECT, transaction },
+        { replacements: Object.keys(replacements).length ? replacements : undefined, type: QueryTypes.SELECT, transaction },
     );
     return rows.map((r) => ({
         idProjectPartners: n(r.idProjectPartners),
@@ -82,10 +95,12 @@ export async function projectCapacities(ids?: number[], loads?: PartnerLoad[]): 
                 COALESCE(l.confirmed, 0) AS confirmed, COALESCE(l.pending, 0) AS pending
            FROM projects p
            LEFT JOIN (
-               SELECT id_projects,
-                      SUM(CASE WHEN investment_status = 'confirmed' THEN unit_purchased ELSE 0 END) AS confirmed,
-                      SUM(CASE WHEN investment_status = 'booked' THEN unit_purchased ELSE 0 END) AS pending
-                 FROM project_investors GROUP BY id_projects
+               SELECT pi.id_projects,
+                      SUM(CASE WHEN pi.investment_status = 'confirmed' THEN pi.unit_purchased ELSE 0 END) AS confirmed,
+                      SUM(CASE WHEN ${heldSql('pi', 'b')} THEN pi.unit_purchased ELSE 0 END) AS pending
+                 FROM project_investors pi
+                 LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+                GROUP BY pi.id_projects
            ) l ON l.id_projects = p.id_projects
           ${ids ? 'WHERE p.id_projects IN (:ids)' : ''}
           ORDER BY p.id_projects DESC`,
@@ -110,6 +125,39 @@ export async function projectCapacities(ids?: number[], loads?: PartnerLoad[]): 
     );
 }
 
+/**
+ * Units that use capacity in a project (paid + held), optionally for one
+ * investor, and leaving out one booking or one line (the booking being
+ * confirmed, or the matured line a reinvestment replaces).
+ */
+export async function unitsUsed(
+    args: { idProjects: number; idUsers?: number; excludeBooking?: number; excludeLine?: number },
+    transaction?: Transaction,
+): Promise<number> {
+    const where = [`pi.id_projects = :idProjects`, usesCapacity('pi', 'b')];
+    const replacements: Record<string, unknown> = { idProjects: args.idProjects };
+    if (args.idUsers) {
+        where.push('pi.id_users = :idUsers');
+        replacements.idUsers = args.idUsers;
+    }
+    if (args.excludeBooking) {
+        where.push('(pi.id_project_investment_bookings IS NULL OR pi.id_project_investment_bookings <> :excludeBooking)');
+        replacements.excludeBooking = args.excludeBooking;
+    }
+    if (args.excludeLine) {
+        where.push('pi.id_project_investors <> :excludeLine');
+        replacements.excludeLine = args.excludeLine;
+    }
+    const rows = await sequelize.query<{ units: unknown }>(
+        `SELECT IFNULL(SUM(pi.unit_purchased), 0) AS units
+           FROM project_investors pi
+           LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+          WHERE ${where.join(' AND ')}`,
+        { replacements, type: QueryTypes.SELECT, transaction },
+    );
+    return n(rows[0]?.units);
+}
+
 export type BookingLineInput = {
     idProjects: number;
     unitPurchased: number;
@@ -131,6 +179,11 @@ export type PlannedLine = {
  * fit is refused rather than quietly changed. An investor's booking is placed
  * wherever there is room, because the partner shown at checkout is tentative.
  *
+ * Every limit counts paid units AND units held by other unpaid bookings that
+ * are still within their payment window (utils/bookingHolds.ts): the project
+ * total, the per-investor limit, and each partner's room. Units are placed
+ * only where nobody holds them.
+ *
  * Amounts are worked out here from the project's price. The client's figure
  * is not trusted: it is what investors later see as the money they put in.
  */
@@ -145,17 +198,21 @@ export async function planBooking(lines: BookingLineInput[], idUsers: number, tr
     const projectById = new Map(projects.map((p: any) => [Number(p.idProjects), p]));
     const loads = await partnerLoads(ids, transaction);
 
-    const confirmedRows = await ProjectInvestor.findAll({
-        where: { idProjects: ids, investmentStatus: 'confirmed' },
-        attributes: ['idProjects', 'idUsers', 'unitPurchased'],
-        transaction,
-    });
-    const confirmedIn = new Map<number, number>();
+    // Paid + held, per project and per investor.
+    const usedRows = await sequelize.query<{ idProjects: unknown; idUsers: unknown; units: unknown }>(
+        `SELECT pi.id_projects AS idProjects, pi.id_users AS idUsers, SUM(pi.unit_purchased) AS units
+           FROM project_investors pi
+           LEFT JOIN project_investment_bookings b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+          WHERE pi.id_projects IN (:ids) AND ${usesCapacity('pi', 'b')}
+          GROUP BY pi.id_projects, pi.id_users`,
+        { replacements: { ids }, type: QueryTypes.SELECT, transaction },
+    );
+    const usedIn = new Map<number, number>();
     const heldBy = new Map<number, number>();
-    for (const row of confirmedRows as any[]) {
+    for (const row of usedRows) {
         const id = Number(row.idProjects);
-        confirmedIn.set(id, (confirmedIn.get(id) ?? 0) + n(row.unitPurchased));
-        if (Number(row.idUsers) === idUsers) heldBy.set(id, (heldBy.get(id) ?? 0) + n(row.unitPurchased));
+        usedIn.set(id, (usedIn.get(id) ?? 0) + n(row.units));
+        if (Number(row.idUsers) === idUsers) heldBy.set(id, (heldBy.get(id) ?? 0) + n(row.units));
     }
 
     const inThisBooking = new Map<number, number>();
@@ -170,15 +227,17 @@ export async function planBooking(lines: BookingLineInput[], idUsers: number, tr
 
         const already = inThisBooking.get(idProjects) ?? 0;
         const total = n(project.totalAvailableUnits);
-        const confirmed = confirmedIn.get(idProjects) ?? 0;
-        if (total > 0 && confirmed + already + units > total) {
-            throw new CapacityError(`${name} has ${Math.max(0, total - confirmed - already)} unit(s) left.`, 400, 'PROJECT_CAPACITY');
+        const used = usedIn.get(idProjects) ?? 0;
+        if (total > 0 && used + already + units > total) {
+            throw new CapacityError(`${name} has ${Math.max(0, total - used - already)} unit(s) left.`, 400, 'PROJECT_CAPACITY');
         }
         const perInvestor = n(project.investorUnitCapacity);
         if (perInvestor > 0) {
+            // Paid and booked-but-unpaid alike, so several unpaid bookings
+            // cannot each pass the limit on their own.
             const held = heldBy.get(idProjects) ?? 0;
             if (held + already + units > perInvestor) {
-                throw new CapacityError(`The limit in ${name} is ${perInvestor} unit(s) per investor, and ${held + already} are already held.`, 400, 'INVESTOR_CAPACITY');
+                throw new CapacityError(`The limit in ${name} is ${perInvestor} unit(s) per investor, and ${held + already} are already booked.`, 400, 'INVESTOR_CAPACITY');
             }
         }
 
@@ -198,15 +257,15 @@ export async function planBooking(lines: BookingLineInput[], idUsers: number, tr
             for (const r of requested) {
                 const p = partners.find((x) => x.idProjectPartners === r.idProjectPartners);
                 if (!p) throw new CapacityError(`That partner is not on ${name}.`);
-                if (p.capacity > 0 && p.confirmed + r.units > p.capacity) {
-                    throw new CapacityError(`${p.fullName} can take ${Math.max(0, p.capacity - p.confirmed)} more unit(s) on ${name}.`, 400, 'PARTNER_CAPACITY');
+                if (p.capacity > 0 && p.confirmed + p.pending + r.units > p.capacity) {
+                    throw new CapacityError(`${p.fullName} can take ${Math.max(0, p.capacity - p.confirmed - p.pending)} more unit(s) on ${name}.`, 400, 'PARTNER_CAPACITY');
                 }
             }
         }
 
-        const fit = fitAllocation(partners, units, requested, { keepWithin: opts.strict ? 'confirmed' : 'reserved' });
+        const fit = fitAllocation(partners, units, requested);
         if (fit.shortfall > 0) {
-            const room = partners.reduce((sum, p) => sum + (p.capacity > 0 ? Math.max(0, p.capacity - p.confirmed) : units), 0);
+            const room = partners.reduce((sum, p) => sum + (p.capacity > 0 ? Math.max(0, p.capacity - p.confirmed - p.pending) : units), 0);
             throw new CapacityError(`${name} has room for ${room} more unit(s) with its partners.`, 400, 'PARTNER_CAPACITY');
         }
 
@@ -231,12 +290,17 @@ export type PartnerMove = { from: string; to: string; units: number };
 /**
  * Before a line is confirmed: does each partner still have room for it?
  *
+ * Room is what is left after paid units and the holds of OTHER bookings still
+ * within their payment window. A booking confirmed within its own window
+ * always fits, because its units were held for it. One confirmed after its
+ * deadline fits only where there is genuinely free room.
+ *
  * Returns null when it fits. When it does not and the units can go elsewhere,
  * it refuses with the proposed moves unless `rebalance` is set, in which case
  * it applies them and returns what moved.
  */
 export async function settleLinePartners(
-    line: { idProjectInvestors: number; idProjects: number; unitPurchased: number },
+    line: { idProjectInvestors: number; idProjects: number; unitPurchased: number; idProjectInvestmentBookings: number },
     projectName: string,
     rebalance: boolean,
     transaction: Transaction,
@@ -249,20 +313,17 @@ export async function settleLinePartners(
     const own = new Map<number, number>();
     for (const r of rows) own.set(Number(r.idProjectPartners), (own.get(Number(r.idProjectPartners)) ?? 0) + n(r.investedUnit));
 
-    // This line's own units are still counted as pending; they must not block it.
-    const loads = (await partnerLoads([line.idProjects], transaction)).map((l) => ({
-        ...l,
-        pending: Math.max(0, l.pending - (own.get(l.idProjectPartners) ?? 0)),
-    }));
+    // This booking's own holds are left out: they must not block it.
+    const loads = await partnerLoads([line.idProjects], transaction, { excludeBooking: line.idProjectInvestmentBookings });
     const name = (id: number) => loads.find((l) => l.idProjectPartners === id)?.fullName ?? `Partner #${id}`;
     const fits = Array.from(own.entries()).every(([id, units]) => {
         const p = loads.find((l) => l.idProjectPartners === id);
-        return Boolean(p) && (p!.capacity === 0 || p!.confirmed + units <= p!.capacity);
+        return Boolean(p) && (p!.capacity === 0 || p!.confirmed + p!.pending + units <= p!.capacity);
     });
     if (fits) return null;
 
     const requested = Array.from(own.entries()).map(([idProjectPartners, units]) => ({ idProjectPartners, units }));
-    const fit = fitAllocation(loads, n(line.unitPurchased), requested, { keepWithin: 'confirmed' });
+    const fit = fitAllocation(loads, n(line.unitPurchased), requested);
     if (fit.shortfall > 0) {
         throw new CapacityError(
             `${projectName}: the partners have no room for ${fit.shortfall} of these ${n(line.unitPurchased)} unit(s). Increase a partner's capacity in Partner assignment, then confirm again.`,
