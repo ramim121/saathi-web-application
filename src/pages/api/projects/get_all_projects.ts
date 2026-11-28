@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { Project, ProjectPartner, File, ProjectCategory, ProjectProperty } from '@/models/__associations'
 import { Op } from 'sequelize'
 import sequelize from '@/config/db';
+import { projectHasRoomHaving, projectUnitAttributes } from '@/utils/bookingHolds';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -88,29 +89,7 @@ export default async function handler(
 				],
 				attributes: {
 					include: [
-						[
-							sequelize.literal(`(
-                                SELECT COALESCE(SUM(unit_purchased), 0)
-                                FROM project_investors AS ppi
-                                WHERE ppi.id_projects = Project.id_projects
-								AND ppi.investment_status = 'confirmed'
-                            )`),
-							'totalInvestedUnits'
-						],
-						[
-							sequelize.literal(`
-				                CASE
-				                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-				                        SELECT COALESCE(SUM(unit_purchased), 0)
-				                        FROM project_investors AS ppi
-				                        WHERE ppi.id_projects = Project.id_projects
-										AND ppi.investment_status = 'confirmed'
-				                    )
-				                    ELSE NULL
-				                END
-				            `),
-							'totalRemainingUnits'
-						],
+						...projectUnitAttributes(),
 						[
 							sequelize.literal(`(
 								SELECT COUNT(*)
@@ -122,9 +101,8 @@ export default async function handler(
 						]
 					]
 				},
-				having: sequelize.literal(`
-					(totalAvailableUnits = 0 OR totalInvestedUnits < totalAvailableUnits)
-				`),
+				// Full projects are hidden: paid and held units both count (utils/bookingHolds.ts).
+				having: projectHasRoomHaving(),
 				where: whereClause,
 				order: [
 					[sequelize.literal(`CASE WHEN projectType = 'special' THEN 0 ELSE 1 END`), 'ASC'],

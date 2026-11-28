@@ -1,3 +1,4 @@
+import { literal } from 'sequelize';
 import { BOOKING_PAYMENT_WINDOW_DAYS } from '@/config/constants';
 import { bookingState, dueDateFor, effectiveDue, type BookingState } from '@/utils/bookingHoldsShared';
 
@@ -81,6 +82,31 @@ export function partnerUnitsSql(partnerRef: string, kind: UnitsKind): string {
 export function projectRemainingSql(projectRef: string, totalRef: string): string {
     return `CASE WHEN ${totalRef} != 0 THEN GREATEST(0, ${totalRef} - ${projectUnitsSql(projectRef, 'used')}) ELSE NULL END`;
 }
+
+type Attr = [ReturnType<typeof literal>, string];
+
+/**
+ * Unit fields for a project in a Sequelize `attributes.include`:
+ * `totalInvestedUnits` (paid, as before), `totalRemainingUnits` (now total −
+ * paid − held), and `paidUnits`, `reservedUnits`, `availableUnits`.
+ */
+export function projectUnitAttributes(opts: { remaining?: boolean; projectRef?: string; totalRef?: string } = {}): Attr[] {
+    const projectRef = opts.projectRef ?? 'Project.id_projects';
+    const totalRef = opts.totalRef ?? 'Project.total_available_units';
+    const attrs: Attr[] = [
+        [literal(projectUnitsSql(projectRef, 'paid')), 'totalInvestedUnits'],
+        [literal(projectUnitsSql(projectRef, 'paid')), 'paidUnits'],
+        [literal(projectUnitsSql(projectRef, 'held')), 'reservedUnits'],
+    ];
+    if (opts.remaining !== false) {
+        attrs.push([literal(projectRemainingSql(projectRef, totalRef)), 'totalRemainingUnits']);
+        attrs.push([literal(projectRemainingSql(projectRef, totalRef)), 'availableUnits']);
+    }
+    return attrs;
+}
+
+/** HAVING for lists that hide full projects; needs `projectUnitAttributes()` in the select. */
+export const projectHasRoomHaving = () => literal('(totalAvailableUnits = 0 OR paidUnits + reservedUnits < totalAvailableUnits)');
 
 /** Fields added to booking responses: the deadline and the derived state. */
 export function holdFields(b: {

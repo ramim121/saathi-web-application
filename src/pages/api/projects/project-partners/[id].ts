@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { User, File, ProjectPartner } from '@/models/__associations';
 import sequelize from 'sequelize';
+import { heldSql, partnerUnitsSql } from '@/utils/bookingHolds';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -48,21 +49,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             )`),
                             'confirmedUnits'
                         ],
-                        [
-                            sequelize.literal(`(
-                                SELECT COALESCE(SUM(ppi.invested_unit), 0)
-                                FROM project_partner_investors AS ppi
-                                JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
-                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'booked'
-                            )`),
-                            'pendingUnits'
-                        ],
+                        // Units held by unpaid bookings still within their payment window.
+                        [sequelize.literal(partnerUnitsSql('ProjectPartner.id_project_partners', 'held')), 'pendingUnits'],
                         [
                             sequelize.literal(`(
                                 SELECT COUNT(*)
                                 FROM project_partner_investors AS ppi
                                 JOIN project_investors AS pi ON ppi.id_project_investors = pi.id_project_investors
-                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'booked'
+                                LEFT JOIN project_investment_bookings AS b ON b.id_project_investment_bookings = pi.id_project_investment_bookings
+                                WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND ${heldSql('pi', 'b')}
                             )`),
                             'investorAlreadyBookedCount'
                         ]
@@ -70,8 +65,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
                 // By units. This compared the NUMBER of bookings with a capacity in
                 // units, so a partner holding one 50-unit booking of 50 still looked free.
+                // Paid and held units both use room (utils/bookingHolds.ts).
                 having: sequelize.literal(`
-                    (partnerUnitCapacity = 0 OR confirmedUnits < partnerUnitCapacity)
+                    (partnerUnitCapacity = 0 OR confirmedUnits + pendingUnits < partnerUnitCapacity)
                 `),
                 order: [
                     [sequelize.literal('confirmedUnits + pendingUnits'), 'ASC'],

@@ -12,6 +12,7 @@ import {
 } from '@/models/__associations';
 import { withCors, requireUser, type AuthContext } from '@/utils/auth';
 import { publicPartnerAttributes } from '@/utils/publicFields';
+import { holdFields } from '@/utils/bookingHolds';
 
 /**
  * The signed-in investor's portfolio — the website's "My investments" source.
@@ -99,7 +100,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                 projectEndDate = endDate.toISOString().split('T')[0];
             }
 
-            return { ...investment.toJSON(), projectStartDate, projectEndDate };
+            const json = investment.toJSON();
+            // The booking's payment deadline and derived state (utils/bookingHolds.ts).
+            if (json.ProjectInvestmentBooking) json.ProjectInvestmentBooking = { ...json.ProjectInvestmentBooking, ...holdFields(json.ProjectInvestmentBooking) };
+            return { ...json, projectStartDate, projectEndDate };
         });
 
         // What the investor asked for on payout-due lines (see payout-request.ts):

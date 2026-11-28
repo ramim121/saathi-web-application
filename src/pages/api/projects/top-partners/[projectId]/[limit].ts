@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { User, File, ProjectPartner } from '@/models/__associations';
 import sequelize from 'sequelize';
 import { publicPartnerAttributes } from '@/utils/publicFields';
+import { partnerUnitsSql } from '@/utils/bookingHolds';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     if (req.method === 'GET') {
@@ -48,11 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 WHERE ppi.id_project_partners = ProjectPartner.id_project_partners AND pi.investment_status = 'confirmed'
                             )`),
                             'confirmedUnits'
-                        ]
+                        ],
+                        // Units held by unpaid bookings still within their payment window.
+                        [sequelize.literal(partnerUnitsSql('ProjectPartner.id_project_partners', 'held')), 'reservedUnits']
                     ]
                 },
                 having: sequelize.literal(`
-                    (partnerUnitCapacity = 0 OR confirmedUnits < partnerUnitCapacity)
+                    (partnerUnitCapacity = 0 OR confirmedUnits + reservedUnits < partnerUnitCapacity)
                 `),
                 order: [
                     [sequelize.literal('confirmedUnits'), 'ASC'],

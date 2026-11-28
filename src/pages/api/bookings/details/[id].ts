@@ -3,6 +3,9 @@ import { ProjectInvestmentBooking, ProjectInvestor, ProjectPartnerInvestor, Proj
 import sequelize from '@/config/db';
 import { withCors, requireUser, canAccess, type AuthContext } from '@/utils/auth';
 import { publicPartnerAttributes } from '@/utils/publicFields';
+import { holdFields, partnerUnitsSql } from '@/utils/bookingHolds';
+
+const BOOKING_PARTNER = '`ProjectInvestors->ProjectPartnerInvestors->ProjectPartner`.id_project_partners';
 // WHERE ppi.id_project_partners = ProjectPartner.id_project_partners
 
 /**
@@ -54,18 +57,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
                                                 )`),
                                                 'alreadyInvestedUnits'
                                             ],
-                                            [
-                                                sequelize.literal(`(
-                                                    partner_unit_capacity - (
-                                                        SELECT IFNULL(SUM(invested_unit),0)
-                                                        FROM project_partner_investors AS ppi
-                                                        LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                                                        WHERE ppi.id_project_partners = \`ProjectInvestors->ProjectPartnerInvestors->ProjectPartner\`.id_project_partners
-                                                        AND pi.investment_status = 'confirmed'
-                                                    )
-                                                )`),
-                                                'remainingCapacity'
-                                            ]
+                                            // Room left: paid units and live holds both count (utils/bookingHolds.ts).
+                                            [sequelize.literal(`(partner_unit_capacity - ${partnerUnitsSql(BOOKING_PARTNER, 'used')})`), 'remainingCapacity'],
+                                            [sequelize.literal(partnerUnitsSql(BOOKING_PARTNER, 'held')), 'reservedUnits']
                                         ],
                                         include: [
                                             {
@@ -191,6 +185,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse, auth: AuthCont
             return res.status(200).json({
                 success: true, data: {
                     ...resultMain,
+                    // The payment deadline (Dhaka end of day, in UTC) and the derived state.
+                    ...holdFields(resultMain),
                     reinvestmentSource,
                     ProjectInvestors:
                         resultMain.ProjectInvestors.map((projectInvestor: any) => {

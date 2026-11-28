@@ -7,11 +7,41 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import Cors from 'micro-cors';
 import ProjectProperty from '@/models/ProjectProperty';
+import { partnerUnitsSql, projectRemainingSql, projectUnitsSql } from '@/utils/bookingHolds';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
+/*
+ * Units use capacity when paid or held by an unpaid booking still within its
+ * payment window (utils/bookingHolds.ts).
+ *
+ *   totalInvestedUnits   paid units (unchanged)
+ *   totalRemainingUnits  total - paid - held; NULL only when the project has
+ *                        no total. The app reads it as the project's room.
+ *   paidUnits, reservedUnits, availableUnits  the same, spelled out
+ *
+ * A partner's `alreadyInvestedUnits` is paid + held on the PUBLIC response:
+ * the shipped app's only use of it is the partner's room (capacity minus
+ * it), so installed builds show the right room with no app release. The
+ * admin response keeps paid units only. Both add `paidUnits` and
+ * `reservedUnits`.
+ */
+const PARTNER = 'ProjectPartners.id_project_partners';
+const partnerFields = (alreadyInvested: 'paid' | 'used'): [ReturnType<typeof sequelize.literal>, string][] => [
+    [sequelize.literal(partnerUnitsSql(PARTNER, alreadyInvested)), 'alreadyInvestedUnits'],
+    [sequelize.literal(partnerUnitsSql(PARTNER, 'paid')), 'paidUnits'],
+    [sequelize.literal(partnerUnitsSql(PARTNER, 'held')), 'reservedUnits'],
+];
+const projectUnitFields: [ReturnType<typeof sequelize.literal>, string][] = [
+    [sequelize.literal(projectUnitsSql('Project.id_projects', 'paid')), 'totalInvestedUnits'],
+    [sequelize.literal(projectRemainingSql('Project.id_projects', 'Project.total_available_units')), 'totalRemainingUnits'],
+    [sequelize.literal(projectUnitsSql('Project.id_projects', 'paid')), 'paidUnits'],
+    [sequelize.literal(projectUnitsSql('Project.id_projects', 'held')), 'reservedUnits'],
+    [sequelize.literal(projectRemainingSql('Project.id_projects', 'Project.total_available_units')), 'availableUnits'],
+];
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
     if (req.method === 'GET') {
@@ -47,15 +77,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                                     'updatedAt',
                                 ],
                                 include: [
-                                    [
-                                        sequelize.literal(`(
-                                        SELECT IFNULL(SUM(invested_unit),0)
-                                        FROM project_partner_investors AS ppi
-                                        LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                                        WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status = 'confirmed'
-                                    )`),
-                                        'alreadyInvestedUnits'
-                                    ],
+                                    ...partnerFields('used'),
                                 ]
                             },
                             include: [
@@ -85,27 +107,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     ],
                     attributes: {
                         include: [
-                            [
-                                sequelize.literal(`(
-								SELECT IFNULL(SUM(unit_purchased),0)
-								FROM project_investors AS ppi
-								WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
-							)`),
-                                'totalInvestedUnits'
-                            ],
-                            [
-                                sequelize.literal(`
-                                CASE
-                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-                                        SELECT IFNULL(SUM(unit_purchased),0)
-                                        FROM project_investors AS ppi
-                                        WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
-                                    )
-                                    ELSE NULL
-                                END
-                            `),
-                                'totalRemainingUnits'
-                            ]
+                            ...projectUnitFields
                         ]
                     },
                     where: {
@@ -154,15 +156,7 @@ export async function getProjectDetails(projectId: string) {
                         'updatedAt',
                     ],
                     include: [
-                        [
-                            sequelize.literal(`(
-                            SELECT IFNULL(SUM(invested_unit),0)
-                            FROM project_partner_investors AS ppi
-                            LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-                            WHERE ppi.id_project_partners = ProjectPartners.id_project_partners and pi.investment_status = 'confirmed'
-                        )`),
-                            'alreadyInvestedUnits'
-                        ],
+                        ...partnerFields('paid'),
                     ]
                 },
                 include: [
@@ -192,27 +186,7 @@ export async function getProjectDetails(projectId: string) {
         ],
         attributes: {
             include: [
-                [
-                    sequelize.literal(`(
-                    SELECT IFNULL(SUM(unit_purchased),0)
-                    FROM project_investors AS ppi
-                    WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
-                )`),
-                    'totalInvestedUnits'
-                ],
-                [
-                    sequelize.literal(`
-                    CASE
-                        WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-                            SELECT IFNULL(SUM(unit_purchased),0)
-                            FROM project_investors AS ppi
-                            WHERE ppi.id_projects = Project.id_projects AND ppi.investment_status = 'confirmed'
-                        )
-                        ELSE NULL
-                    END
-                `),
-                    'totalRemainingUnits'
-                ]
+                ...projectUnitFields
             ]
         },
         where: {

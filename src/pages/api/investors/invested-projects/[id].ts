@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { User, ProjectPartner, ProjectPartnerInvestor, Project, ProjectInvestor, ProjectInvestmentBooking, File, ProjectInvestmentBookingStatus } from '@/models/__associations';
 import { withCors, requireUser, canAccess } from '@/utils/auth';
 import { publicPartnerAttributes } from '@/utils/publicFields';
+import { holdFields } from '@/utils/bookingHolds';
 
 /**
  * An investor's investments — the app's My Investments, My Invested Projects
@@ -86,8 +87,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
                     }
                 }
 
+                const json = investment.toJSON();
+                // The booking's payment deadline and derived state (utils/bookingHolds.ts).
+                if (json.ProjectInvestmentBooking) json.ProjectInvestmentBooking = { ...json.ProjectInvestmentBooking, ...holdFields(json.ProjectInvestmentBooking) };
                 return {
-                    ...investment.toJSON(),
+                    ...json,
                     projectStartDate,
                     projectEndDate
                 };

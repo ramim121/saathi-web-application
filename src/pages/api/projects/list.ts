@@ -9,6 +9,7 @@ import { safeOrder } from '@/utils/order';
 import { searchTerm, searchWhere } from '@/utils/listSearch';
 import { projectCapacities } from '@/utils/partnerCapacity';
 import { matchesCapacityFilter } from '@/utils/partnerCapacityShared';
+import { projectUnitsSql } from '@/utils/bookingHolds';
 
 export default async function handler(
 	req: NextApiRequest,
@@ -123,20 +124,9 @@ export default async function handler(
 						AND ppi.investment_status = 'confirmed'
 					)`),
 						'alreadyInvested'],
-					[
-						sequelize.literal(`
-                                CASE
-                                    WHEN Project.total_available_units != 0 THEN Project.total_available_units - (
-                                        SELECT COALESCE(SUM(unit_purchased), 0)
-                                        FROM project_investors AS ppi
-                                        WHERE ppi.id_projects = Project.id_projects
-                                        AND ppi.investment_status = 'confirmed'
-                                    )
-                                    ELSE 0
-                                END
-                            `),
-						'totalRemainingUnits'
-					]
+					// Left = total - paid - held (utils/bookingHolds.ts); 0 when there is no total, as before.
+					[sequelize.literal(`CASE WHEN Project.total_available_units != 0 THEN GREATEST(0, Project.total_available_units - ${projectUnitsSql('Project.id_projects', 'used')}) ELSE 0 END`), 'totalRemainingUnits'],
+					[sequelize.literal(projectUnitsSql('Project.id_projects', 'held')), 'reservedUnits']
 				],
 				include: [
 					ProjectProperty,

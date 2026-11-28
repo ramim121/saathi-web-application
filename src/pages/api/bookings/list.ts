@@ -7,6 +7,7 @@ import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import { safeOrder } from '@/utils/order';
 import { likePattern, numberIn, searchTerm, sqlLike } from '@/utils/listSearch';
+import { holdFields } from '@/utils/bookingHolds';
 const cors = Cors({
 	origin: '*',
 	allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -133,7 +134,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 				});
 			}
 
-			return bookingPlain;
+			// The payment deadline and derived state (utils/bookingHolds.ts).
+			return { ...bookingPlain, ...holdFields(bookingPlain) };
 		});
 
 		res.status(200).json({

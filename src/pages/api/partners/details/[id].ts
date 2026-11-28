@@ -4,6 +4,7 @@ import sequelize from '@/config/db';
 import { QueryTypes } from 'sequelize';
 import { withCors, readAuth } from '@/utils/auth';
 import { publicPartnerAttributes } from '@/utils/publicFields';
+import { partnerUnitsSql } from '@/utils/bookingHolds';
 
 /**
  * A partner's profile and the projects they still have room on.
@@ -20,23 +21,24 @@ import { publicPartnerAttributes } from '@/utils/publicFields';
  */
 
 
-const roomLeft = sequelize.literal(`partner_unit_capacity > (
-    SELECT IFNULL(SUM(invested_unit),0)
-    FROM project_partner_investors AS ppi
-    LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-    WHERE ppi.id_project_partners = Partnerships.id_project_partners
-    AND pi.investment_status = "confirmed"
-)`);
+/*
+ * Units use capacity when paid or held by an unpaid booking still within its
+ * payment window (utils/bookingHolds.ts). A partnership is listed only while
+ * the partner has room left on it.
+ *
+ * `alreadyInvestedUnits`: the shipped app's only use of it is the partner's
+ * room (partnerUnitCapacity - alreadyInvestedUnits), so on the PUBLIC
+ * response it is paid + held, and installed builds show the right room with
+ * no app release. The admin response keeps paid units only. Both also carry
+ * `paidUnits` and `reservedUnits`.
+ */
+const PARTNERSHIP = 'Partnerships.id_project_partners';
+const roomLeft = sequelize.literal(`partner_unit_capacity > ${partnerUnitsSql(PARTNERSHIP, 'used')}`);
 
-const investedUnits: [ReturnType<typeof sequelize.literal>, string] = [
-    sequelize.literal(`(
-        SELECT IFNULL(SUM(invested_unit),0)
-        FROM project_partner_investors AS ppi
-        LEFT JOIN project_investors AS pi ON pi.id_project_investors = ppi.id_project_investors
-        WHERE ppi.id_project_partners = Partnerships.id_project_partners
-        AND pi.investment_status = 'confirmed'
-    )`),
-    'alreadyInvestedUnits'
+const unitFields = (alreadyInvested: 'paid' | 'used'): [ReturnType<typeof sequelize.literal>, string][] => [
+    [sequelize.literal(partnerUnitsSql(PARTNERSHIP, alreadyInvested)), 'alreadyInvestedUnits'],
+    [sequelize.literal(partnerUnitsSql(PARTNERSHIP, 'paid')), 'paidUnits'],
+    [sequelize.literal(partnerUnitsSql(PARTNERSHIP, 'held')), 'reservedUnits'],
 ];
 
 /**
@@ -132,7 +134,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
                         { model: PartnerAdditionalInfo, as: 'PartnerAdditionalInfo' },
                         {
                             model: ProjectPartner, as: 'Partnerships',
-                            attributes: ['partnerUnitCapacity', investedUnits],
+                            attributes: ['partnerUnitCapacity', ...unitFields('paid')],
                             include: [
                                 {
                                     model: Project, as: 'Project',
@@ -170,7 +172,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
                         { model: File, as: 'FeaturedImages' },
                         {
                             model: ProjectPartner, as: 'Partnerships',
-                            attributes: ['partnerUnitCapacity', investedUnits],
+                            attributes: ['partnerUnitCapacity', ...unitFields('used')],
                             include: [
                                 {
                                     model: Project, as: 'Project',
