@@ -4,9 +4,12 @@
  *
  * Words used throughout:
  *   capacity   units a partner can hold on a project (0 = no limit)
- *   confirmed  units with payment confirmed: the hard limit counts these
- *   pending    units booked and awaiting payment: they reserve room, but an
- *              unpaid booking must not be able to block a paying investor
+ *   confirmed  units with payment confirmed
+ *   pending    units held by unpaid bookings that are still within their
+ *              payment window or under review (utils/bookingHolds.ts). They
+ *              use capacity exactly like paid units: an expired booking stops
+ *              counting the moment its deadline passes, so a hold can no
+ *              longer block a paying investor for ever.
  */
 
 export type PartnerLoad = {
@@ -39,19 +42,23 @@ export function unitsLeft(p: Pick<PartnerLoad, 'capacity' | 'confirmed' | 'pendi
  *
  * What was requested stays where it is if it fits. Anything else goes round
  * robin within this booking: one unit to each partner with room, then a
- * second round, and so on — first into unreserved room, only then into room
- * held by unpaid bookings. Each round visits partners least-loaded first
+ * second round, and so on. Each round visits partners least-loaded first
  * (confirmed + pending before this booking), ties by id, so single-unit
  * bookings still spread across partners.
+ *
+ * Room is capacity − confirmed − pending: units go only where nobody holds
+ * them. Until the payment window (2026-11-28) a second pass spilled into room
+ * held by unpaid bookings, because those could hold units for ever; that let
+ * two investors book the same units and pay for them.
  *
  * (Until 2026-11-25 every unit went to whoever held the fewest units in
  * total, so a lightly booked partner took every unit until she caught up —
  * e.g. 6 of 7 to one farmer. Owners and investors expect the even
  * round-robin split the app always showed.)
  *
- * `keepWithin` decides what "fits" means for the request itself: `reserved`
- * for an investor's booking, `confirmed` for an admin's explicit choice or a
- * payment being confirmed.
+ * `keepWithin: 'confirmed'` is kept for old callers and means the same as the
+ * default now: pass loads whose `pending` holds only what must not be
+ * displaced (other bookings' live holds).
  */
 export function fitAllocation(
     partners: PartnerLoad[],
@@ -59,12 +66,11 @@ export function fitAllocation(
     requested: Allocation[] = [],
     opts: { keepWithin?: 'reserved' | 'confirmed' } = {},
 ): FitResult {
+    void opts;
     const state = partners.map((p) => ({ ...p, added: 0 }));
     const byId = new Map(state.map((s) => [s.idProjectPartners, s]));
     type Slot = (typeof state)[number];
-    const roomReserved = (s: Slot) => (s.capacity > 0 ? s.capacity - s.confirmed - s.pending - s.added : Number.POSITIVE_INFINITY);
-    const roomConfirmed = (s: Slot) => (s.capacity > 0 ? s.capacity - s.confirmed - s.added : Number.POSITIVE_INFINITY);
-    const keepRoom = opts.keepWithin === 'confirmed' ? roomConfirmed : roomReserved;
+    const room = (s: Slot) => (s.capacity > 0 ? s.capacity - s.confirmed - s.pending - s.added : Number.POSITIVE_INFINITY);
 
     // A request that does not add up to the units is ignored, not half-used.
     const requestedTotal = requested.reduce((sum, r) => sum + r.units, 0);
@@ -74,7 +80,7 @@ export function fitAllocation(
         for (const r of requested) {
             const slot = byId.get(r.idProjectPartners);
             if (!slot) continue;
-            const keep = Math.min(r.units, Math.max(0, keepRoom(slot)));
+            const keep = Math.min(r.units, Math.max(0, room(slot)));
             slot.added += keep;
             left -= keep;
         }
@@ -84,21 +90,17 @@ export function fitAllocation(
     const order = [...state].sort(
         (a, b) => a.confirmed + a.pending - (b.confirmed + b.pending) || a.idProjectPartners - b.idProjectPartners,
     );
-    const spread = (room: (s: Slot) => number) => {
-        while (left > 0) {
-            let placed = false;
-            for (const s of order) {
-                if (left <= 0) break;
-                if (room(s) <= 0) continue;
-                s.added += 1;
-                left -= 1;
-                placed = true;
-            }
-            if (!placed) return;
+    while (left > 0) {
+        let placed = false;
+        for (const s of order) {
+            if (left <= 0) break;
+            if (room(s) <= 0) continue;
+            s.added += 1;
+            left -= 1;
+            placed = true;
         }
-    };
-    spread(roomReserved);
-    spread(roomConfirmed);
+        if (!placed) break;
+    }
 
     return {
         allocations: state.filter((s) => s.added > 0).map((s) => ({ idProjectPartners: s.idProjectPartners, units: s.added })),
