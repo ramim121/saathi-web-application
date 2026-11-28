@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/config/constants';
 import JWTPayload from '@/types/JWTPayload';
 import BookingStatusEntry from '@/utils/BookingStatusEntry';
+import ProjectInvestorStatusEntry from '@/utils/ProjectInvestorStatusEntry';
 import { undoReinvestment } from '@/utils/reinvestmentServer';
 import Cors from 'micro-cors';
 
@@ -14,6 +15,9 @@ const cors = Cors({
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
     allowHeaders: ['X-Requested-With', 'Authorization', 'Content-Type'],
 });
+
+/** Lines a cancellation may close: money not yet in, or in and still running. */
+const CANCELLABLE_LINES = ['booked', 'confirmed', 'cancelled'];
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') { return res.status(200).end(); }
@@ -34,7 +38,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
         const transaction = await sequelize.transaction();
         try {
-            const booking = await ProjectInvestmentBooking.findByPk(idProjectInvestmentBookings);
+            // Read and locked INSIDE the transaction. It was read outside it,
+            // with no lock, so a cancel and a confirmation at the same moment
+            // could leave a booking both paid and cancelled; the expiry job
+            // now cancels bookings too.
+            const booking = await ProjectInvestmentBooking.findByPk(idProjectInvestmentBookings, { transaction, lock: transaction.LOCK.UPDATE });
             if (!booking) {
                 await transaction.rollback();
                 return res.status(404).json({ success: false, message: 'Booking not found' });
@@ -52,14 +60,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
              * A 404 rather than a 403 for everyone else, so this does not become
              * a way to discover which ids exist.
              */
-            if (userInfo.userType !== 'admin' && Number(booking.idUsers) !== Number(userInfo.idUsers)) {
+            const admin = userInfo.userType === 'admin';
+            if (!admin && Number(booking.idUsers) !== Number(userInfo.idUsers)) {
                 await transaction.rollback();
                 return res.status(404).json({ success: false, message: 'Booking not found' });
             }
 
             // Cancelling a booking that is already paid for is not a user
             // action — it needs a refund decision — so only an admin may do it.
-            if (userInfo.userType !== 'admin' && booking.paymentConfirmationStatus === 'confirmed') {
+            if (!admin && booking.paymentConfirmationStatus === 'confirmed') {
                 await transaction.rollback();
                 return res.status(400).json({
                     success: false,
@@ -72,17 +81,34 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(400).json({ success: false, message: 'This booking is already cancelled' });
             }
 
-            booking.cancelled = 'yes';
-            await booking.save({ transaction });
-
             const projectInvestor = await ProjectInvestor.findAll({
                 where: { idProjectInvestmentBookings: booking.idProjectInvestmentBookings! },
                 transaction,
             });
 
+            // A line that has matured, been paid out or rolled over is history:
+            // cancelling the booking used to overwrite it with `cancelled`.
+            const finished = projectInvestor.filter((line) => !CANCELLABLE_LINES.includes(String(line.investmentStatus)));
+            if (finished.length) {
+                await transaction.rollback();
+                return res.status(409).json({
+                    success: false,
+                    code: 'LINES_FINISHED',
+                    message: 'This booking has an investment that has matured, been paid out or rolled over, so the booking cannot be cancelled.',
+                });
+            }
+
+            booking.cancelled = 'yes';
+            booking.cancelReason = booking.bookingType === 'reinvestment' ? 'reinvestment_undone' : admin ? 'admin' : 'investor';
+            booking.cancelledAt = new Date();
+            booking.cancelledBy = userInfo.idUsers;
+            await booking.save({ transaction });
+
             for (const investor of projectInvestor) {
+                if (investor.investmentStatus === 'cancelled') continue;
                 investor.investmentStatus = 'cancelled';
                 await investor.save({ transaction });
+                await ProjectInvestorStatusEntry('cancelled', investor.idProjectInvestors as number, userInfo.idUsers, String(remarks).slice(0, 500), transaction);
             }
 
             // A reinvestment's money came from a matured investment: give it back
@@ -90,20 +116,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             // leaving it closed as "reinvested" into a booking that no longer exists.
             await undoReinvestment(booking as any, userInfo.idUsers, transaction);
 
-            if (booking.idProjectInvestmentBookings === undefined) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: 'Booking ID is undefined' });
-            }
-            const bookingStatus = await BookingStatusEntry('cancelled', booking.idProjectInvestmentBookings, userInfo.idUsers, remarks, transaction);
-            if (!bookingStatus) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: 'Error cancelling booking' });
-            }
+            await BookingStatusEntry('cancelled', booking.idProjectInvestmentBookings!, userInfo.idUsers, String(remarks).slice(0, 500), transaction);
 
             await transaction.commit();
             return res.status(200).json({ success: true, message: 'Booking cancelled successfully', data: booking });
         } catch (error) {
-            await transaction.rollback();
+            await transaction.rollback().catch(() => undefined);
             return res.status(400).json({ success: false, message: (error as Error).message });
         }
     } else {

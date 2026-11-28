@@ -15,6 +15,7 @@ import JWTPayload from '@/types/JWTPayload';
 import Cors from 'micro-cors';
 import sequelize from '@/config/db';
 import { PROOF_SUBMITTED_WRITE_VALUE } from '@/utils/bookingStatus';
+import { receiptBlocked } from '@/utils/receiptGuard';
 const s3Client = new S3Client({
     region: S3_BUCKET_REGION,
     credentials: {
@@ -72,24 +73,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({ success: false, message: errorMessage });
         }
 
-        const transaction = await sequelize.transaction();
         try {
-            const booking = await ProjectInvestmentBooking.findByPk(String(data.bookingId), { transaction });
-
+            const booking = await ProjectInvestmentBooking.findByPk(String(data.bookingId));
             if (!booking) {
-                await transaction.rollback();
                 return res.status(404).json({ success: false, message: 'Booking not found' });
+            }
+            // The same guard as the investor's upload route: no receipt on a
+            // confirmed, cancelled or expired booking. This route had none, so
+            // it could flip a confirmed booking back to "proof submitted".
+            const blocked = receiptBlocked(booking);
+            if (blocked) {
+                return res.status(409).json({ success: false, ...blocked });
             }
 
             if (!files['proofOfPayment']) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, message: 'Proof of payment is required' });
             }
 
             const proofOfPaymentFile = files['proofOfPayment'][0] as formidable.File;
 
             if (!['image/jpeg', 'image/png'].includes(proofOfPaymentFile.mimetype!)) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, message: `Invalid file type: ${proofOfPaymentFile.mimetype}. Only JPEG and PNG files are allowed.` });
             }
 
@@ -101,39 +104,46 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 Bucket: S3_BUCKET_NAME,
                 ContentType: proofOfPaymentFile.mimetype!,
                 // No public ACL. These are bank receipts, deposit slips and cheque
-
                 // images; they are read through /api/files/proof-of-payment/{bookingId},
-
                 // which checks ownership and issues a five-minute presigned URL.
                 Body: fs.createReadStream(proofOfPaymentFile.filepath),
                 Key: 'proof-of-payment/' + proofOfPaymentFileName
             };
 
+            // Upload first, then a short transaction: a database connection is
+            // not held for as long as the upload takes.
             const upload = new Upload({ client: s3Client, params });
-
-            upload.on('httpUploadProgress', (progress: any) => {
-                console.log(`Uploaded ${progress.loaded} of ${progress.total} bytes`);
-            });
-
             await upload.done();
 
-            booking.proofOfPayment = proofOfPaymentFileName;
-            booking.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
+            const transaction = await sequelize.transaction();
+            try {
+                // Re-read under a row lock: the booking may have been confirmed,
+                // cancelled or expired while the file was uploading.
+                const current = await ProjectInvestmentBooking.findByPk(booking.idProjectInvestmentBookings!, { transaction, lock: transaction.LOCK.UPDATE });
+                if (!current) {
+                    await transaction.rollback();
+                    return res.status(404).json({ success: false, message: 'Booking not found' });
+                }
+                const lateBlock = receiptBlocked(current);
+                if (lateBlock) {
+                    await transaction.rollback();
+                    return res.status(409).json({ success: false, ...lateBlock });
+                }
 
-            await booking.save({ transaction });
+                current.proofOfPayment = proofOfPaymentFileName;
+                current.paymentConfirmationStatus = PROOF_SUBMITTED_WRITE_VALUE;
+                await current.save({ transaction });
 
-            const bookingStatus = await BookingStatusEntry('proof_of_payment_uploaded', booking.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
-            if (!bookingStatus) {
-                await transaction.rollback();
-                throw new Error('Error updating booking status');
+                await BookingStatusEntry('proof_of_payment_uploaded', current.idProjectInvestmentBookings!, userInfo.idUsers, '', transaction);
+                await transaction.commit();
+            } catch (dbError) {
+                await transaction.rollback().catch(() => undefined);
+                throw dbError;
             }
-
-            await transaction.commit();
 
             return res.status(200).json({ success: true, message: 'Proof of payment uploaded successfully' });
         } catch (error) {
-            await transaction.rollback();
-            return res.status(400).json({ success: false, message: (error as Error).message });
+            if (!res.headersSent) return res.status(400).json({ success: false, message: (error as Error).message });
         }
     });
 }

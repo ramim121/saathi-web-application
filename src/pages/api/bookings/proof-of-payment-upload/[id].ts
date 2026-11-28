@@ -23,6 +23,8 @@ const s3Client = new S3Client({
 });
 import Cors from 'micro-cors';
 import { PROOF_SUBMITTED_WRITE_VALUE } from '@/utils/bookingStatus';
+// Cancelled, confirmed, and (since the payment window) expired bookings take no receipt.
+import { receiptBlocked } from '@/utils/receiptGuard';
 const cors = Cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS', 'PUT'],
@@ -62,24 +64,6 @@ const schema = Joi.object({
         otherwise: Joi.string().optional().allow(null, '')
     })
 }).unknown();
-
-/**
- * A receipt cannot be attached to a booking that is finished one way or the
- * other. Both used to be accepted: a second upload flipped a *confirmed*
- * booking back to "proof submitted" and reset its collection fields, and a
- * *cancelled* booking (units already released) took a receipt, inviting a
- * second payment for nothing. A denied booking may upload again; that is how
- * an investor answers a rejected receipt.
- */
-function receiptBlocked(booking: { cancelled?: string | null; paymentConfirmationStatus?: string | null }): { code: string; message: string } | null {
-    if (booking.cancelled === 'yes') {
-        return { code: 'BOOKING_CANCELLED', message: 'This booking was cancelled, so it no longer takes a payment receipt.' };
-    }
-    if (booking.paymentConfirmationStatus === 'confirmed') {
-        return { code: 'BOOKING_CONFIRMED', message: 'This booking is already confirmed. Contact DigiGram if its receipt needs to change.' };
-    }
-    return null;
-}
 
 function readToken(req: NextApiRequest): JWTPayload | null {
     const token = req.headers.authorization?.split(' ')[1];
