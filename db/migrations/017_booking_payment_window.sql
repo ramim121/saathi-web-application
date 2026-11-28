@@ -23,7 +23,7 @@
 --
 -- NOTIFICATION TEMPLATES (inserted if missing)
 --   booking_payment_reminder, booking_expired, booking_payment_window_notice.
---   booking_placed: the SMS no longer promises "3 days". It reads the real
+--   booking_placed: the SMS and the push text no longer promise "3 days". They read the real
 --   deadline, and falls back to plain text while older code (which does not
 --   pass dueText) is still running, so applying this before the deploy is safe.
 --
@@ -163,6 +163,10 @@ WHERE NOT EXISTS (SELECT 1 FROM `notification_templates` WHERE `notification_nam
 
 UPDATE `notification_templates`
 SET `sms_template` = 'Shathi booking ${data.bookingId} is placed. Please complete your payment as instructed, then submit proof ${data.dueText ? "by " + data.dueText : "within 5 days"}. The option is under My Investments.'
+WHERE `notification_name` = 'booking_placed';
+
+UPDATE `notification_templates`
+SET `push_notification_template` = 'Booking ${data.bookingId} is placed. Please complete your payment as instructed, then submit proof ${data.dueText ? "by " + data.dueText : "within 5 days"}. You can find the option under My Investments.'
 WHERE `notification_name` = 'booking_placed';
 
 -- Verify
