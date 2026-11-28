@@ -192,6 +192,39 @@ export const WEB_BASE_URL = optional(
   "https://new.digigramventures.com",
 ).replace(/\/+$/, "");
 
+/* ------------------------------------------------ booking payment window -- */
+
+/**
+ * Days an unpaid booking holds its units: it is due at the end of the Nth day
+ * after booking, Dhaka time. The computed date is stored on the booking, so
+ * changing this never moves an existing deadline.
+ */
+export const BOOKING_PAYMENT_WINDOW_DAYS = (() => {
+  const days = optionalNumber("BOOKING_PAYMENT_WINDOW_DAYS", 5);
+  if (!Number.isInteger(days) || days < 1 || days > 60) {
+    throw new Error(`BOOKING_PAYMENT_WINDOW_DAYS must be a whole number from 1 to 60, got: ${days}`);
+  }
+  return days;
+})();
+
+/**
+ * Bearer secret for POST api/cron/*. Empty = the cron routes answer 503, so
+ * nothing can trigger them until it is set.
+ */
+export const CRON_SECRET = optional("CRON_SECRET", "");
+
+/**
+ * The "System" admin account that the expiry job records as the actor in
+ * booking and line history. 0 = not set: the job refuses to make changes.
+ */
+export const SYSTEM_USER_ID = optionalNumber("SYSTEM_USER_ID", 0);
+
+/**
+ * Lets the cron routes take `?now=<ISO time>` to test expiry without waiting.
+ * Set "true" on staging only.
+ */
+export const CRON_ALLOW_NOW_OVERRIDE = optional("CRON_ALLOW_NOW_OVERRIDE", "false") === "true";
+
 /* ---------------------------------------------------------------- CORS --- */
 
 /**

@@ -43,6 +43,16 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('pending', 'uploaded', 'proof_submitted', 'confirmed', 'denied'),
         allowNull: false
     },
+    // Migration 017. UTC; the end of the payment window (see utils/bookingHolds.ts).
+    paymentDueAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    paymentRemindersSent: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0
+    },
     bookingId: {
         type: DataTypes.STRING,
         allowNull: true
@@ -79,6 +89,19 @@ const ProjectInvestmentBooking = sequelize.define<ProjectInvestmentBookingModel>
         type: DataTypes.ENUM('yes', 'no'),
         allowNull: false,
         defaultValue: 'no'
+    },
+    // Migration 017. NULL on bookings cancelled before it.
+    cancelReason: {
+        type: DataTypes.ENUM('investor', 'admin', 'expired', 'reinvestment_undone'),
+        allowNull: true
+    },
+    cancelledAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    cancelledBy: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     },
     bookingType: {
         type: DataTypes.ENUM('fresh', 'reinvestment'),
